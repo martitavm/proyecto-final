@@ -28,7 +28,7 @@ El objetivo principal es proporcionar una herramienta accesible y personalizable
 - **Base de datos:** PostgreSQL o SQLite para almacenamiento de datos.
 - **Control de versiones:** Git y GitHub.
 - **Entorno de desarrollo:** PyCharm.
-- Servidor para alojamiento de la aplicación (como AWS o DockerHub).
+- **Servidor para alojamiento de la aplicación:** AWS o DockerHub.
 
 ## Planificación (Una estimación inicial, esto puede cambiar)
 1. **Semana 1-2:** Análisis de requisitos y diseño de la estructura de datos.
