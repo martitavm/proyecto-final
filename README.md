@@ -13,8 +13,11 @@ El objetivo principal es proporcionar una herramienta accesible y personalizable
 ## Objetivos
 - Registrar y visualizar el ciclo menstrual y sus variaciones.
 - Registrar y visualizar síntomas y otro tipo de efectos del ciclo menstrual y hormonal.
+- Publicar artículos.
+- Chat implementado con ia para preguntas frecuentes o sugerencias (con warning).
+- Mascota interactiva al entrar en la aplicación web.
 - Calendario interactivo.
-- Permitir la personalización de alertas y recordatorios para medicaciones o citas médicas.
+- Permitir la personalización de alertas y recordatorios para medicaciones mediante avisos por email o sms.
 - Ofrecer gráficos y estadísticas para analizar patrones menstruales y hormonales.
 
 ## Medios hardware y software a utilizar
@@ -24,7 +27,7 @@ El objetivo principal es proporcionar una herramienta accesible y personalizable
 
 ### Software
 - **Lenguaje de programación:** Python con Django para el backend.
-- **Frontend:** HTML, CSS y JavaScript con Bootstrap.
+- **Frontend:** HTML, CSS y JavaScript con Bootstrap (puede que haga uso del framework angular, lo tengo que mirar bien).
 - **Base de datos:** PostgreSQL o SQLite para almacenamiento de datos.
 - **Control de versiones:** Git y GitHub.
 - **Entorno de desarrollo:** PyCharm.
