@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">Mi Perfil</h3>
+                        <div>
+                            <a href="{% url 'moiraflow:editar_perfil' object.pk %}" class="btn btn-sm btn-light me-2">
+                                <i class="bi bi-pencil-square"></i> Editar
+                            </a>
+                            <a href="{% url 'moiraflow:eliminar_perfil' object.pk %}" class="btn btn-sm btn-outline-light">
+                                <i class="bi bi-trash"></i> Eliminar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            {% if object.foto_perfil %}
+                                <img src="{{ object.foto_perfil.url }}" class="rounded-circle img-thumbnail mb-3" width="200" height="200" alt="Foto de perfil">
+                            {% else %}
+                                <img src="{% static 'images/default-profile.png' %}" class="rounded-circle img-thumbnail mb-3" width="200" height="200" alt="Foto de perfil predeterminada">
+                            {% endif %}
+
+                            <h5>{{ object.usuario.username }}</h5>
+                            {% if object.es_premium %}
+                                <span class="badge bg-warning text-dark">Premium</span>
+                            {% endif %}
+                            <span class="badge bg-info">{{ object.get_tipo_perfil_display }}</span>
+                        </div>
+
+                        <div class="col-md-8">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <h6>Fecha de Nacimiento</h6>
+                                    <p>{{ object.fecha_nacimiento|default:"No especificada" }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Género</h6>
+                                    <p>{{ object.genero|default:"No especificado" }}</p>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <h6>Duración ciclo promedio</h6>
+                                    <p>{{ object.duracion_ciclo_promedio }} días</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Duración período promedio</h6>
+                                    <p>{{ object.duracion_periodo_promedio }} días</p>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Miembro desde</h6>
+                                    <p>{{ object.fecha_creacion|date:"d/m/Y" }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Última actualización</h6>
+                                    <p>{{ object.fecha_actualizacion|date:"d/m/Y" }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

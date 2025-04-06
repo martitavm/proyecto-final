@@ -7,19 +7,37 @@ class Perfil(models.Model):
     """
     Modelo para almacenar información adicional del usuario.
     """
-    usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil')
+    TIPO_PERFIL_CHOICES = [
+        ('usuario', 'Usuario normal'),
+        ('autor', 'Autor/Artículos'),
+        ('administracion', 'Administración'),
+    ]
+
+    usuario = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, related_name='perfil')
+    foto_perfil = models.ImageField(upload_to="perfiles/", null=True, blank=True)
     fecha_nacimiento = models.DateField(null=True, blank=True)
     genero = models.CharField(max_length=50, blank=True)
     duracion_ciclo_promedio = models.PositiveIntegerField(default=28, help_text="Duración promedio del ciclo en días")
     duracion_periodo_promedio = models.PositiveIntegerField(default=5,
                                                             help_text="Duración promedio del período en días")
+    es_premium = models.BooleanField(default=False, help_text="Indica si el usuario tiene cuenta premium")
+    tipo_perfil = models.CharField(max_length=15, choices=TIPO_PERFIL_CHOICES, default='usuario')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Perfil de {self.usuario.username}"
 
+    @property
+    def es_autor(self):
+        return self.tipo_perfil == 'autor'
 
+    @property
+    def es_administrador(self):
+        return self.tipo_perfil == 'administracion'
+
+
+# Resto de los modelos permanecen igual...
 class CicloMenstrual(models.Model):
     """
     Modelo para registrar cada ciclo menstrual.
@@ -107,6 +125,7 @@ class RegistroDiario(models.Model):
         ordering = ['-fecha']
         unique_together = ['usuario', 'fecha']
 
+
 class Medicamento(models.Model):
     """
     Modelo para crear un catálogo de medicamentos.
@@ -142,6 +161,7 @@ class RegistroMedicamento(models.Model):
 
     class Meta:
         unique_together = ['registro_diario', 'medicamento']
+
 
 class Sintoma(models.Model):
     """
