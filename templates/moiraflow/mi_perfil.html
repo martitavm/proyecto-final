@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-lg">
+                <!-- Header con foto -->
+                <div class="card-header bg-primary text-white py-4">
+                    <div class="d-flex align-items-center">
+                        <div class="me-4">
+                            {% if object.foto_perfil %}
+                                <img src="{{ object.foto_perfil.url }}" class="rounded-circle border border-4 border-white" width="100" height="100">
+                            {% else %}
+                                <img src="{% static 'images/default-profile.png' %}" class="rounded-circle border border-4 border-white" width="100" height="100">
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h2 class="mb-1">{{ object.usuario.username }}</h2>
+                            <span class="badge bg-info">{{ object.get_tipo_perfil_display }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Cuerpo -->
+                <div class="card-body p-4">
+                    <!-- ... (mantén tu contenido actual del perfil) ... -->
+                    
+                    <!-- Botón para admins -->
+                    {% if request.user.perfil.es_administrador %}
+                    <div class="mt-4 border-top pt-3">
+                        <a href="{% url 'moiraflow:lista_perfiles' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-people-fill me-2"></i> Gestionar todos los perfiles
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

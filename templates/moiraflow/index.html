@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    {% if user.is_authenticated %}
+        <!-- Contenido para usuarios logueados -->
+        <div class="text-center">
+            <h1>Bienvenid@ a Moiraflow, {{ user.username }}!</h1>
+            <p class="lead">Gestiona tu ciclo menstrual de manera inteligente</p>
+
+            <div class="row mt-5">
+                <div class="col-md-4 mb-4">
+                    <a href="{% url 'moiraflow:mi_perfil' %}" class="btn btn-primary btn-lg w-100">
+                        <i class="bi bi-person-circle"></i> Mi Perfil
+                    </a>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <a href="#" class="btn btn-success btn-lg w-100">
+                        <i class="bi bi-calendar-check"></i> Mi Calendario
+                    </a>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <a href="#" class="btn btn-info btn-lg w-100">
+                        <i class="bi bi-graph-up"></i> Estadísticas
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <!-- Esto no debería verse nunca gracias a la redirección -->
+        <div class="alert alert-warning">
+            Redirigiendo a login...
+        </div>
+        <meta http-equiv="refresh" content="0; url={% url 'moiraflow:login' %}">
+    {% endif %}
+</div>
+{% endblock %}

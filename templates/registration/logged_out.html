@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-info">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+
+            <h2>¡Sesión cerrada!</h2>
+            <p class="lead">Has salido de tu cuenta de forma segura.</p>
+            <a href="{% url 'moiraflow:login' %}" class="btn btn-primary mt-3">
+                Volver a iniciar sesión
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

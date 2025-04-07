@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Editar Perfil</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ form.non_field_errors }}
+
+                        <div class="mb-3 text-center">
+                            {% if form.foto_perfil.value %}
+                                <img src="{{ form.foto_perfil.value.url }}" class="rounded-circle mb-3" width="150" height="150" alt="Foto de perfil">
+                            {% else %}
+                                <img src="{% static 'images/default-profile.png' %}" class="rounded-circle mb-3" width="150" height="150" alt="Foto de perfil predeterminada">
+                            {% endif %}
+                            {{ form.foto_perfil }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.fecha_nacimiento.id_for_label }}" class="form-label">Fecha de Nacimiento</label>
+                            {{ form.fecha_nacimiento }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.genero.id_for_label }}" class="form-label">Género</label>
+                            {{ form.genero }}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.duracion_ciclo_promedio.id_for_label }}" class="form-label">Duración ciclo (días)</label>
+                                {{ form.duracion_ciclo_promedio }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.duracion_periodo_promedio.id_for_label }}" class="form-label">Duración período (días)</label>
+                                {{ form.duracion_periodo_promedio }}
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Actualizar Perfil</button>
+                            <a href="{% url 'moiraflow:mi_perfil' %}" class="btn btn-outline-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

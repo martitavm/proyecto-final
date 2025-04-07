@@ -1,0 +1,14 @@
+<!-- moiraflow/templates/moiraflow/eliminar_perfil.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="alert alert-danger">
+  <h2>¿Eliminar tu cuenta permanentemente?</h2>
+  <p>¡Esta acción no se puede deshacer! Se borrarán todos tus datos.</p>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Sí, eliminar mi cuenta</button>
+    <a href="{% url 'moiraflow:mi_perfil' %}" class="btn btn-secondary">Cancelar</a>
+  </form>
+</div>
+{% endblock %}
