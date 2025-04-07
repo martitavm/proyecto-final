@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <h2><i class="bi bi-person-plus me-2"></i> Crear Cuenta</h2>
+                    <p class="mb-0">Completa tus datos para registrarte</p>
+                </div>
+
+                <div class="card-body p-4 p-md-5">
+                    <!-- Mensajes -->
+                    {% if messages %}
+                    <div class="mb-4">
+                        {% for message in messages %}
+                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Formulario -->
+                    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        <div class="row g-3">
+                            <!-- Sección Foto de perfil -->
+                            <div class="col-12 text-center mb-3">
+                                <div class="position-relative d-inline-block">
+                                    <img id="previewFoto" src="{% static 'images/default-profile.png' %}"
+                                         class="rounded-circle border border-4 border-light shadow-sm"
+                                         width="120" height="120"
+                                         alt="Previsualización foto de perfil"
+                                         style="object-fit: cover;">
+                                    <label for="id_foto_perfil" class="btn btn-sm btn-secondary position-absolute bottom-0 end-0 rounded-circle">
+                                        <i class="bi bi-camera-fill"></i>
+                                    </label>
+                                    {{ form.foto_perfil }}
+                                </div>
+                            </div>
+
+                            <!-- Datos básicos -->
+                            <div class="col-md-6">
+                                <label for="id_username" class="form-label">Nombre de usuario*</label>
+                                {{ form.username }}
+                                <div class="invalid-feedback">
+                                    Por favor ingresa un nombre de usuario válido.
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="id_email" class="form-label">Correo electrónico*</label>
+                                {{ form.email }}
+                                <div class="invalid-feedback">
+                                    Por favor ingresa un email válido.
+                                </div>
+                            </div>
+
+                            <!-- Contraseñas -->
+                            <div class="col-md-6">
+                                <label for="id_password1" class="form-label">Contraseña*</label>
+                                {{ form.password1 }}
+                                <div class="invalid-feedback">
+                                    {{ form.password1.errors }}
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="id_password2" class="form-label">Confirmar contraseña*</label>
+                                {{ form.password2 }}
+                                <div class="invalid-feedback">
+                                    {{ form.password2.errors }}
+                                </div>
+                            </div>
+
+                            <!-- Tipo de cuenta -->
+                            <div class="col-md-6">
+                                <label for="id_tipo_perfil" class="form-label">Tipo de cuenta*</label>
+                                {{ form.tipo_perfil }}
+                            </div>
+
+                            <!-- Fecha nacimiento -->
+                            <div class="col-md-6">
+                                <label for="id_fecha_nacimiento" class="form-label">Fecha de nacimiento</label>
+                                {{ form.fecha_nacimiento }}
+                            </div>
+
+                            <!-- Género -->
+                            <div class="col-md-6">
+                                <label for="id_genero" class="form-label">Género</label>
+                                {{ form.genero }}
+                            </div>
+
+                            <!-- Mensaje para géneros sin ciclo menstrual -->
+                            <div id="mensaje-no-periodo" class="col-12 text-muted mb-3" style="display: none;">
+                                <i class="bi bi-info-circle"></i> Los campos de ciclo menstrual no son requeridos para tu género.
+                            </div>
+
+                            <!-- Datos del ciclo menstrual -->
+<div class="col-md-6 periodo-container" style="display: none;">
+    <label for="id_duracion_ciclo_promedio" class="form-label">Duración ciclo (días)</label>
+    <input type="number"
+           name="duracion_ciclo_promedio"
+           id="id_duracion_ciclo_promedio"
+           class="form-control periodo-field"
+           min="21"
+           max="45"
+           value="28"
+           {% if form.duracion_ciclo_promedio.field.required %}required{% endif %}>
+    <small class="form-text text-muted">Normalmente entre 21 y 45 días</small>
+</div>
+
+<div class="col-md-6 periodo-container" style="display: none;">
+    <label for="id_duracion_periodo_promedio" class="form-label">Duración período (días)</label>
+    <input type="number"
+           name="duracion_periodo_promedio"
+           id="id_duracion_periodo_promedio"
+           class="form-control periodo-field"
+           min="2"
+           max="10"
+           value="5"
+           {% if form.duracion_periodo_promedio.field.required %}required{% endif %}>
+    <small class="form-text text-muted">Normalmente entre 2 y 10 días</small>
+</div>
+
+                            <!-- Botón de envío -->
+                            <div class="col-12 mt-4">
+                                <button type="submit" class="btn btn-primary w-100 py-2">
+                                    <i class="bi bi-person-check me-2"></i> Registrarse
+                                </button>
+                            </div>
+
+                            <!-- Enlace a login -->
+                            <div class="col-12 text-center mt-3">
+                                <p class="mb-0">¿Ya tienes cuenta? <a href="{% url 'moiraflow:login' %}" class="text-primary">Inicia sesión</a></p>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script para previsualizar la foto -->
+<script>
+document.getElementById('id_foto_perfil').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('previewFoto').src = e.target.result;
+        }
+        reader.readAsDataURL(file);
+    }
+});
+
+// Función para mostrar/ocultar campos del ciclo menstrual
+function togglePeriodoFields(generoSeleccionado) {
+    const periodoContainers = document.querySelectorAll('.periodo-container');
+    const mensajeNoPeriodo = document.getElementById('mensaje-no-periodo');
+
+    // Mostrar solo si es femenino o femenino trans
+    const mostrar = ['femenino', 'femenino trans'].includes(generoSeleccionado);
+
+    periodoContainers.forEach(container => {
+        container.style.display = mostrar ? 'block' : 'none';
+    });
+
+    if (mensajeNoPeriodo) {
+        mensajeNoPeriodo.style.display = mostrar ? 'none' : 'block';
+    }
+}
+
+// Validación de campos
+(function () {
+    'use strict'
+    const forms = document.querySelectorAll('.needs-validation')
+    Array.from(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
+
+// Inicialización y event listener para el campo género
+document.addEventListener('DOMContentLoaded', function() {
+    const generoSelect = document.getElementById('id_genero');
+    if (generoSelect) {
+        // Configurar estado inicial
+        togglePeriodoFields(generoSelect.value);
+
+        // Añadir event listener para cambios
+        generoSelect.addEventListener('change', function() {
+            togglePeriodoFields(this.value);
+        });
+    }
+});
+</script>
+
+<style>
+    .card {
+        border-radius: 15px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    .form-control, .form-select {
+        border-radius: 8px;
+        padding: 10px 15px;
+        transition: all 0.3s ease;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    #previewFoto {
+        transition: all 0.3s ease;
+    }
+    #previewFoto:hover {
+        transform: scale(1.05);
+    }
+    .btn-secondary {
+        width: 35px;
+        height: 35px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .form-text {
+        font-size: 0.85rem;
+    }
+    .periodo-container {
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; max-height: 0; }
+        to { opacity: 1; max-height: 200px; }
+    }
+    .periodo-container[style*="block"] {
+        animation: fadeIn 0.4s ease-out;
+    }
+    #mensaje-no-periodo {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 8px;
+        border-left: 4px solid #6c757d;
+    }
+</style>
+{% endblock %}

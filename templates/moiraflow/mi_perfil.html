@@ -2,74 +2,39 @@
 {% load static %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container my-5">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="mb-0">Mi Perfil</h3>
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-lg">
+                <!-- Header con foto -->
+                <div class="card-header bg-primary text-white py-4">
+                    <div class="d-flex align-items-center">
+                        <div class="me-4">
+                            {% if object.foto_perfil %}
+                                <img src="{{ object.foto_perfil.url }}" class="rounded-circle border border-4 border-white" width="100" height="100">
+                            {% else %}
+                                <img src="{% static 'images/default-profile.png' %}" class="rounded-circle border border-4 border-white" width="100" height="100">
+                            {% endif %}
+                        </div>
                         <div>
-                            <a href="{% url 'moiraflow:editar_perfil' object.pk %}" class="btn btn-sm btn-light me-2">
-                                <i class="bi bi-pencil-square"></i> Editar
-                            </a>
-                            <a href="{% url 'moiraflow:eliminar_perfil' object.pk %}" class="btn btn-sm btn-outline-light">
-                                <i class="bi bi-trash"></i> Eliminar
-                            </a>
+                            <h2 class="mb-1">{{ object.usuario.username }}</h2>
+                            <span class="badge bg-info">{{ object.get_tipo_perfil_display }}</span>
                         </div>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4 text-center">
-                            {% if object.foto_perfil %}
-                                <img src="{{ object.foto_perfil.url }}" class="rounded-circle img-thumbnail mb-3" width="200" height="200" alt="Foto de perfil">
-                            {% else %}
-                                <img src="{% static 'images/default-profile.png' %}" class="rounded-circle img-thumbnail mb-3" width="200" height="200" alt="Foto de perfil predeterminada">
-                            {% endif %}
-
-                            <h5>{{ object.usuario.username }}</h5>
-                            {% if object.es_premium %}
-                                <span class="badge bg-warning text-dark">Premium</span>
-                            {% endif %}
-                            <span class="badge bg-info">{{ object.get_tipo_perfil_display }}</span>
-                        </div>
-
-                        <div class="col-md-8">
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <h6>Fecha de Nacimiento</h6>
-                                    <p>{{ object.fecha_nacimiento|default:"No especificada" }}</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6>Género</h6>
-                                    <p>{{ object.genero|default:"No especificado" }}</p>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <h6>Duración ciclo promedio</h6>
-                                    <p>{{ object.duracion_ciclo_promedio }} días</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6>Duración período promedio</h6>
-                                    <p>{{ object.duracion_periodo_promedio }} días</p>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6>Miembro desde</h6>
-                                    <p>{{ object.fecha_creacion|date:"d/m/Y" }}</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6>Última actualización</h6>
-                                    <p>{{ object.fecha_actualizacion|date:"d/m/Y" }}</p>
-                                </div>
-                            </div>
-                        </div>
+                
+                <!-- Cuerpo -->
+                <div class="card-body p-4">
+                    <!-- ... (mantén tu contenido actual del perfil) ... -->
+                    
+                    <!-- Botón para admins -->
+                    {% if request.user.perfil.es_administrador %}
+                    <div class="mt-4 border-top pt-3">
+                        <a href="{% url 'moiraflow:lista_perfiles' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-people-fill me-2"></i> Gestionar todos los perfiles
+                        </a>
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

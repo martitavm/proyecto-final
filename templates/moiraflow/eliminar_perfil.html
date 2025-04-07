@@ -1,27 +1,14 @@
-{% extends "base.html" %}
+<!-- moiraflow/templates/moiraflow/eliminar_perfil.html -->
+{% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-header bg-danger text-white">
-                    <h3 class="mb-0">Eliminar Perfil</h3>
-                </div>
-                <div class="card-body">
-                    <p class="lead">¿Estás seguro de que deseas eliminar el perfil de <strong>{{ object.usuario.username }}</strong>?</p>
-                    <p class="text-danger">Esta acción no se puede deshacer.</p>
-
-                    <form method="post">
-                        {% csrf_token %}
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-danger">Sí, Eliminar</button>
-                            <a href="{% url 'moiraflow:mi_perfil' %}" class="btn btn-outline-secondary">Cancelar</a>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="alert alert-danger">
+  <h2>¿Eliminar tu cuenta permanentemente?</h2>
+  <p>¡Esta acción no se puede deshacer! Se borrarán todos tus datos.</p>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Sí, eliminar mi cuenta</button>
+    <a href="{% url 'moiraflow:mi_perfil' %}" class="btn btn-secondary">Cancelar</a>
+  </form>
 </div>
 {% endblock %}
