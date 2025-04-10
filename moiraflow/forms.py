@@ -101,8 +101,8 @@ class RegistroCompletoForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Inicialmente ocultamos los campos si el género no es femenino
-        if self.initial.get('genero') not in ['femenino', 'femenino trans']:
+        # Inicialmente ocultamos los campos si el género no corresponde
+        if self.initial.get('genero') not in ['femenino', 'masculino trans']:
             self.fields['duracion_ciclo_promedio'].widget.attrs['style'] = 'display: none'
             self.fields['duracion_periodo_promedio'].widget.attrs['style'] = 'display: none'
 
@@ -119,8 +119,8 @@ class RegistroCompletoForm(UserCreationForm):
                 'genero': self.cleaned_data['genero'],
             }
 
-            # Solo guardamos los datos del ciclo si el género es femenino o femenino trans
-            if self.cleaned_data['genero'] in ['femenino', 'femenino trans']:
+            # Solo guardamos los datos del ciclo si el género es femenino o masculino trans
+            if self.cleaned_data['genero'] in ['femenino', 'masculino trans']:
                 perfil_data['duracion_ciclo_promedio'] = self.cleaned_data['duracion_ciclo_promedio']
                 perfil_data['duracion_periodo_promedio'] = self.cleaned_data['duracion_periodo_promedio']
             else:

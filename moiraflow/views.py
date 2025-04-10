@@ -119,6 +119,11 @@ class MiPerfilView(LoginRequiredMixin, DetailView):
     def get_object(self):
         return self.request.user.perfil
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['mostrar_datos_ciclo'] = self.object.genero in ['femenino', 'masculino trans']
+        return context
+
 class ListaPerfilesView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     template_name = 'moiraflow/lista_perfiles.html'
     model = Perfil
