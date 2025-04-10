@@ -1,14 +1,13 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Perfil
+from moiraflow.models import RegistroDiario, TratamientoHormonal, CicloMenstrual, Perfil
 
 
 class RegistroCompletoForm(UserCreationForm):
     GENERO_CHOICES = [
         ('', 'Seleccionar...'),
         ('femenino', 'Femenino'),
-        ('masculino', 'Masculino'),
         ('femenino trans', 'Femenino trans'),
         ('masculino trans', 'Masculino trans'),
     ]
@@ -23,7 +22,7 @@ class RegistroCompletoForm(UserCreationForm):
     # Campos de Perfil
     tipo_perfil = forms.ChoiceField(
         label="Tipo de Usuario",
-        choices=Perfil.TIPO_PERFIL_CHOICES,
+        choices=Perfil._meta.get_field('tipo_perfil').choices,
         widget=forms.Select(attrs={'class': 'form-select'}),
         initial='usuario'
     )
@@ -129,3 +128,64 @@ class RegistroCompletoForm(UserCreationForm):
 
             Perfil.objects.create(**perfil_data)
         return user
+
+
+# Formulario para registros diarios
+class RegistroDiarioForm(forms.ModelForm):
+    class Meta:
+        model = RegistroDiario
+        fields = ['es_dia_periodo', 'flujo_menstrual', 'medicacion_tomada',
+                  'hora_medicacion', 'estados_animo', 'dolor',
+                  'medicamentos', 'notas']
+        widgets = {
+            'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'hora_medicacion': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'estados_animo': forms.TextInput(
+                attrs={'placeholder': 'Ej: feliz, cansada, irritable', 'class': 'form-control'}),
+            'dolor': forms.NumberInput(attrs={'min': '0', 'max': '10', 'class': 'form-control'}),
+            'medicamentos': forms.TextInput(attrs={'class': 'form-control'}),
+            'notas': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        tipo_seguimiento = kwargs.pop('tipo_seguimiento', 'ninguno')
+        super(RegistroDiarioForm, self).__init__(*args, **kwargs)
+
+        # Modificar el formulario según el tipo de seguimiento
+        if tipo_seguimiento == 'ciclo_menstrual':
+            self.fields.pop('medicacion_tomada', None)
+            self.fields.pop('hora_medicacion', None)
+        elif tipo_seguimiento == 'tratamiento_hormonal':
+            self.fields.pop('es_dia_periodo', None)
+            self.fields.pop('flujo_menstrual', None)
+        elif tipo_seguimiento == 'ninguno':
+            self.fields.pop('es_dia_periodo', None)
+            self.fields.pop('flujo_menstrual', None)
+            self.fields.pop('medicacion_tomada', None)
+            self.fields.pop('hora_medicacion', None)
+
+
+class TratamientoHormonalForm(forms.ModelForm):
+    class Meta:
+        model = TratamientoHormonal
+        fields = ['nombre_tratamiento', 'fecha_inicio', 'fecha_fin',
+                  'dosis', 'frecuencia', 'notas']
+        widgets = {
+            'nombre_tratamiento': forms.TextInput(attrs={'class': 'form-control'}),
+            'fecha_inicio': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'fecha_fin': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'dosis': forms.TextInput(attrs={'class': 'form-control'}),
+            'frecuencia': forms.TextInput(attrs={'class': 'form-control'}),
+            'notas': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+        }
+
+
+class CicloMenstrualForm(forms.ModelForm):
+    class Meta:
+        model = CicloMenstrual
+        fields = ['fecha_inicio', 'fecha_fin', 'notas']
+        widgets = {
+            'fecha_inicio': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'fecha_fin': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'notas': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+        }

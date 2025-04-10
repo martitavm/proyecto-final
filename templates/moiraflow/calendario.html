@@ -1,0 +1,460 @@
+{% extends 'base.html' %}
+{% load moiraflow_tags %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center mb-4">Mi Calendario</h1>
+
+    <!-- Encabezado del calendario con navegación entre meses -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a href="{% url 'moiraflow:calendario' %}?year={{ prev_year }}&month={{ prev_month }}"
+           class="btn btn-outline-primary">
+            <i class="bi bi-chevron-left"></i> Mes anterior
+        </a>
+        <h2 class="mb-0">{{ month_name }} {{ year }}</h2>
+        <a href="{% url 'moiraflow:calendario' %}?year={{ next_year }}&month={{ next_month }}"
+           class="btn btn-outline-primary">
+            Mes siguiente <i class="bi bi-chevron-right"></i>
+        </a>
+    </div>
+
+    <!-- Información de ciclo o tratamiento actual -->
+    <div class="row mb-4">
+        {% if perfil.tipo_seguimiento in 'ciclo_menstrual,ambos' %}
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Ciclo Menstrual</h5>
+                </div>
+                <div class="card-body">
+                    {% if ciclo_actual %}
+                    <p>Fecha de inicio: {{ ciclo_actual.fecha_inicio }}</p>
+                    {% if ciclo_actual.fecha_fin %}
+                    <p>Fecha de fin: {{ ciclo_actual.fecha_fin }}</p>
+                    {% endif %}
+                    <p>Duración estimada: {{ ciclo_actual.duracion_estimada }} días</p>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
+                            data-bs-target="#nuevoCicloModal">
+                        Iniciar nuevo ciclo
+                    </button>
+                    {% else %}
+                    <p>No hay ciclo registrado actualmente.</p>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                            data-bs-target="#nuevoCicloModal">
+                        Registrar ciclo
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if perfil.tipo_seguimiento in 'tratamiento_hormonal,ambos' %}
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Tratamiento Hormonal</h5>
+                </div>
+                <div class="card-body">
+                    {% if tratamiento_activo %}
+                    <p>Medicamento: {{ tratamiento_activo.medicamento }}</p>
+                    <p>Dosis: {{ tratamiento_activo.dosis }}</p>
+                    <p>Inicio: {{ tratamiento_activo.fecha_inicio }}</p>
+                    <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal"
+                            data-bs-target="#nuevoTratamientoModal">
+                        Cambiar tratamiento
+                    </button>
+                    {% else %}
+                    <p>No hay tratamiento hormonal activo.</p>
+                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal"
+                            data-bs-target="#nuevoTratamientoModal">
+                        Registrar tratamiento
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Calendario -->
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                {% for day in weekdays %}
+                <th>{{ day }}</th>
+                {% endfor %}
+            </tr>
+            </thead>
+            <tbody>
+            {% for week in cal %}
+            <tr>
+                {% for day in week %}
+                <td class="text-center {% if day == 0 %}bg-light{% endif %}"
+                    {% if day %}
+                    data-bs-toggle="modal"
+                    data-bs-target="#registroDiarioModal"
+                    data-day="{{ day }}"
+                    data-month="{{ month }}"
+                    data-year="{{ year }}"
+                    style="cursor: pointer;"
+                    {% endif %}>
+                    {% if day != 0 %}
+                    <div class="day-number">{{ day }}</div>
+                    {% if day in registros_por_dia %}
+                    <div class="day-indicators">
+                        {% if registros_por_dia|get_item:day|get_item:'es_dia_periodo' %}
+                        <span class="badge bg-danger">Periodo</span>
+                        {% endif %}
+                        {% if registros_por_dia|get_item:day|get_item:'medicacion_tomada' %}
+                        <span class="badge bg-success">Med</span>
+                        {% endif %}
+                        {% if registros_por_dia|get_item:day|get_item:'estados_animo' %}
+                        <span class="badge bg-info">Ánimo</span>
+                        {% endif %}
+                        {% if registros_por_dia|get_item:day|get_item:'dolor' %}
+                        <span class="badge bg-warning">Dolor</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Botón de regreso -->
+    <div class="text-center mt-4">
+        <a href="{% url 'moiraflow:index' %}" class="btn btn-secondary">
+            <i class="bi bi-house"></i> Volver a inicio
+        </a>
+    </div>
+</div>
+
+<!-- Modal para Registro Diario -->
+<div class="modal fade" id="registroDiarioModal" tabindex="-1" aria-labelledby="registroDiarioModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="registroDiarioModalLabel">Registro del día</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="registroDiarioForm" action="{% url 'moiraflow:crear_registro' %}" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="fecha" id="fechaRegistro" value="">
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="esDiaPeriodo" name="es_dia_periodo">
+                                <label class="form-check-label" for="esDiaPeriodo">Es día de periodo</label>
+                            </div>
+                        </div>
+
+                        {% if perfil.tipo_seguimiento in 'ciclo_menstrual,ambos' %}
+                        <div class="col-md-6" id="flujoMenstrualDiv">
+                            <label for="flujoMenstrual" class="form-label">Flujo menstrual</label>
+                            <select class="form-select" id="flujoMenstrual" name="flujo_menstrual">
+                                <option value="">Seleccionar</option>
+                                <option value="ligero">Ligero</option>
+                                <option value="moderado">Moderado</option>
+                                <option value="abundante">Abundante</option>
+                                <option value="muy_abundante">Muy abundante</option>
+                            </select>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% if perfil.tipo_seguimiento in 'tratamiento_hormonal,ambos' %}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="medicacionTomada"
+                                       name="medicacion_tomada">
+                                <label class="form-check-label" for="medicacionTomada">Medicación tomada hoy</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="horaMedicacionDiv">
+                            <label for="horaMedicacion" class="form-label">Hora de medicación</label>
+                            <input type="time" class="form-control" id="horaMedicacion" name="hora_medicacion">
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="estadosAnimo" class="form-label">Estado(s) de ánimo</label>
+                        <select class="form-select" id="estadosAnimo" name="estados_animo" multiple>
+                            <option value="feliz">Feliz</option>
+                            <option value="triste">Triste</option>
+                            <option value="ansiosa">Ansiosa</option>
+                            <option value="irritable">Irritable</option>
+                            <option value="cansada">Cansada</option>
+                            <option value="energica">Energética</option>
+                            <option value="estable">Estable</option>
+                            <option value="sensible">Sensible</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="dolor" class="form-label">Nivel de dolor</label>
+                        <input type="range" class="form-range" id="dolor" name="dolor" min="0" max="10" step="1">
+                        <div class="d-flex justify-content-between">
+                            <span>Sin dolor</span>
+                            <span>Dolor severo</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="medicamentos" class="form-label">Medicamentos tomados</label>
+                        <input type="text" class="form-control" id="medicamentos" name="medicamentos"
+                               placeholder="Medicamentos para el dolor, etc.">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notas" class="form-label">Notas</label>
+                        <textarea class="form-control" id="notas" name="notas" rows="3"></textarea>
+                    </div>
+
+                    <div class="modal-footer" id="modalFooter">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="submit" class="btn btn-primary">Guardar registro</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Nuevo Ciclo -->
+<div class="modal fade" id="nuevoCicloModal" tabindex="-1" aria-labelledby="nuevoCicloModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nuevoCicloModalLabel">Nuevo Ciclo Menstrual</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{% url 'moiraflow:crear_ciclo' %}" method="post">
+                    {% csrf_token %}
+                    {{ ciclo_form.as_p }}
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar ciclo</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Nuevo Tratamiento -->
+<div class="modal fade" id="nuevoTratamientoModal" tabindex="-1" aria-labelledby="nuevoTratamientoModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nuevoTratamientoModalLabel">Nuevo Tratamiento Hormonal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{% url 'moiraflow:crear_tratamiento' %}" method="post">
+                    {% csrf_token %}
+                    {{ tratamiento_form.as_p }}
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar tratamiento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- JavaScript para manejar los modales -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Handler para el modal de registro diario
+        const registroDiarioModal = document.getElementById('registroDiarioModal');
+        registroDiarioModal.addEventListener('show.bs.modal', function (event) {
+            // Botón que activó el modal
+            const button = event.relatedTarget;
+
+            // Extraer información de los atributos data-*
+            const day = button.getAttribute('data-day');
+            const month = button.getAttribute('data-month');
+            const year = button.getAttribute('data-year');
+
+            // Actualizar el título del modal
+            const modalTitle = registroDiarioModal.querySelector('.modal-title');
+            modalTitle.textContent = `Registro del ${day}/${month}/${year}`;
+
+            // Establecer el valor del campo fecha oculto
+            const fechaRegistro = document.getElementById('fechaRegistro');
+            fechaRegistro.value = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
+            // Cargar datos del registro si existe
+            fetch(`/calendario/registro/${year}/${month}/${day}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.existe) {
+                        // Cambiar el formulario para editar en lugar de crear
+                        const form = document.getElementById('registroDiarioForm');
+                        form.action = `/calendario/registro/editar/${data.id}/`;
+
+                        // Añadir botón de eliminar
+                        const modalFooter = document.getElementById('modalFooter');
+                        if (!document.getElementById('btnEliminar')) {
+                            const btnEliminar = document.createElement('button');
+                            btnEliminar.id = 'btnEliminar';
+                            btnEliminar.type = 'button';
+                            btnEliminar.className = 'btn btn-danger';
+                            btnEliminar.textContent = 'Eliminar';
+                            btnEliminar.onclick = function () {
+                                if (confirm('¿Estás seguro de eliminar este registro?')) {
+                                    window.location.href = `/calendario/registro/eliminar/${data.id}/`;
+                                }
+                            };
+                            modalFooter.insertBefore(btnEliminar, modalFooter.firstChild);
+                        }
+
+                        // Rellenar los campos con los datos existentes
+                        document.getElementById('esDiaPeriodo').checked = data.es_dia_periodo;
+
+                        if (document.getElementById('flujoMenstrual')) {
+                            document.getElementById('flujoMenstrual').value = data.flujo_menstrual;
+                        }
+
+                        if (document.getElementById('medicacionTomada')) {
+                            document.getElementById('medicacionTomada').checked = data.medicacion_tomada;
+                        }
+
+                        if (document.getElementById('horaMedicacion') && data.hora_medicacion) {
+                            document.getElementById('horaMedicacion').value = data.hora_medicacion;
+                        }
+
+                        // Para los estados de ánimo (multiselect)
+                        if (data.estados_animo) {
+                            const estadosAnimo = document.getElementById('estadosAnimo');
+                            const estados = data.estados_animo.split(',');
+                            for (let i = 0; i < estadosAnimo.options.length; i++) {
+                                if (estados.includes(estadosAnimo.options[i].value)) {
+                                    estadosAnimo.options[i].selected = true;
+                                }
+                            }
+                        }
+
+                        if (data.dolor) {
+                            document.getElementById('dolor').value = data.dolor;
+                        }
+
+                        if (data.medicamentos) {
+                            document.getElementById('medicamentos').value = data.medicamentos;
+                        }
+
+                        if (data.notas) {
+                            document.getElementById('notas').value = data.notas;
+                        }
+                    } else {
+                        // Resetear el formulario para crear nuevo registro
+                        const form = document.getElementById('registroDiarioForm');
+                        form.action = "{% url 'moiraflow:crear_registro' %}";
+                        form.reset();
+
+                        // Eliminar botón de eliminar si existe
+                        const btnEliminar = document.getElementById('btnEliminar');
+                        if (btnEliminar) {
+                            btnEliminar.remove();
+                        }
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        });
+
+        // Mostrar/ocultar campos según selección
+        const esDiaPeriodo = document.getElementById('esDiaPeriodo');
+        const flujoMenstrualDiv = document.getElementById('flujoMenstrualDiv');
+
+        if (esDiaPeriodo && flujoMenstrualDiv) {
+            esDiaPeriodo.addEventListener('change', function () {
+                flujoMenstrualDiv.style.display = this.checked ? 'block' : 'none';
+            });
+        }
+
+        const medicacionTomada = document.getElementById('medicacionTomada');
+        const horaMedicacionDiv = document.getElementById('horaMedicacionDiv');
+
+        if (medicacionTomada && horaMedicacionDiv) {
+            medicacionTomada.addEventListener('change', function () {
+                horaMedicacionDiv.style.display = this.checked ? 'block' : 'none';
+            });
+        }
+    });
+</script>
+
+<style>
+    /* Estilos para el calendario */
+.table-responsive {
+    margin-bottom: 30px;
+}
+
+.table th {
+    text-align: center;
+    background-color: #f8f9fa;
+}
+
+.table td {
+    height: 100px;
+    padding: 5px;
+    vertical-align: top;
+}
+
+.day-number {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.day-indicators {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
+.badge {
+    font-size: 0.7em;
+}
+
+/* Estilos para los indicadores de día actual */
+.current-day {
+    background-color: rgba(0, 123, 255, 0.1);
+    border: 1px solid rgba(0, 123, 255, 0.5);
+}
+
+/* Efecto hover en celdas del calendario */
+.table td:not(.bg-light):hover {
+    background-color: #f0f0f0;
+}
+
+/* Estilos para los modales */
+.modal-lg {
+    max-width: 800px;
+}
+
+/* Estilos para los range inputs */
+.form-range::-webkit-slider-thumb {
+    background: #0d6efd;
+}
+
+.form-range::-moz-range-thumb {
+    background: #0d6efd;
+}
+</style>
+
+{% endblock %}
