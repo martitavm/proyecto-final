@@ -1,6 +1,8 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+
 from moiraflow.models import RegistroDiario, TratamientoHormonal, CicloMenstrual, Perfil
 
 
@@ -130,54 +132,125 @@ class RegistroCompletoForm(UserCreationForm):
         return user
 
 
-# Formulario para registros diarios
 class RegistroDiarioForm(forms.ModelForm):
     class Meta:
         model = RegistroDiario
-        fields = ['es_dia_periodo', 'flujo_menstrual', 'medicacion_tomada',
-                  'hora_medicacion', 'estados_animo', 'dolor',
-                  'medicamentos', 'notas']
+        fields = '__all__'
+        exclude = ['usuario', 'ciclo', 'tratamiento', 'fecha']
         widgets = {
-            'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'hora_medicacion': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
-            'estados_animo': forms.TextInput(
-                attrs={'placeholder': 'Ej: feliz, cansada, irritable', 'class': 'form-control'}),
-            'dolor': forms.NumberInput(attrs={'min': '0', 'max': '10', 'class': 'form-control'}),
-            'medicamentos': forms.TextInput(attrs={'class': 'form-control'}),
-            'notas': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'hora_medicacion': forms.TimeInput(
+                attrs={'type': 'time', 'class': 'form-control'},
+                format='%H:%M'
+            ),
+            'estados_animo': forms.SelectMultiple(
+                attrs={'class': 'form-control select2-multiple'},
+                choices=RegistroDiario.ESTADO_ANIMO_CHOICES
+            ),
+            'dolor_cabeza': forms.NumberInput(
+                attrs={'min': '0', 'max': '10', 'class': 'form-control'}
+            ),
+            'dolor_espalda': forms.NumberInput(
+                attrs={'min': '0', 'max': '10', 'class': 'form-control'}
+            ),
+            'fatiga': forms.NumberInput(
+                attrs={'min': '0', 'max': '10', 'class': 'form-control'}
+            ),
+            'notas': forms.Textarea(
+                attrs={'rows': 3, 'class': 'form-control'}
+            ),
+            'otros_sintomas': forms.Textarea(
+                attrs={'rows': 2, 'class': 'form-control'}
+            ),
+            'cambios_piel': forms.TextInput(
+                attrs={'class': 'form-control'}
+            ),
         }
 
     def __init__(self, *args, **kwargs):
         tipo_seguimiento = kwargs.pop('tipo_seguimiento', 'ninguno')
-        super(RegistroDiarioForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
-        # Modificar el formulario según el tipo de seguimiento
-        if tipo_seguimiento == 'ciclo_menstrual':
-            self.fields.pop('medicacion_tomada', None)
-            self.fields.pop('hora_medicacion', None)
-        elif tipo_seguimiento == 'tratamiento_hormonal':
-            self.fields.pop('es_dia_periodo', None)
-            self.fields.pop('flujo_menstrual', None)
-        elif tipo_seguimiento == 'ninguno':
-            self.fields.pop('es_dia_periodo', None)
-            self.fields.pop('flujo_menstrual', None)
-            self.fields.pop('medicacion_tomada', None)
-            self.fields.pop('hora_medicacion', None)
+        # Campos comunes para todos
+        campos_comunes = [
+            'dolor_cabeza', 'dolor_espalda', 'fatiga',
+            'estados_animo', 'cambios_apetito', 'insomnio',
+            'medicamentos', 'notas', 'otros_sintomas'
+        ]
+
+        # Ocultar campos no relevantes según el tipo de seguimiento
+        for field_name in list(self.fields.keys()):
+            if field_name not in campos_comunes:
+                if tipo_seguimiento == 'ciclo_menstrual' and field_name not in [
+                    'es_dia_periodo', 'flujo_menstrual', 'coagulos',
+                    'color_flujo', 'senos_sensibles', 'retencion_liquidos',
+                    'antojos', 'acné'
+                ]:
+                    self.fields[field_name].widget = forms.HiddenInput()
+                    self.fields[field_name].required = False
+
+                elif tipo_seguimiento == 'tratamiento_hormonal' and field_name not in [
+                    'medicacion_tomada', 'hora_medicacion',
+                    'sensibilidad_pezon', 'cambios_libido',
+                    'sofocos', 'cambios_piel', 'crecimiento_mamario'
+                ]:
+                    self.fields[field_name].widget = forms.HiddenInput()
+                    self.fields[field_name].required = False
+
+                elif tipo_seguimiento == 'ninguno':
+                    if field_name not in campos_comunes:
+                        self.fields[field_name].widget = forms.HiddenInput()
+                        self.fields[field_name].required = False
+
+        # Mejorar la presentación de campos booleanos
+        for field_name, field in self.fields.items():
+            if isinstance(field, forms.BooleanField):
+                field.widget.attrs['class'] = 'form-check-input'
+
+        # Agrupar campos para mejor presentación
+        self.fields['estados_animo'].choices = RegistroDiario.ESTADO_ANIMO_CHOICES
+        self.fields['flujo_menstrual'].choices = RegistroDiario.FLUJO_CHOICES
+        self.fields['color_flujo'].choices = RegistroDiario.COLOR_FLUJO_CHOICES
+        self.fields['cambios_libido'].choices = RegistroDiario.LIBIDO_CHOICES
 
 
 class TratamientoHormonalForm(forms.ModelForm):
     class Meta:
         model = TratamientoHormonal
         fields = ['nombre_tratamiento', 'fecha_inicio', 'fecha_fin',
-                  'dosis', 'frecuencia', 'notas']
+                  'dosis', 'frecuencia', 'activo', 'notas']
         widgets = {
-            'nombre_tratamiento': forms.TextInput(attrs={'class': 'form-control'}),
-            'fecha_inicio': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'fecha_fin': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'dosis': forms.TextInput(attrs={'class': 'form-control'}),
-            'frecuencia': forms.TextInput(attrs={'class': 'form-control'}),
-            'notas': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'nombre_tratamiento': forms.TextInput(
+                attrs={'class': 'form-control'}
+            ),
+            'fecha_inicio': forms.DateInput(
+                attrs={'type': 'date', 'class': 'form-control'}
+            ),
+            'fecha_fin': forms.DateInput(
+                attrs={'type': 'date', 'class': 'form-control'}
+            ),
+            'dosis': forms.TextInput(
+                attrs={'class': 'form-control'}
+            ),
+            'frecuencia': forms.TextInput(
+                attrs={'class': 'form-control'}
+            ),
+            'activo': forms.CheckboxInput(
+                attrs={'class': 'form-check-input'}
+            ),
+            'notas': forms.Textarea(
+                attrs={'rows': 3, 'class': 'form-control'}
+            ),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        fecha_inicio = cleaned_data.get('fecha_inicio')
+        fecha_fin = cleaned_data.get('fecha_fin')
+
+        if fecha_fin and fecha_inicio and fecha_fin < fecha_inicio:
+            raise ValidationError(
+                "La fecha de fin no puede ser anterior a la fecha de inicio"
+            )
 
 
 class CicloMenstrualForm(forms.ModelForm):
@@ -185,7 +258,23 @@ class CicloMenstrualForm(forms.ModelForm):
         model = CicloMenstrual
         fields = ['fecha_inicio', 'fecha_fin', 'notas']
         widgets = {
-            'fecha_inicio': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'fecha_fin': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'notas': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'fecha_inicio': forms.DateInput(
+                attrs={'type': 'date', 'class': 'form-control'}
+            ),
+            'fecha_fin': forms.DateInput(
+                attrs={'type': 'date', 'class': 'form-control'}
+            ),
+            'notas': forms.Textarea(
+                attrs={'rows': 3, 'class': 'form-control'}
+            ),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        fecha_inicio = cleaned_data.get('fecha_inicio')
+        fecha_fin = cleaned_data.get('fecha_fin')
+
+        if fecha_fin and fecha_inicio and fecha_fin < fecha_inicio:
+            raise ValidationError(
+                "La fecha de fin no puede ser anterior a la fecha de inicio"
+            )

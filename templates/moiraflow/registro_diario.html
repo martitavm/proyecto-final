@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ object|yesno:"Editar registro,Crear nuevo registro" }}</h2>
+    
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        
+        <button type="submit" class="btn btn-primary">
+            {{ object|yesno:"Actualizar,Guardar" }}
+        </button>
+        
+        {% if object %}
+        <a href="{% url 'moiraflow:eliminar_registro' object.id %}" 
+           class="btn btn-danger ms-2">
+            Eliminar
+        </a>
+        {% endif %}
+        
+        <a href="{% url 'moiraflow:calendario' %}" class="btn btn-secondary ms-2">
+            Cancelar
+        </a>
+    </form>
+</div>
+{% endblock %}
