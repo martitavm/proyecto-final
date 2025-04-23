@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load moiraflow_tags %}
+
+{% block content %}
+<div class="container text-center my-5">
+    <h1 class="mb-4">Mi Seguimiento</h1>
+
+    <!-- Selector de mes -->
+    <div class="d-flex justify-content-center align-items-center mb-4">
+        <a href="?year={{ prev_year }}&month={{ prev_month }}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+        <h3 class="mb-0 mx-3">{{ month_name }} {{ year }}</h3>
+        <a href="?year={{ next_year }}&month={{ next_month }}" class="btn btn-outline-secondary ms-2">
+            <i class="bi bi-chevron-right"></i>
+        </a>
+    </div>
+
+    <!-- Vista circular -->
+    <div class="circular-calendar-container position-relative mb-5" style="width: 350px; height: 350px; margin: 0 auto;">
+        <!-- Círculo exterior para los días del mes -->
+        <div class="days-circle position-absolute rounded-circle border border-3 border-primary"
+             style="width: 100%; height: 100%;"></div>
+
+        <!-- Días del mes posicionados circularmente -->
+{% for day in days_of_month %}
+<div class="day-circle position-absolute rounded-circle
+    {% if day == current_day %}current-day{% endif %}
+    {% if day in registros_por_dia %}
+        {% if registros_por_dia|get_item:day|get_item:'es_dia_periodo' %}has-period
+        {% else %}has-treatment
+        {% endif %}
+    {% endif %}"
+    style="--day-index: {{ forloop.counter0 }}; --total-days: {{ total_days }};">
+    <a href="{% url 'moiraflow:registro_diario' year month day %}"
+       class="text-decoration-none d-flex align-items-center justify-content-center h-100 w-100"
+       data-bs-toggle="tooltip"
+       title="{% if day in registros_por_dia %}Ver registro{% else %}Crear registro{% endif %}">
+        {{ day }}
+    </a>
+</div>
+{% endfor %}
+
+        <!-- Círculo central con información -->
+        <div class="position-absolute top-50 start-50 translate-middle rounded-circle bg-light d-flex flex-column justify-content-center align-items-center"
+             style="width: 120px; height: 120px; border: 2px solid #dee2e6;">
+            <small class="text-muted">Hoy</small>
+            <h4 class="mb-0">{{ current_day }}</h4>
+            <small class="text-muted">{{ current_day_name }}</small>
+        </div>
+    </div>
+
+    <!-- Botón para cambiar a vista de calendario tradicional -->
+    <div class="mb-4">
+        <a href="{% url 'moiraflow:calendario_tradicional' %}" class="btn btn-outline-primary">
+            <i class="bi bi-calendar-week"></i> Ver Calendario Tradicional
+        </a>
+    </div>
+
+    <!-- Resumen del mes -->
+    <div class="row justify-content-center mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Resumen del Mes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-around text-center">
+                        <div>
+                            <div class="stat-circle bg-danger mb-2">{{ dias_periodo }}</div>
+                            <small>Días de periodo</small>
+                        </div>
+                        <div>
+                            <div class="stat-circle bg-success mb-2">{{ dias_medicacion }}</div>
+                            <small>Días con medicación</small>
+                        </div>
+                        <div>
+                            <div class="stat-circle bg-info mb-2">{{ dias_registrados }}</div>
+                            <small>Días registrados</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para registro rápido -->
+<div class="modal fade" id="quickRecordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Registro Rápido</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Formulario simplificado para registro rápido -->
+                <form id="quickRecordForm" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="fecha" id="quickRecordDate">
+
+                    <div class="mb-3">
+                        <label class="form-label">¿Cómo te sientes hoy?</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for value, label in ESTADO_ANIMO_CHOICES %}
+                            <input type="checkbox" class="btn-check" name="estados_animo" id="mood-{{ value }}" value="{{ value }}" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="mood-{{ value }}">{{ label }}</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="quickNotes" class="form-label">Notas rápidas</label>
+                        <textarea class="form-control" id="quickNotes" name="notas" rows="2"></textarea>
+                    </div>
+
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+    --day-index: 0;
+    --total-days: 30;
+.circular-calendar-container {
+    position: relative;
+}
+
+.days-circle {
+    border-color: #dee2e6;
+}
+
+.day-circle {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+    --rotation: calc(var(--day-index) * 360deg / var(--total-days));
+    transform:
+        rotate(var(--rotation))
+        translate(150px)
+        rotate(calc(-1 * var(--rotation)));
+    transition: transform 0.3s ease;
+}
+
+.day-circle:hover {
+    transform:
+        rotate(var(--rotation))
+        translate(150px)
+        rotate(calc(-1 * var(--rotation)))
+        scale(1.2);
+}
+
+.current-day {
+    border: 2px solid #0d6efd !important;
+    font-weight: bold;
+    transform: scale(1.3) !important;
+}
+
+.has-record {
+    color: white;
+    font-weight: bold;
+}
+
+.stat-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.has-period {
+    background-color: #ff6b6b !important;
+}
+.has-treatment {
+    background-color: #51cf66 !important;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Manejar clic en día para registro rápido
+    const dayCircles = document.querySelectorAll('.day-circle');
+    dayCircles.forEach(circle => {
+        circle.addEventListener('click', function(e) {
+            if (e.target.tagName !== 'A') {
+                const day = this.textContent.trim();
+                document.getElementById('quickRecordDate').value =
+                    `{{ year }}-{{ month|stringformat:"02d" }}-${day.padStart(2, '0')}`;
+
+                const modal = new bootstrap.Modal(document.getElementById('quickRecordModal'));
+                modal.show();
+            }
+        });
+    });
+
+    // Manejar envío del formulario rápido
+    document.getElementById('quickRecordForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        // Aquí iría la lógica AJAX para guardar el registro rápido
+        console.log("Registro rápido enviado");
+    });
+});
+</script>
+{% endblock %}

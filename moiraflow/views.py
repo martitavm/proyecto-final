@@ -157,7 +157,7 @@ class CalendarioView(LoginRequiredMixin, TemplateView):
     """
     Vista principal del calendario interactivo para seguimiento menstrual y hormonal
     """
-    template_name = 'moiraflow/calendario.html'
+    template_name = 'moiraflow/calendario_interactivo_circular.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -324,6 +324,7 @@ class RegistroDiarioUpdateView(LoginRequiredMixin, UpdateView):
     """
     model = RegistroDiario
     form_class = RegistroDiarioForm
+    template_name = 'moiraflow/registro_diario.html'
     success_url = reverse_lazy('moiraflow:calendario')
 
     def get_form_kwargs(self):
@@ -345,6 +346,7 @@ class RegistroDiarioDeleteView(LoginRequiredMixin, DeleteView):
     Vista para eliminar un registro diario
     """
     model = RegistroDiario
+    template_name = 'moiraflow/registrodiario_confirm_delete.html'
     success_url = reverse_lazy('moiraflow:calendario')
 
     def get_queryset(self):
@@ -428,3 +430,81 @@ class TratamientoHormonalCreateView(LoginRequiredMixin, CreateView):
         nuevo_tratamiento.save()
         messages.success(self.request, "Nuevo tratamiento hormonal registrado correctamente")
         return redirect(self.success_url)
+
+class CalendarioInteractivoCirularView(LoginRequiredMixin, TemplateView):
+        template_name = 'moiraflow/calendario_interactivo_circular.html'
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            perfil = self.request.user.perfil
+
+            # Obtener año y mes actuales o del parámetro
+            year = int(self.request.GET.get('year', timezone.now().year))
+            month = int(self.request.GET.get('month', timezone.now().month))
+
+            # Calcular días del mes
+            _, num_days = calendar.monthrange(year, month)
+            days_of_month = list(range(1, num_days + 1))
+
+            # Obtener día actual
+            today = timezone.now().date()
+            current_day = today.day if today.year == year and today.month == month else None
+            current_day_name = calendar.day_name[today.weekday()]
+
+            # Obtener registros del mes
+            first_day = date(year, month, 1)
+            last_day = date(year, month, num_days)
+
+            registros = RegistroDiario.objects.filter(
+                usuario=self.request.user,
+                fecha__gte=first_day,
+                fecha__lte=last_day
+            )
+
+            # Crear diccionario de registros por día
+            registros_por_dia = {}
+            dias_periodo = 0
+            dias_medicacion = 0
+
+            for registro in registros:
+                day = registro.fecha.day
+                registros_por_dia[day] = {
+                    'es_dia_periodo': registro.es_dia_periodo,
+                    'medicacion_tomada': registro.medicacion_tomada,
+                    'id': registro.id  # Añadido para poder editar/eliminar
+                }
+
+                if registro.es_dia_periodo:
+                    dias_periodo += 1
+                if registro.medicacion_tomada:
+                    dias_medicacion += 1
+
+            # Calcular meses anterior/siguiente
+            prev_month = month - 1 if month > 1 else 12
+            prev_year = year if month > 1 else year - 1
+            next_month = month + 1 if month < 12 else 1
+            next_year = year if month < 12 else year + 1
+
+            # Añadir todo al contexto
+            context.update({
+                'year': year,
+                'month': month,
+                'month_name': calendar.month_name[month],
+                'total_days': num_days,
+                'current_day': current_day,
+                'current_day_name': current_day_name,
+                'registros_por_dia': registros_por_dia,
+                'prev_year': prev_year,
+                'prev_month': prev_month,
+                'next_year': next_year,
+                'next_month': next_month,
+                'dias_periodo': dias_periodo,
+                'dias_medicacion': dias_medicacion,
+                'dias_registrados': len(registros_por_dia),
+                'ESTADO_ANIMO_CHOICES': RegistroDiario.ESTADO_ANIMO_CHOICES,
+                'quick_form': RegistroDiarioForm(
+                    tipo_seguimiento=perfil.tipo_seguimiento
+                )
+            })
+
+            return context

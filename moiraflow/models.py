@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -87,7 +88,6 @@ class CicloMenstrual(models.Model):
         ordering = ['-fecha_inicio']
 
 
-# Mejora al modelo RegistroDiario para hacerlo más flexible
 class RegistroDiario(models.Model):
     """
     Modelo para registrar información diaria durante el ciclo o tratamiento.
@@ -110,6 +110,19 @@ class RegistroDiario(models.Model):
         ('energica', 'Enérgica'),
     ]
 
+    COLOR_FLUJO_CHOICES = [
+        ('rojo', 'Rojo vivo'),
+        ('oscuro', 'Rojo oscuro'),
+        ('marron', 'Marrón'),
+        ('rosado', 'Rosado')
+    ]
+
+    LIBIDO_CHOICES = [
+        ('aumento', 'Aumento'),
+        ('disminucion', 'Disminución'),
+        ('normal', 'Normal')
+    ]
+
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='registros_diarios')
     ciclo = models.ForeignKey('CicloMenstrual', on_delete=models.CASCADE, related_name='registros', null=True,
                               blank=True)
@@ -117,22 +130,156 @@ class RegistroDiario(models.Model):
                                     null=True, blank=True)
     fecha = models.DateField()
 
-    # Campos específicos para ciclo menstrual
-    es_dia_periodo = models.BooleanField(default=False)
-    flujo_menstrual = models.CharField(max_length=15, choices=FLUJO_CHOICES, blank=True, null=True)
+    # --- Campos comunes a todos los tipos de seguimiento ---
+    # Estados físicos generales
+    dolor_cabeza = models.PositiveIntegerField(
+        blank=True, null=True,
+        help_text="Intensidad de dolor de cabeza (0-10)",
+        verbose_name="Dolor de cabeza"
+    )
+    dolor_espalda = models.PositiveIntegerField(
+        blank=True, null=True,
+        help_text="Intensidad de dolor de espalda (0-10)",
+        verbose_name="Dolor de espalda"
+    )
+    fatiga = models.PositiveIntegerField(
+        blank=True, null=True,
+        help_text="Nivel de fatiga (0-10)",
+        verbose_name="Fatiga"
+    )
 
-    # Campos específicos para tratamiento hormonal
-    medicacion_tomada = models.BooleanField(default=False)
-    hora_medicacion = models.TimeField(null=True, blank=True)
+    # Estados emocionales/anímicos
+    estados_animo = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Separados por comas si hay varios"
+    )
 
-    # Campos comunes
-    estados_animo = models.CharField(max_length=100, blank=True, help_text="Separados por comas si hay varios")
-    dolor = models.PositiveIntegerField(blank=True, null=True, help_text="Escala de 0-10")
-    medicamentos = models.TextField(blank=True)
-    notas = models.TextField(blank=True)
+    # Hábitos
+    cambios_apetito = models.BooleanField(
+        default=False,
+        help_text="¿Has experimentado cambios en el apetito?",
+        verbose_name="Cambios en el apetito"
+    )
+    insomnio = models.BooleanField(
+        default=False,
+        help_text="¿Has tenido dificultades para dormir?",
+        verbose_name="Insomnio"
+    )
+
+    # --- Campos específicos para seguimiento menstrual ---
+    es_dia_periodo = models.BooleanField(
+        default=False,
+        verbose_name="Día de período"
+    )
+    flujo_menstrual = models.CharField(
+        max_length=15,
+        choices=FLUJO_CHOICES,
+        blank=True, null=True,
+        verbose_name="Flujo menstrual"
+    )
+    coagulos = models.BooleanField(
+        default=False,
+        help_text="¿Has notado coágulos en el flujo?",
+        verbose_name="Coágulos"
+    )
+    color_flujo = models.CharField(
+        max_length=20,
+        choices=COLOR_FLUJO_CHOICES,
+        blank=True, null=True,
+        verbose_name="Color del flujo"
+    )
+    senos_sensibles = models.BooleanField(
+        default=False,
+        help_text="¿Tienes los senos/sensibilidad mamaria aumentada?",
+        verbose_name="Senos sensibles"
+    )
+    retencion_liquidos = models.BooleanField(
+        default=False,
+        help_text="¿Sientes retención de líquidos?",
+        verbose_name="Retención de líquidos"
+    )
+    antojos = models.BooleanField(
+        default=False,
+        help_text="¿Has tenido antojos alimenticios?",
+        verbose_name="Antojos"
+    )
+    acné = models.BooleanField(
+        default=False,
+        help_text="¿Has notado aumento de acné?",
+        verbose_name="Acné"
+    )
+
+    # --- Campos específicos para tratamiento hormonal ---
+    medicacion_tomada = models.BooleanField(
+        default=False,
+        verbose_name="Medicación tomada"
+    )
+    hora_medicacion = models.TimeField(
+        null=True, blank=True,
+        verbose_name="Hora de medicación"
+    )
+    sensibilidad_pezon = models.BooleanField(
+        default=False,
+        help_text="¿Sensibilidad en los pezones?",
+        verbose_name="Sensibilidad en pezones"
+    )
+    cambios_libido = models.CharField(
+        max_length=11,
+        choices=LIBIDO_CHOICES,
+        blank=True, null=True,
+        verbose_name="Cambios en la libido"
+    )
+    sofocos = models.BooleanField(
+        default=False,
+        help_text="¿Has experimentado sofocos?",
+        verbose_name="Sofocos"
+    )
+    cambios_piel = models.CharField(
+        max_length=100,
+        blank=True, null=True,
+        help_text="Describe cambios en la piel",
+        verbose_name="Cambios en la piel"
+    )
+    crecimiento_mamario = models.BooleanField(
+        default=False,
+        help_text="¿Has notado crecimiento mamario?",
+        verbose_name="Crecimiento mamario"
+    )
+
+    # --- Campos adicionales ---
+    medicamentos = models.TextField(
+        blank=True,
+        verbose_name="Medicamentos adicionales"
+    )
+    notas = models.TextField(
+        blank=True,
+        verbose_name="Notas adicionales"
+    )
+    otros_sintomas = models.TextField(
+        blank=True,
+        help_text="Describe cualquier otro síntoma no listado",
+        verbose_name="Otros síntomas"
+    )
 
     def __str__(self):
         return f"Registro de {self.usuario.username} del {self.fecha}"
+
+    @property
+    def es_registro_menstrual(self):
+        return self.ciclo is not None and self.usuario.perfil.tipo_seguimiento in ['ciclo_menstrual', 'ambos']
+
+    @property
+    def es_registro_hormonal(self):
+        return self.tratamiento is not None and self.usuario.perfil.tipo_seguimiento in ['tratamiento_hormonal',
+                                                                                         'ambos']
+    def clean(self):
+        if self.es_registro_menstrual and not self.es_dia_periodo and self.flujo_menstrual:
+            raise ValidationError("No puede haber flujo menstrual si no es día de período")
+
+        if self.es_registro_hormonal and self.medicacion_tomada and not self.hora_medicacion:
+            raise ValidationError("Debe especificar la hora de la medicación")
+
 
     class Meta:
         ordering = ['-fecha']
