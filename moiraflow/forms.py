@@ -3,7 +3,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
-from moiraflow.models import RegistroDiario, TratamientoHormonal, CicloMenstrual, Perfil
+from moiraflow.models import RegistroDiario, TratamientoHormonal, CicloMenstrual, Perfil, Articulo
 
 
 class RegistroCompletoForm(UserCreationForm):
@@ -278,3 +278,17 @@ class CicloMenstrualForm(forms.ModelForm):
             raise ValidationError(
                 "La fecha de fin no puede ser anterior a la fecha de inicio"
             )
+
+class ArticuloForm(forms.ModelForm):
+    class Meta:
+        model = Articulo
+        fields = ['titulo', 'contenido', 'imagen_portada', 'estado', 'categoria', 'destacado']
+        widgets = {
+            'contenido': forms.Textarea(attrs={'class': 'editor-texto'}),
+        }
+
+    def clean_titulo(self):
+        titulo = self.cleaned_data['titulo']
+        if len(titulo) < 10:
+            raise forms.ValidationError("El título debe tener al menos 10 caracteres")
+        return titulo

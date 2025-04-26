@@ -14,3 +14,7 @@ def get_item(dictionary, key):
 def rotate_degrees(index, total_days):
     """Calcula los grados para posicionar los días en el círculo"""
     return (index * 360) / total_days
+
+@register.filter
+def puede_editar(articulo, user):
+    return user == articulo.autor or (hasattr(user, 'perfil') and user.perfil.es_administrador)
