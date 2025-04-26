@@ -1,9 +1,8 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout, login
-from django.urls import reverse_lazy
-from moiraflow.models import Perfil, RegistroDiario, TratamientoHormonal, CicloMenstrual
-from moiraflow.forms import RegistroCompletoForm, RegistroDiarioForm, TratamientoHormonalForm, CicloMenstrualForm
+from moiraflow.models import Perfil, RegistroDiario, TratamientoHormonal, CicloMenstrual, Articulo
+from moiraflow.forms import RegistroCompletoForm, RegistroDiarioForm, TratamientoHormonalForm, CicloMenstrualForm, ArticuloForm
 from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView, FormView, View, DetailView, ListView
 from django.shortcuts import redirect
 from django.contrib import messages
@@ -11,7 +10,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 import calendar
 from datetime import datetime, date, timedelta
-
+from django.urls import reverse_lazy
 
 
 class PaginaPrincipalView(LoginRequiredMixin, TemplateView):
@@ -508,3 +507,94 @@ class CalendarioInteractivoCirularView(LoginRequiredMixin, TemplateView):
             })
 
             return context
+
+
+class ListaArticulosView(ListView):
+    model = Articulo
+    template_name = 'moiraflow/articulos/lista_articulos.html'
+    context_object_name = 'articulos'
+    paginate_by = 10
+
+    def get_queryset(self):
+        queryset = super().get_queryset().filter(estado='publicado')
+
+        categoria = self.request.GET.get('categoria')
+        if categoria:
+            queryset = queryset.filter(categoria=categoria)
+
+        autor = self.request.GET.get('autor')
+        if autor:
+            queryset = queryset.filter(autor__username=autor)
+
+        return queryset.order_by('-fecha_publicacion')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['categorias'] = Articulo.CATEGORIA_CHOICES
+        context['request'] = self.request
+        return context
+
+
+class DetalleArticuloView(DetailView):
+    model = Articulo
+    template_name = 'moiraflow/articulos/detalle_articulo.html'
+    context_object_name = 'articulo'
+    slug_field = 'slug'
+    slug_url_kwarg = 'slug'
+
+    def get_queryset(self):
+        # Solo mostrar artículos publicados, excepto para autores y administradores
+        user = self.request.user
+        if user.is_authenticated and (user.perfil.es_autor or user.perfil.es_administrador):
+            return Articulo.objects.all()
+        return Articulo.objects.filter(estado='publicado')
+
+
+class CrearArticuloView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    model = Articulo
+    form_class = ArticuloForm
+    template_name = 'moiraflow/articulos/crear_articulo.html'
+    success_url = reverse_lazy('moiraflow:lista_articulos')
+
+    def test_func(self):
+        return self.request.user.perfil.es_autor or self.request.user.perfil.es_administrador
+
+    def form_valid(self, form):
+        form.instance.autor = self.request.user
+        messages.success(self.request, 'Artículo creado exitosamente!')
+        return super().form_valid(form)
+
+
+class EditarArticuloView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = Articulo
+    form_class = ArticuloForm
+    template_name = 'moiraflow/articulos/editar_articulo.html'
+    slug_field = 'slug'
+    slug_url_kwarg = 'slug'
+
+    def test_func(self):
+        articulo = self.get_object()
+        return articulo.puede_editar(self.request.user)
+
+    def get_success_url(self):
+        return reverse_lazy('moiraflow:detalle_articulo', kwargs={'slug': self.object.slug})
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Artículo actualizado exitosamente!')
+        return super().form_valid(form)
+
+
+class EliminarArticuloView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = Articulo
+    template_name = 'moiraflow/articulos/eliminar_articulo.html'
+    slug_field = 'slug'
+    slug_url_kwarg = 'slug'
+    success_url = reverse_lazy('moiraflow:lista_articulos')
+
+    def test_func(self):
+        articulo = self.get_object()
+        return articulo.puede_editar(self.request.user)
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Artículo eliminado exitosamente!')
+        return super().delete(request, *args, **kwargs)

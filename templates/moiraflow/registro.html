@@ -112,7 +112,7 @@
            max="45"
            value="28"
            {% if form.duracion_ciclo_promedio.field.required %}required{% endif %}>
-    <small class="form-text text-muted">Normalmente entre 21 y 45 días</small>
+    <small class="form-text text-muted">Normalmente entre 21 y 30 días</small>
 </div>
 
 <div class="col-md-6 periodo-container" style="display: none;">
@@ -165,8 +165,8 @@ function togglePeriodoFields(generoSeleccionado) {
     const periodoContainers = document.querySelectorAll('.periodo-container');
     const mensajeNoPeriodo = document.getElementById('mensaje-no-periodo');
 
-    // Mostrar solo si es femenino o femenino trans
-    const mostrar = ['femenino', 'femenino trans'].includes(generoSeleccionado);
+    // Mostrar solo si es femenino o masculino trans
+    const mostrar = ['femenino', 'masculino trans'].includes(generoSeleccionado);
 
     periodoContainers.forEach(container => {
         container.style.display = mostrar ? 'block' : 'none';

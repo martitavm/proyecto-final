@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4">{% if form.instance.pk %}Editar{% else %}Crear{% endif %} Artículo</h1>
+    
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="{{ form.titulo.id_for_label }}">Título</label>
+            {{ form.titulo }}
+            {% if form.titulo.errors %}
+            <div class="invalid-feedback d-block">
+                {{ form.titulo.errors }}
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.contenido.id_for_label }}">Contenido</label>
+            {{ form.contenido }}
+            {% if form.contenido.errors %}
+            <div class="invalid-feedback d-block">
+                {{ form.contenido.errors }}
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="{{ form.categoria.id_for_label }}">Categoría</label>
+                    {{ form.categoria }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="{{ form.estado.id_for_label }}">Estado</label>
+                    {{ form.estado }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.imagen_portada.id_for_label }}">Imagen de portada</label>
+            {{ form.imagen_portada }}
+            {% if form.instance.imagen_portada %}
+            <div class="mt-2">
+                <img src="{{ form.instance.imagen_portada.url }}" width="100" class="img-thumbnail">
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group form-check">
+            {{ form.destacado }}
+            <label class="form-check-label" for="{{ form.destacado.id_for_label }}">Destacado</label>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a href="{% if form.instance.pk %}{% url 'moiraflow:detalle_articulo' form.instance.slug %}{% else %}{% url 'moiraflow:lista_articulos' %}{% endif %}" 
+           class="btn btn-secondary">
+            Cancelar
+        </a>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'tinymce/tinymce.min.js' %}"></script>
+<script>
+    tinymce.init({
+        selector: 'textarea',
+        plugins: 'advlist autolink lists link image charmap print preview hr anchor pagebreak',
+        toolbar_mode: 'floating',
+    });
+</script>
+{% endblock %}

@@ -1,8 +1,9 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.text import slugify
 from django.utils import timezone
-
+from django.contrib.auth import get_user
 
 class Perfil(models.Model):
     """
@@ -374,3 +375,49 @@ class EfectoTratamiento(models.Model):
 
     def __str__(self):
         return f"{self.nombre_efecto} - {self.tratamiento.nombre_tratamiento} - {self.usuario.username}"
+
+class Articulo(models.Model):
+    """
+    Modelo para artículos creados por autores
+    """
+    ESTADO_CHOICES = [
+        ('borrador', 'Borrador'),
+        ('publicado', 'Publicado'),
+        ('archivado', 'Archivado'),
+    ]
+
+    CATEGORIA_CHOICES = [
+        ('salud_menstrual', 'Salud Menstrual'),
+        ('tratamientos_hormonales', 'Tratamientos Hormonales'),
+        ('bienestar', 'Bienestar General'),
+        ('consejos', 'Consejos Prácticos'),
+        ('investigacion', 'Investigación'),
+        ('historias', 'Historias Personales'),
+    ]
+
+    autor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='articulos')
+    titulo = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=200, unique=True, blank=True)
+    contenido = models.TextField()
+    imagen_portada = models.ImageField(upload_to='articulos/', null=True, blank=True)
+    estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='borrador')
+    categoria = models.CharField(max_length=25, choices=CATEGORIA_CHOICES)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_publicacion = models.DateTimeField(null=True, blank=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    destacado = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-fecha_publicacion']
+        verbose_name = 'Artículo'
+        verbose_name_plural = 'Artículos'
+
+    def __str__(self):
+        return self.titulo
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.titulo)
+        if self.estado == 'publicado' and not self.fecha_publicacion:
+            self.fecha_publicacion = timezone.now()
+        super().save(*args, **kwargs)

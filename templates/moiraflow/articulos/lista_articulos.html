@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load moiraflow_tags %}
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4">Artículos</h1>
+    
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Filtrar por</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Categorías</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'moiraflow:lista_articulos' %}">Todas</a></li>
+                        {% for value, label in categorias %}
+                            <li><a href="?categoria={{ value }}">{{ label }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            
+            {% if user.perfil.es_autor %}
+            <a href="{% url 'moiraflow:crear_articulo' %}" class="btn btn-primary btn-block mb-3">
+                <i class="fas fa-plus"></i> Nuevo Artículo
+            </a>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-9">
+            {% for articulo in articulos %}
+            <div class="card mb-4">
+                {% if articulo.imagen_portada %}
+                <img src="{{ articulo.imagen_portada.url }}" class="card-img-top" alt="{{ articulo.titulo }}">
+                {% endif %}
+                <div class="card-body">
+                    <h2 class="card-title">{{ articulo.titulo }}</h2>
+                    <p class="card-text text-muted">
+                        Por {{ articulo.autor.get_full_name|default:articulo.autor.username }} 
+                        | {{ articulo.fecha_publicacion|date:"d M Y" }}
+                        | {{ articulo.get_categoria_display }}
+                    </p>
+                    <div class="card-text">{{ articulo.contenido|truncatewords:50|safe }}</div>
+                    <a href="{% url 'moiraflow:detalle_articulo' articulo.slug %}" class="btn btn-primary">Leer más</a>
+                    
+                    {% if articulo|puede_editar:request.user %}
+                        <div class="mt-3">
+                            <a href="{% url 'moiraflow:editar_articulo' articulo.slug %}" class="btn btn-sm btn-secondary">Editar</a>
+                            <a href="{% url 'moiraflow:eliminar_articulo' articulo.slug %}" class="btn btn-sm btn-danger">Eliminar</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="alert alert-info">No hay artículos disponibles.</div>
+            {% endfor %}
+            
+            {% if is_paginated %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                    {% else %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -17,7 +17,12 @@ from moiraflow.views import (
     RegistroDiarioDeleteView,
     RegistroDiarioDetailView,
     CicloMenstrualCreateView,
-    TratamientoHormonalCreateView
+    TratamientoHormonalCreateView,
+    ListaArticulosView,
+    DetalleArticuloView,
+    CrearArticuloView,
+    EditarArticuloView,
+    EliminarArticuloView
 )
 
 app_name = 'moiraflow'
@@ -54,4 +59,12 @@ urlpatterns = [
     # URLs de ciclos y tratamientos
     path('calendario/ciclo/crear/', CicloMenstrualCreateView.as_view(), name='crear_ciclo'),
     path('calendario/tratamiento/crear/', TratamientoHormonalCreateView.as_view(), name='crear_tratamiento'),
+
+    #URLs de articulos
+    path('articulos/', ListaArticulosView.as_view(), name='lista_articulos'),
+    path('articulo/crear/', CrearArticuloView.as_view(), name='crear_articulo'),
+    path('articulo/editar/<slug:slug>/', EditarArticuloView.as_view(), name='editar_articulo'),
+    path('articulo/eliminar/<slug:slug>/', EliminarArticuloView.as_view(), name='eliminar_articulo'),
+    path('articulo/<slug:slug>/', DetalleArticuloView.as_view(), name='detalle_articulo'),
+
 ]
