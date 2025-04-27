@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout, login
 from moiraflow.models import Perfil, RegistroDiario, TratamientoHormonal, CicloMenstrual, Articulo
@@ -518,20 +519,28 @@ class ListaArticulosView(ListView):
     def get_queryset(self):
         queryset = super().get_queryset().filter(estado='publicado')
 
-        # Filtros (opcional)
+        # Filtro por categoría
         categoria = self.request.GET.get('categoria')
         if categoria:
             queryset = queryset.filter(categoria=categoria)
 
+        # Filtro por autor (usando username directamente)
         autor = self.request.GET.get('autor')
         if autor:
-            queryset = queryset.filter(autor__perfil__user__username=autor)
+            queryset = queryset.filter(autor__username__icontains=autor)
 
         return queryset.order_by('-fecha_publicacion')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        # Obtener lista de autores con artículos publicados
+        autores = User.objects.filter(
+            articulos__estado='publicado'
+        ).distinct().order_by('username')
+
         context['categorias'] = Articulo.CATEGORIA_CHOICES
+        context['autores_disponibles'] = autores
         return context
 
 

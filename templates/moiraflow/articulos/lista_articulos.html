@@ -5,7 +5,14 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h1 class="mb-4">Artículos</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Artículos</h1>
+        {% if request.user.is_authenticated and request.user.perfil and request.user.perfil.tipo_perfil in 'autor,administracion' %}
+        <a href="{% url 'moiraflow:crear_articulo' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Crear Artículo
+        </a>
+        {% endif %}
+    </div>
 
     <!-- Filtros -->
     <div class="card mb-4">
@@ -20,12 +27,17 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-5">
+                <div class="col-md-5 mb-3">
                     <label for="autor" class="form-label">Autor</label>
-                    <input type="text" name="autor" id="autor" class="form-control" placeholder="Buscar por autor" value="{{ request.GET.autor }}">
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                    <select name="autor" id="autor" class="form-select">
+                        <option value="">Todos los autores</option>
+                        {% for autor in autores_disponibles %}
+                            <option value="{{ autor.username }}"
+                                {% if request.GET.autor == autor.username %}selected{% endif %}>
+                                {{ autor.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
                 </div>
             </form>
         </div>
