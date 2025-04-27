@@ -376,10 +376,11 @@ class EfectoTratamiento(models.Model):
     def __str__(self):
         return f"{self.nombre_efecto} - {self.tratamiento.nombre_tratamiento} - {self.usuario.username}"
 
+from django.db import models
+from django.contrib.auth.models import User
+from django.utils import timezone
+
 class Articulo(models.Model):
-    """
-    Modelo para artículos creados por autores
-    """
     ESTADO_CHOICES = [
         ('borrador', 'Borrador'),
         ('publicado', 'Publicado'),
@@ -397,7 +398,6 @@ class Articulo(models.Model):
 
     autor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='articulos')
     titulo = models.CharField(max_length=200)
-    slug = models.SlugField(max_length=200, unique=True, blank=True)
     contenido = models.TextField()
     imagen_portada = models.ImageField(upload_to='articulos/', null=True, blank=True)
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='borrador')
@@ -416,8 +416,10 @@ class Articulo(models.Model):
         return self.titulo
 
     def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.titulo)
         if self.estado == 'publicado' and not self.fecha_publicacion:
             self.fecha_publicacion = timezone.now()
         super().save(*args, **kwargs)
+
+    def puede_editar(self, user):
+        """Determina si un usuario puede editar este artículo"""
+        return user == self.autor or user.perfil.es_administrador

@@ -61,10 +61,10 @@ urlpatterns = [
     path('calendario/tratamiento/crear/', TratamientoHormonalCreateView.as_view(), name='crear_tratamiento'),
 
     #URLs de articulos
+    # URLs de articulos (simplificadas usando PK)
     path('articulos/', ListaArticulosView.as_view(), name='lista_articulos'),
     path('articulo/crear/', CrearArticuloView.as_view(), name='crear_articulo'),
-    path('articulo/editar/<slug:slug>/', EditarArticuloView.as_view(), name='editar_articulo'),
-    path('articulo/eliminar/<slug:slug>/', EliminarArticuloView.as_view(), name='eliminar_articulo'),
-    path('articulo/<slug:slug>/', DetalleArticuloView.as_view(), name='detalle_articulo'),
-
+    path('articulo/<int:pk>/', DetalleArticuloView.as_view(), name='detalle_articulo'),
+    path('articulo/editar/<int:pk>/', EditarArticuloView.as_view(), name='editar_articulo'),
+    path('articulo/eliminar/<int:pk>/', EliminarArticuloView.as_view(), name='eliminar_articulo'),
 ]
