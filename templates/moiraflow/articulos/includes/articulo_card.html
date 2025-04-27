@@ -1,0 +1,20 @@
+<!-- moiraflow/articulos/includes/articulo_card.html -->
+<div class="articulo-card">
+    <div class="articulo-imagen">
+        {% if articulo.imagen_portada %}
+        <img src="{{ articulo.imagen_portada.url }}" alt="{{ articulo.titulo }}">
+        {% endif %}
+    </div>
+    <div class="articulo-contenido">
+        <span class="articulo-categoria">{{ articulo.get_categoria_display }}</span>
+        <h3><a href="{% url 'moiraflow:detalle_articulo' pk=articulo.pk %}">{{ articulo.titulo }}</a></h3>
+        <p class="articulo-meta">
+            Por <a href="{% url 'moiraflow:lista_articulos' %}?autor={{ articulo.autor.username }}">
+                {{ articulo.autor.perfil.nombre_completo|default:articulo.autor.username }}
+            </a>
+            | {{ articulo.fecha_publicacion|date:"d M Y" }}
+        </p>
+        <p class="articulo-resumen">{{ articulo.contenido|striptags|truncatewords:30 }}</p>
+        <a href="{% url 'moiraflow:detalle_articulo' pk=articulo.pk %}" class="btn-leer-mas">Leer más</a>
+    </div>
+</div>

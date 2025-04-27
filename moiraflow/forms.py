@@ -279,13 +279,42 @@ class CicloMenstrualForm(forms.ModelForm):
                 "La fecha de fin no puede ser anterior a la fecha de inicio"
             )
 
+from django import forms
+from .models import Articulo
+
 class ArticuloForm(forms.ModelForm):
     class Meta:
         model = Articulo
         fields = ['titulo', 'contenido', 'imagen_portada', 'estado', 'categoria', 'destacado']
         widgets = {
-            'contenido': forms.Textarea(attrs={'class': 'editor-texto'}),
+            'titulo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Escribe un título atractivo'
+            }),
+            'contenido': forms.Textarea(attrs={
+                'class': 'form-control editor-texto',
+                'rows': 10
+            }),
+            'imagen_portada': forms.FileInput(attrs={
+                'class': 'form-control-file'
+            }),
+            'estado': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'categoria': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'destacado': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
         }
+        labels = {
+            'destacado': 'Marcar como artículo destacado'
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['contenido'].widget.attrs.update({'class': 'form-control editor-texto'})
 
     def clean_titulo(self):
         titulo = self.cleaned_data['titulo']

@@ -1,18 +1,24 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Eliminar Artículo - MoiraFlow{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <h1 class="mb-4">Eliminar Artículo</h1>
-    
-    <div class="card">
+<div class="container mt-4">
+    <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+            <h2 class="mb-0">Eliminar Artículo</h2>
+        </div>
         <div class="card-body">
-            <h2 class="card-title">{{ articulo.titulo }}</h2>
-            <p class="card-text">¿Estás seguro de que deseas eliminar este artículo? Esta acción no se puede deshacer.</p>
-            
+            <p>¿Estás seguro que deseas eliminar el artículo <strong>"{{ object.titulo }}"</strong>?</p>
+            <p class="text-danger">Esta acción no se puede deshacer y se perderá toda la información asociada.</p>
+
             <form method="post">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-danger">Eliminar</button>
-                <a href="{% url 'moiraflow:detalle_articulo' articulo.slug %}" class="btn btn-secondary">Cancelar</a>
+                <div class="d-flex justify-content-end">
+                    <a href="{% url 'moiraflow:detalle_articulo' object.pk %}" class="btn btn-outline-secondary me-2">Cancelar</a>
+                    <button type="submit" class="btn btn-danger">Confirmar Eliminación</button>
+                </div>
             </form>
         </div>
     </div>
