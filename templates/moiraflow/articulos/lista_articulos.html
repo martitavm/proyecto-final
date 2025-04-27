@@ -27,7 +27,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-5 mb-3">
+                <div class="col-md-5">
                     <label for="autor" class="form-label">Autor</label>
                     <select name="autor" id="autor" class="form-select">
                         <option value="">Todos los autores</option>
@@ -38,6 +38,9 @@
                             </option>
                         {% endfor %}
                     </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
                 </div>
             </form>
         </div>

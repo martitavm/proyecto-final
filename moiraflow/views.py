@@ -527,7 +527,7 @@ class ListaArticulosView(ListView):
         # Filtro por autor (usando username directamente)
         autor = self.request.GET.get('autor')
         if autor:
-            queryset = queryset.filter(autor__username__icontains=autor)
+            queryset = queryset.filter(autor__username=autor)
 
         return queryset.order_by('-fecha_publicacion')
 
@@ -535,12 +535,11 @@ class ListaArticulosView(ListView):
         context = super().get_context_data(**kwargs)
 
         # Obtener lista de autores con artículos publicados
-        autores = User.objects.filter(
+        context['autores_disponibles'] = User.objects.filter(
             articulos__estado='publicado'
         ).distinct().order_by('username')
 
         context['categorias'] = Articulo.CATEGORIA_CHOICES
-        context['autores_disponibles'] = autores
         return context
 
 
