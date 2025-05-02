@@ -22,7 +22,12 @@ from moiraflow.views import (
     DetalleArticuloView,
     CrearArticuloView,
     EditarArticuloView,
-    EliminarArticuloView
+    EliminarArticuloView,
+    MascotaPanelView,
+    AlimentarMascotaView,
+    VerificarEstadoMascotaView,
+    ResetearEstadoMascotaView,
+    ConsejoMascotaView,
 )
 
 app_name = 'moiraflow'
@@ -49,7 +54,7 @@ urlpatterns = [
     path('calendario/tradicional/', CalendarioView.as_view(), name='calendario_tradicional'),
 
 
-    # URLs de registros diarios (compartidas por ambas vistas)
+    # URLs de registros diarios
     path('calendario/registro/crear/', RegistroDiarioCreateView.as_view(), name='crear_registro'),
     path('calendario/registro/editar/<int:pk>/', RegistroDiarioUpdateView.as_view(), name='editar_registro'),
     path('calendario/registro/eliminar/<int:pk>/', RegistroDiarioDeleteView.as_view(), name='eliminar_registro'),
@@ -61,10 +66,17 @@ urlpatterns = [
     path('calendario/tratamiento/crear/', TratamientoHormonalCreateView.as_view(), name='crear_tratamiento'),
 
     #URLs de articulos
-    # URLs de articulos (simplificadas usando PK)
     path('articulos/', ListaArticulosView.as_view(), name='lista_articulos'),
     path('articulo/crear/', CrearArticuloView.as_view(), name='crear_articulo'),
     path('articulo/<int:pk>/', DetalleArticuloView.as_view(), name='detalle_articulo'),
     path('articulo/editar/<int:pk>/', EditarArticuloView.as_view(), name='editar_articulo'),
     path('articulo/eliminar/<int:pk>/', EliminarArticuloView.as_view(), name='eliminar_articulo'),
+
+    #URLs de mascota
+    path('mascota/panel/', MascotaPanelView.as_view(), name='mascota_panel'),
+    path('mascota/alimentar/', AlimentarMascotaView.as_view(), name='alimentar_mascota'),
+    path('mascota/verificar-estado/', VerificarEstadoMascotaView.as_view(), name='verificar_estado_mascota'),
+    path('mascota/resetear-estado/', ResetearEstadoMascotaView.as_view(), name='resetear_estado_mascota'),
+    path('mascota/consejo/', ConsejoMascotaView.as_view(), name='consejo_mascota'),
+
 ]

@@ -2,17 +2,19 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout, login
-from moiraflow.models import Perfil, RegistroDiario, TratamientoHormonal, CicloMenstrual, Articulo
+from moiraflow.models import Perfil, RegistroDiario, TratamientoHormonal, CicloMenstrual, Articulo, Mascota
 from moiraflow.forms import RegistroCompletoForm, RegistroDiarioForm, TratamientoHormonalForm, CicloMenstrualForm, ArticuloForm
 from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView, FormView, View, DetailView, ListView
 from django.shortcuts import redirect
 from django.contrib import messages
-from django.http import JsonResponse
-from django.utils import timezone
 import calendar
 from datetime import datetime, date, timedelta
 from django.urls import reverse_lazy
-
+from django.views.generic import View
+from django.http import JsonResponse
+from django.utils import timezone
+from django.shortcuts import render
+from .models import Mascota
 
 class PaginaPrincipalView(LoginRequiredMixin, TemplateView):
     template_name = 'moiraflow/index.html'
@@ -594,3 +596,101 @@ class EliminarArticuloView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(request, 'Artículo eliminado exitosamente!')
         return super().delete(request, *args, **kwargs)
+
+from django.shortcuts import render
+from django.views import View
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import JsonResponse
+from django.utils import timezone
+from .models import Mascota
+
+class ResetearEstadoMascotaView(LoginRequiredMixin, View):
+    def post(self, request):
+        try:
+            mascota = request.user.mascota
+            if mascota.resetear_estado():
+                return JsonResponse({
+                    'nuevo_estado': mascota.estado,
+                    'nivel_hambre': mascota.nivel_hambre
+                })
+            return JsonResponse({'error': 'No se puede cambiar el estado en este momento'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+class VerificarEstadoMascotaView(LoginRequiredMixin, View):
+    def get(self, request):
+        try:
+            mascota = request.user.mascota
+            mascota.actualizar_hambre()
+            return JsonResponse({
+                'estado': mascota.estado,
+                'nivel_hambre': mascota.nivel_hambre,
+                'ultima_actualizacion': timezone.now().isoformat()
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+class AlimentarMascotaView(LoginRequiredMixin, View):
+    def post(self, request):
+        try:
+            mascota = request.user.mascota
+            if not mascota.alimentar():
+                return JsonResponse({
+                    'error': '¡Ya está llena!',
+                    'nivel_hambre': mascota.nivel_hambre,
+                    'estado': mascota.estado
+                }, status=400)
+
+            # Resetear el estado inmediatamente después de alimentar
+            mascota.resetear_estado()
+
+            return JsonResponse({
+                'nuevo_estado': mascota.estado,
+                'nivel_hambre': mascota.nivel_hambre,
+                'mensaje': '¡Mascota alimentada!'
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+class ConsejoMascotaView(LoginRequiredMixin, View):
+    def post(self, request):
+        try:
+            mascota = request.user.mascota
+            consejo = mascota.dar_consejo()
+
+            return JsonResponse({
+                'nuevo_estado': mascota.estado,
+                'nivel_hambre': mascota.nivel_hambre,
+                'consejo': consejo,
+                'mensaje': '¡Aquí tienes un consejo!'
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+class MascotaPanelView(LoginRequiredMixin, View):
+    template_name = 'moiraflow/mascota_panel.html'
+
+    def get(self, request):
+        try:
+            mascota = request.user.mascota
+            # Comprobar si es un nuevo día y resetear el hambre si es necesario (también se hace en el modelo)
+            if mascota.dia_actual < timezone.now().date():
+                mascota.nivel_hambre = 0
+                mascota.dia_actual = timezone.now().date()
+                mascota.save()
+            mascota.actualizar_hambre() # Asegurarse de que el estado se actualice al cargar el panel
+        except Mascota.DoesNotExist:
+            mascota = Mascota.objects.create(
+                usuario=request.user,
+                estado='normal',
+                nivel_hambre=0, # Iniciar con hambre en 0
+                dia_actual=timezone.now().date() # Establecer la fecha actual
+            )
+
+        context = {
+            'mascota': mascota
+        }
+        return render(request, self.template_name, context)

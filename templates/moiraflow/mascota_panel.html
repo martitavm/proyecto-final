@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<input type="hidden" id="csrf_token" value="{{ csrf_token }}">
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-gradient-primary text-white text-center py-4">
+                    <h2 class="mb-0">Tu Mascota Virtual</h2>
+                    <p class="mb-0">Cuida de tu compañera y recibe consejos diarios</p>
+                </div>
+
+                <div class="card-body p-4 text-center">
+                    <!-- Imagen de la mascota -->
+                    <div class="mascota-container mb-4">
+                        <img id="mascota-imagen" src="{% static mascota.imagen_estado %}"
+                             alt="Mascota" class="img-fluid mascota-gif">
+                    </div>
+
+                    <!-- Estado y hambre -->
+                    <div class="stats-container mb-4 p-3 bg-light rounded">
+                        <div class="row">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <h5 class="stat-title">Estado</h5>
+                                <p class="stat-value" id="mascota-estado">{{ mascota.get_estado_display }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h5 class="stat-title">Nivel de Hambre</h5>
+                                <div class="progress mb-2">
+                                    <div id="barra-hambre" class="progress-bar progress-bar-striped
+                                        {% if mascota.nivel_hambre < 30 %}
+                                            bg-danger
+                                        {% elif mascota.nivel_hambre < 70 %}
+                                            bg-warning
+                                        {% else %}
+                                            bg-success
+                                        {% endif %}"
+                                        role="progressbar" style="width: {{ mascota.nivel_hambre }}%;"
+                                        aria-valuenow="{{ mascota.nivel_hambre }}" aria-valuemin="0" aria-valuemax="100">
+                                    </div>
+                                </div>
+                                <p class="stat-value" id="mascota-hambre">{{ mascota.nivel_hambre }}%</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Consejo del día -->
+                    <div id="consejo-container" class="mb-4 p-3 bg-info text-white rounded"
+                         style="display: {% if mascota.estado == 'feliz' %}block{% else %}none{% endif %};">
+                        <h5><i class="fas fa-lightbulb"></i> Consejo del Día</h5>
+                        <p id="consejo-texto">{% if mascota.estado == 'feliz' %}{{ mascota.dar_consejo }}{% endif %}</p>
+                    </div>
+
+                    <!-- Botones de acción -->
+                    <div class="action-buttons mt-4">
+                        <button id="alimentar-mascota" class="btn btn-success btn-lg mx-2">
+                            <i class="fas fa-utensils"></i> Alimentar
+                        </button>
+                        <button id="consejo-mascota" class="btn btn-info btn-lg mx-2">
+                            <i class="fas fa-lightbulb"></i> Consejo
+                        </button>
+                    </div>
+
+                    <!-- Mensajes -->
+                    <div id="mascota-mensaje" class="alert mt-4" style="display: none;"></div>
+                </div>
+
+                <div class="card-footer bg-light text-center py-3">
+                    <small class="text-muted">Última actualización: {{ mascota.ultimo_cambio_estado|timesince }} atrás</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .mascota-container {
+        background-color: #f8f9fa;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .mascota-gif {
+        max-height: 250px;
+        transition: all 0.3s ease;
+    }
+
+    .mascota-gif:hover {
+        transform: scale(1.05);
+    }
+
+    .stat-title {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-bottom: 0.3rem;
+    }
+
+    .stat-value {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 0;
+    }
+
+    .progress {
+        height: 20px;
+        border-radius: 10px;
+    }
+
+    .progress-bar {
+        transition: width 0.5s ease;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Elementos del DOM
+    const alimentarBtn = document.getElementById('alimentar-mascota');
+    const consejoBtn = document.getElementById('consejo-mascota');
+    const mascotaEstado = document.getElementById('mascota-estado');
+    const mascotaHambre = document.getElementById('mascota-hambre');
+    const consejoContainer = document.getElementById('consejo-container');
+    const consejoTexto = document.getElementById('consejo-texto');
+
+    // Función para obtener el CSRF token
+    function getCsrfToken() {
+        return document.getElementById('csrf_token').value;
+    }
+
+  // Alimentar a la mascota
+alimentarBtn.addEventListener('click', function() {
+    fetch("{% url 'moiraflow:alimentar_mascota' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken(),
+            'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw err; });
+        }
+        return response.json();
+    })
+    .then(data => {
+        actualizarUI(data.nuevo_estado, data.nivel_hambre);
+        mostrarMensaje(data.mensaje || '¡Mascota alimentada!', 'success');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        mostrarMensaje(error.error || 'Error al alimentar mascota', 'error');
+        if (error.nivel_hambre && error.estado) {
+            actualizarUI(error.estado, error.nivel_hambre);
+        }
+    });
+});
+
+// Pedir consejo a la mascota
+consejoBtn.addEventListener('click', function() {
+    fetch("{% url 'moiraflow:consejo_mascota' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken(),
+            'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw err; });
+        }
+        return response.json();
+    })
+    .then(data => {
+        actualizarUI(data.nuevo_estado, data.nivel_hambre);
+        consejoTexto.textContent = data.consejo;
+        consejoContainer.style.display = 'block';
+        mostrarMensaje(data.mensaje || '¡Aquí tienes un consejo!', 'info');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        mostrarMensaje(error.error || 'Error al obtener consejo', 'error');
+    });
+});
+
+    // Actualizar la interfaz
+    function actualizarUI(estado, nivelHambre) {
+        // Actualizar imagen
+        const imgEstado = document.getElementById('mascota-imagen');
+        if (imgEstado) {
+            imgEstado.src = `/static/images/mascota_${estado}.gif`;
+        }
+
+        // Actualizar estado
+        if (mascotaEstado) {
+            mascotaEstado.textContent = traducirEstado(estado);
+        }
+
+        // Actualizar hambre
+        if (mascotaHambre) {
+            mascotaHambre.textContent = nivelHambre + '%';
+
+            const barraHambre = document.getElementById('barra-hambre');
+            if (barraHambre) {
+                barraHambre.style.width = nivelHambre + '%';
+
+                // Cambiar color según nivel
+                if (nivelHambre < 30) {
+                    barraHambre.className = 'progress-bar progress-bar-striped bg-danger';
+                } else if (nivelHambre < 70) {
+                    barraHambre.className = 'progress-bar progress-bar-striped bg-warning';
+                } else {
+                    barraHambre.className = 'progress-bar progress-bar-striped bg-success';
+                }
+            }
+        }
+    }
+
+    // Traducir estado
+    function traducirEstado(estado) {
+        const traducciones = {
+            'normal': 'Normal',
+            'hambrienta': 'Hambrienta',
+            'comiendo': 'Comiendo',
+            'feliz': 'Feliz',
+            'triste': 'Triste'
+        };
+        return traducciones[estado] || estado;
+    }
+
+    // Mostrar mensaje
+    function mostrarMensaje(mensaje, tipo) {
+        const mensajeDiv = document.getElementById('mascota-mensaje');
+        if (!mensajeDiv) return;
+
+        mensajeDiv.textContent = mensaje;
+        mensajeDiv.className = `alert alert-${tipo} mt-4`;
+        mensajeDiv.style.display = 'block';
+
+        setTimeout(() => {
+            mensajeDiv.style.display = 'none';
+        }, 3000);
+    }
+
+    // Verificar estado cada 30 segundos
+    function verificarEstado() {
+        fetch('/mascota/verificar-estado/', {
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.error) {
+                actualizarUI(data.estado, data.nivel_hambre);
+
+                // Ocultar consejo si no está feliz
+                if (data.estado !== 'feliz') {
+                    consejoContainer.style.display = 'none';
+                }
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Verificar estado inicial
+    verificarEstado();
+
+    // Programar verificación periódica
+    setInterval(verificarEstado, 30000);
+});
+</script>
+{% endblock %}
