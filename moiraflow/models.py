@@ -457,21 +457,22 @@ class Mascota(models.Model):
     def puede_dar_consejo(self):
         return self.nivel_hambre >= 15
 
-    def dar_consejo(self):
-        if self.puede_dar_consejo():
-            # Disminuir hambre al dar consejo (entre 5 y 15 puntos)
-            self.nivel_hambre = max(0, self.nivel_hambre - random.randint(5, 15))
-            self.actualizar_estado()
-            self.save()
-            return random.choice(self.CONSEJOS)
-        return None
-
     def alimentar(self):
         # Aumentar nivel de hambre (entre 20 y 40 puntos)
         self.nivel_hambre = min(100, self.nivel_hambre + random.randint(20, 40))
         self.actualizar_estado()
         self.save()
         return True
+
+    def dar_consejo(self):
+        if self.puede_dar_consejo():
+            # Disminuir hambre al dar consejo
+            self.nivel_hambre = max(0, self.nivel_hambre - random.randint(5, 15))
+            # Forzar actualización del estado
+            self.actualizar_estado()
+            self.save()
+            return random.choice(self.CONSEJOS)
+        return None
 
     def actualizar_estado(self):
         if self.nivel_hambre < 30:

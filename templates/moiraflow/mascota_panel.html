@@ -144,61 +144,83 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Pedir consejo
-    document.getElementById('consejo-mascota').addEventListener('click', function() {
-        fetch('{% url "moiraflow:consejo_mascota" %}', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrfToken,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({})
-        })
-        .then(response => response.json())
-        .then(data => {
-            const mensaje = document.getElementById('mascota-mensaje');
+document.getElementById('consejo-mascota').addEventListener('click', function() {
+    const btnConsejo = this;
+    btnConsejo.disabled = true; // Deshabilitar botón durante la acción
 
-            if (data.success) {
-                // Actualizar estado y barra
-                actualizarEstadoMascota(data);
+    fetch('{% url "moiraflow:consejo_mascota" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        const mensaje = document.getElementById('mascota-mensaje');
+        const mascotaImg = document.getElementById('mascota-imagen');
 
-                // Mostrar consejo
-                document.getElementById('consejo-texto').textContent = data.consejo;
-                document.getElementById('consejo-container').style.display = 'block';
+        if (data.success) {
+            // Actualizar todos los elementos visuales
+            actualizarEstadoMascota(data);
 
-                mensaje.textContent = '¡Consejo recibido!';
-                mensaje.className = 'alert alert-info mt-4';
-            } else {
-                mensaje.textContent = data.error || 'Error al obtener consejo';
-                mensaje.className = 'alert alert-warning mt-4';
-            }
-            mensaje.style.display = 'block';
+            // Cambiar la imagen si es necesario
+            mascotaImg.src = '{% static "images/" %}' + data.nueva_imagen.split('/').pop();
 
-            // Ocultar mensaje después de 3 segundos
-            setTimeout(() => {
-                mensaje.style.display = 'none';
-            }, 3000);
-        });
-    });
+            // Mostrar consejo
+            document.getElementById('consejo-texto').textContent = data.consejo;
+            document.getElementById('consejo-container').style.display = 'block';
 
-    function actualizarEstadoMascota(data) {
-        // Actualizar estado
-        document.getElementById('mascota-estado').textContent = data.estado_display;
-
-        // Actualizar barra de hambre
-        const barraHambre = document.getElementById('barra-hambre');
-        barraHambre.style.width = data.nivel_hambre + '%';
-        document.getElementById('mascota-hambre').textContent = data.nivel_hambre + '%';
-
-        // Cambiar color de la barra
-        barraHambre.classList.remove('bg-danger', 'bg-warning', 'bg-success');
-        if (data.nivel_hambre < 30) {
-            barraHambre.classList.add('bg-danger');
-        } else if (data.nivel_hambre < 70) {
-            barraHambre.classList.add('bg-warning');
+            mensaje.textContent = '¡Consejo recibido!';
+            mensaje.className = 'alert alert-info mt-4';
         } else {
-            barraHambre.classList.add('bg-success');
+            mensaje.textContent = data.error || 'Error al obtener consejo';
+            mensaje.className = 'alert alert-warning mt-4';
         }
+
+        mensaje.style.display = 'block';
+        btnConsejo.disabled = false;
+
+        // Ocultar mensaje después de 3 segundos
+        setTimeout(() => {
+            mensaje.style.display = 'none';
+        }, 3000);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        btnConsejo.disabled = false;
+    });
+});
+
+// Función mejorada para actualizar el estado
+function actualizarEstadoMascota(data) {
+    // Actualizar texto del estado
+    document.getElementById('mascota-estado').textContent = data.estado_display;
+
+    // Actualizar barra de hambre
+    const barraHambre = document.getElementById('barra-hambre');
+    barraHambre.style.width = data.nivel_hambre + '%';
+    document.getElementById('mascota-hambre').textContent = data.nivel_hambre + '%';
+
+    // Cambiar color de la barra según nivel
+    barraHambre.classList.remove('bg-danger', 'bg-warning', 'bg-success');
+    if (data.nivel_hambre < 30) {
+        barraHambre.classList.add('bg-danger');
+    } else if (data.nivel_hambre < 70) {
+        barraHambre.classList.add('bg-warning');
+    } else {
+        barraHambre.classList.add('bg-success');
     }
+
+    // Mostrar/ocultar contenedor de consejos según estado
+    const consejoContainer = document.getElementById('consejo-container');
+    if (data.estado === 'feliz') {
+        consejoContainer.style.display = 'block';
+    } else {
+        consejoContainer.style.display = 'none';
+    }
+}
 });
 </script>
 

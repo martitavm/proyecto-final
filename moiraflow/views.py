@@ -655,6 +655,8 @@ def consejo_mascota(request):
         consejo = mascota.dar_consejo()
 
         if consejo:
+            # Asegurarnos de actualizar el estado después de dar el consejo
+            mascota.actualizar_estado()
             return JsonResponse({
                 'success': True,
                 'consejo': consejo,
@@ -662,6 +664,8 @@ def consejo_mascota(request):
                 'estado_display': mascota.get_estado_display(),
                 'nivel_hambre': mascota.nivel_hambre,
                 'imagen_estado': mascota.imagen_estado,
+                'nuevo_estado': mascota.estado,  # Añadido para claridad
+                'nueva_imagen': mascota.imagen_estado  # Añadido para claridad
             })
         else:
             return JsonResponse({
