@@ -597,100 +597,76 @@ class EliminarArticuloView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         messages.success(request, 'Artículo eliminado exitosamente!')
         return super().delete(request, *args, **kwargs)
 
-from django.shortcuts import render
-from django.views import View
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import JsonResponse
-from django.utils import timezone
-from .models import Mascota
 
-class ResetearEstadoMascotaView(LoginRequiredMixin, View):
-    def post(self, request):
-        try:
-            mascota = request.user.mascota
-            if mascota.resetear_estado():
-                return JsonResponse({
-                    'nuevo_estado': mascota.estado,
-                    'nivel_hambre': mascota.nivel_hambre
-                })
-            return JsonResponse({'error': 'No se puede cambiar el estado en este momento'}, status=400)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-
-class VerificarEstadoMascotaView(LoginRequiredMixin, View):
-    def get(self, request):
-        try:
-            mascota = request.user.mascota
-            mascota.actualizar_hambre()
-            return JsonResponse({
-                'estado': mascota.estado,
-                'nivel_hambre': mascota.nivel_hambre,
-                'ultima_actualizacion': timezone.now().isoformat()
-            })
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-
-class AlimentarMascotaView(LoginRequiredMixin, View):
-    def post(self, request):
-        try:
-            mascota = request.user.mascota
-            if not mascota.alimentar():
-                return JsonResponse({
-                    'error': '¡Ya está llena!',
-                    'nivel_hambre': mascota.nivel_hambre,
-                    'estado': mascota.estado
-                }, status=400)
-
-            # Resetear el estado inmediatamente después de alimentar
-            mascota.resetear_estado()
-
-            return JsonResponse({
-                'nuevo_estado': mascota.estado,
-                'nivel_hambre': mascota.nivel_hambre,
-                'mensaje': '¡Mascota alimentada!'
-            })
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-class ConsejoMascotaView(LoginRequiredMixin, View):
-    def post(self, request):
-        try:
-            mascota = request.user.mascota
-            consejo = mascota.dar_consejo()
-
-            return JsonResponse({
-                'nuevo_estado': mascota.estado,
-                'nivel_hambre': mascota.nivel_hambre,
-                'consejo': consejo,
-                'mensaje': '¡Aquí tienes un consejo!'
-            })
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-
-class MascotaPanelView(LoginRequiredMixin, View):
+class MascotaPanelView(LoginRequiredMixin, TemplateView):
     template_name = 'moiraflow/mascota_panel.html'
 
-    def get(self, request):
-        try:
-            mascota = request.user.mascota
-            # Comprobar si es un nuevo día y resetear el hambre si es necesario (también se hace en el modelo)
-            if mascota.dia_actual < timezone.now().date():
-                mascota.nivel_hambre = 0
-                mascota.dia_actual = timezone.now().date()
-                mascota.save()
-            mascota.actualizar_hambre() # Asegurarse de que el estado se actualice al cargar el panel
-        except Mascota.DoesNotExist:
-            mascota = Mascota.objects.create(
-                usuario=request.user,
-                estado='normal',
-                nivel_hambre=0, # Iniciar con hambre en 0
-                dia_actual=timezone.now().date() # Establecer la fecha actual
-            )
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['mascota'] = self.request.user.mascota
+        return context
 
-        context = {
-            'mascota': mascota
+
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+@require_POST
+@csrf_exempt
+def alimentar_mascota(request):
+    try:
+        mascota = request.user.mascota
+
+        # Primero devolvemos la imagen de comiendo
+        response_data = {
+            'success': True,
+            'imagen_temporal': '/static/images/mascota_comiendo.gif',
+            'nivel_hambre': mascota.nivel_hambre
         }
-        return render(request, self.template_name, context)
+
+        # Luego procesamos la alimentación (con retraso en frontend)
+        return JsonResponse(response_data)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@require_POST
+@csrf_exempt
+def finalizar_alimentacion(request):
+    try:
+        mascota = request.user.mascota
+        mascota.alimentar()
+        return JsonResponse({
+            'success': True,
+            'estado': mascota.estado,
+            'estado_display': mascota.get_estado_display(),
+            'nivel_hambre': mascota.nivel_hambre,
+            'imagen_estado': mascota.imagen_estado,
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@require_POST
+@csrf_exempt
+def consejo_mascota(request):
+    try:
+        mascota = request.user.mascota
+        consejo = mascota.dar_consejo()
+
+        if consejo:
+            return JsonResponse({
+                'success': True,
+                'consejo': consejo,
+                'estado': mascota.estado,
+                'estado_display': mascota.get_estado_display(),
+                'nivel_hambre': mascota.nivel_hambre,
+                'imagen_estado': mascota.imagen_estado,
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'La mascota no está lo suficientemente satisfecha para dar consejos'
+            })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})

@@ -23,11 +23,10 @@ from moiraflow.views import (
     CrearArticuloView,
     EditarArticuloView,
     EliminarArticuloView,
+    alimentar_mascota,
+    consejo_mascota,
     MascotaPanelView,
-    AlimentarMascotaView,
-    VerificarEstadoMascotaView,
-    ResetearEstadoMascotaView,
-    ConsejoMascotaView,
+    finalizar_alimentacion,
 )
 
 app_name = 'moiraflow'
@@ -73,10 +72,9 @@ urlpatterns = [
     path('articulo/eliminar/<int:pk>/', EliminarArticuloView.as_view(), name='eliminar_articulo'),
 
     #URLs de mascota
-    path('mascota/panel/', MascotaPanelView.as_view(), name='mascota_panel'),
-    path('mascota/alimentar/', AlimentarMascotaView.as_view(), name='alimentar_mascota'),
-    path('mascota/verificar-estado/', VerificarEstadoMascotaView.as_view(), name='verificar_estado_mascota'),
-    path('mascota/resetear-estado/', ResetearEstadoMascotaView.as_view(), name='resetear_estado_mascota'),
-    path('mascota/consejo/', ConsejoMascotaView.as_view(), name='consejo_mascota'),
+    path('mascota/', MascotaPanelView.as_view(), name='mascota_panel'),
+    path('mascota/alimentar/', alimentar_mascota, name='alimentar_mascota'),
+    path('mascota/finalizar-alimentacion/', finalizar_alimentacion, name='finalizar_alimentacion'),
+    path('mascota/consejo/', consejo_mascota, name='consejo_mascota'),
 
 ]

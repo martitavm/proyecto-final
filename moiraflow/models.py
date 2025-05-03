@@ -1,4 +1,6 @@
 import random
+from datetime import timedelta
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import User
@@ -423,102 +425,59 @@ class Articulo(models.Model):
         """Determina si un usuario puede editar este artículo"""
         return user == self.autor or user.perfil.es_administrador
 
+
 class Mascota(models.Model):
     ESTADOS = [
         ('normal', 'Normal'),
         ('hambrienta', 'Hambrienta'),
-        ('comiendo', 'Comiendo'),
         ('feliz', 'Feliz'),
-        ('triste', 'Triste'),
     ]
 
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='mascota')
     estado = models.CharField(max_length=20, choices=ESTADOS, default='normal')
-    ultima_comida = models.DateTimeField(null=True, blank=True)
-    nivel_hambre = models.PositiveIntegerField(default=0)  # Inicia en 0
+    nivel_hambre = models.PositiveIntegerField(default=50)  # Rango de 0 a 100
+    ultimo_cambio_estado = models.DateTimeField(auto_now=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
-    ultimo_cambio_estado = models.DateTimeField(auto_now_add=True)
-    ultimo_consejo = models.DateTimeField(null=True, blank=True)
-    dia_actual = models.DateField(auto_now_add=True) # Para controlar el inicio del día
 
-    # Consejos para mostrar
     CONSEJOS = [
-        ("Recuerda beber suficiente agua hoy 💧", "feliz"),
-        ("Hoy es un buen día para hacer ejercicio 🏃‍♀️", "feliz"),
-        ("No olvides tomarte un tiempo para relajarte 🧘‍♀️", "feliz"),
-        ("¿Has registrado tus síntomas hoy? 📝", "feliz"),
-        ("Mantén una dieta equilibrada hoy 🥗", "feliz"),
+        "Recuerda beber suficiente agua hoy 💧",
+        "Hoy es un buen día para hacer ejercicio 🏃‍♀️",
+        "No olvides tomarte un tiempo para relajarte 🧘‍♀️",
+        "¿Has registrado tus síntomas hoy? 📝",
+        "Mantén una dieta equilibrada hoy 🥗",
     ]
 
     def __str__(self):
         return f"Mascota de {self.usuario.username}"
 
-    def actualizar_hambre(self):
-        # Comprobar si es un nuevo día y resetear el hambre si es así
-        if self.dia_actual < timezone.now().date():
-            self.nivel_hambre = 0
-            self.dia_actual = timezone.now().date()
+    @property
+    def imagen_estado(self):
+        return f'images/mascota_{self.estado}.gif'
+
+    def puede_dar_consejo(self):
+        return self.nivel_hambre >= 15
+
+    def dar_consejo(self):
+        if self.puede_dar_consejo():
+            # Disminuir hambre al dar consejo (entre 5 y 15 puntos)
+            self.nivel_hambre = max(0, self.nivel_hambre - random.randint(5, 15))
+            self.actualizar_estado()
             self.save()
-            return
-
-        if not self.ultima_comida:
-            self.ultima_comida = timezone.now()
-            self.save()
-            return
-
-        horas_desde_ultima_comida = (timezone.now() - self.ultima_comida).total_seconds() / 3600
-        # Reducir el hambre gradualmente con el tiempo (ajusta la tasa si es necesario)
-        self.nivel_hambre = max(0, min(100, self.nivel_hambre - int(horas_desde_ultima_comida * 2)))
-        self._actualizar_estado_por_hambre()
-        self.save()
-
-    def _actualizar_estado_por_hambre(self):
-        """Actualiza el estado basado en el nivel de hambre."""
-        if self.estado != 'comiendo':
-            if self.nivel_hambre < 45:
-                print(f"Estado cambiado a hambrienta con hambre: {self.nivel_hambre}")
-                self.estado = 'hambrienta'
-            elif self.nivel_hambre > 70:
-                print(f"Estado cambiado a feliz con hambre: {self.nivel_hambre}")
-                self.estado = 'feliz'
-            else:
-                print(f"Estado cambiado a normal con hambre: {self.nivel_hambre}")
-                self.estado = 'normal'
+            return random.choice(self.CONSEJOS)
+        return None
 
     def alimentar(self):
-        """Alimenta a la mascota y actualiza su estado"""
-        if self.nivel_hambre >= 100:
-            return False
-
-        self.estado = 'comiendo'
-        self.nivel_hambre = min(100, self.nivel_hambre + 30)
-        self.ultima_comida = timezone.now()
-        self.ultimo_cambio_estado = timezone.now()
+        # Aumentar nivel de hambre (entre 20 y 40 puntos)
+        self.nivel_hambre = min(100, self.nivel_hambre + random.randint(20, 40))
+        self.actualizar_estado()
         self.save()
         return True
 
-    def resetear_estado(self):
-        """Restablece el estado después de comer"""
-        if self.estado == 'comiendo':
-            self._actualizar_estado_por_hambre()
-            self.ultimo_cambio_estado = timezone.now()
-            self.save()
-            return True
-        return False
-
-    def dar_consejo(self):
-        """Da un consejo del día, reduce el hambre y actualiza el estado"""
-        if self.nivel_hambre > 5:  # No dar consejo si está muy hambrienta (opcional)
-            consejo = random.choice(self.CONSEJOS)
-            self.nivel_hambre = max(0, self.nivel_hambre - 15) # Reducir el hambre al dar consejo (ajusta el valor)
-            self._actualizar_estado_por_hambre()
-            self.ultimo_consejo = timezone.now()
-            self.save()
-            return consejo[0]
+    def actualizar_estado(self):
+        if self.nivel_hambre < 30:
+            self.estado = 'hambrienta'
+        elif self.nivel_hambre > 70:
+            self.estado = 'feliz'
         else:
-            return "¡Tengo demasiada hambre para pensar en un consejo!" # O maneja esto como quieras
-
-    @property
-    def imagen_estado(self):
-        """Devuelve la ruta de la imagen según el estado"""
-        return f'images/mascota_{self.estado}.gif'
+            self.estado = 'normal'
+        self.save()

@@ -75,6 +75,133 @@
     </div>
 </div>
 
+<!-- Mantén todo el HTML que ya tienes y solo actualiza el script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = document.getElementById('csrf_token').value;
+
+    // Alimentar mascota
+    document.getElementById('alimentar-mascota').addEventListener('click', function() {
+        // Mostrar imagen de comiendo inmediatamente
+        const mascotaImg = document.getElementById('mascota-imagen');
+        const imgOriginal = mascotaImg.src;
+        mascotaImg.src = '{% static "images/mascota_comiendo.gif" %}';
+
+        // Deshabilitar botones durante la acción
+        const btnAlimentar = document.getElementById('alimentar-mascota');
+        const btnConsejo = document.getElementById('consejo-mascota');
+        btnAlimentar.disabled = true;
+        btnConsejo.disabled = true;
+
+        // Primero: Mostrar animación de comer
+        fetch('{% url "moiraflow:alimentar_mascota" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mostrar mensaje
+                const mensaje = document.getElementById('mascota-mensaje');
+                mensaje.textContent = '¡La mascota está comiendo!';
+                mensaje.className = 'alert alert-success mt-4';
+                mensaje.style.display = 'block';
+
+                // Después de 3 segundos, finalizar alimentación
+                setTimeout(() => {
+                    fetch('{% url "moiraflow:finalizar_alimentacion" %}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({})
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Restaurar imagen según nuevo estado
+                            mascotaImg.src = '{% static "images/" %}' + data.imagen_estado.split('/').pop();
+
+                            // Actualizar estado y barra de hambre
+                            actualizarEstadoMascota(data);
+
+                            // Ocultar mensaje después de 2 segundos
+                            setTimeout(() => {
+                                mensaje.style.display = 'none';
+                            }, 2000);
+                        }
+                        btnAlimentar.disabled = false;
+                        btnConsejo.disabled = false;
+                    });
+                }, 3000);
+            }
+        });
+    });
+
+    // Pedir consejo
+    document.getElementById('consejo-mascota').addEventListener('click', function() {
+        fetch('{% url "moiraflow:consejo_mascota" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            const mensaje = document.getElementById('mascota-mensaje');
+
+            if (data.success) {
+                // Actualizar estado y barra
+                actualizarEstadoMascota(data);
+
+                // Mostrar consejo
+                document.getElementById('consejo-texto').textContent = data.consejo;
+                document.getElementById('consejo-container').style.display = 'block';
+
+                mensaje.textContent = '¡Consejo recibido!';
+                mensaje.className = 'alert alert-info mt-4';
+            } else {
+                mensaje.textContent = data.error || 'Error al obtener consejo';
+                mensaje.className = 'alert alert-warning mt-4';
+            }
+            mensaje.style.display = 'block';
+
+            // Ocultar mensaje después de 3 segundos
+            setTimeout(() => {
+                mensaje.style.display = 'none';
+            }, 3000);
+        });
+    });
+
+    function actualizarEstadoMascota(data) {
+        // Actualizar estado
+        document.getElementById('mascota-estado').textContent = data.estado_display;
+
+        // Actualizar barra de hambre
+        const barraHambre = document.getElementById('barra-hambre');
+        barraHambre.style.width = data.nivel_hambre + '%';
+        document.getElementById('mascota-hambre').textContent = data.nivel_hambre + '%';
+
+        // Cambiar color de la barra
+        barraHambre.classList.remove('bg-danger', 'bg-warning', 'bg-success');
+        if (data.nivel_hambre < 30) {
+            barraHambre.classList.add('bg-danger');
+        } else if (data.nivel_hambre < 70) {
+            barraHambre.classList.add('bg-warning');
+        } else {
+            barraHambre.classList.add('bg-success');
+        }
+    }
+});
+</script>
+
 <style>
     .mascota-container {
         background-color: #f8f9fa;
@@ -114,161 +241,4 @@
     }
 </style>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Elementos del DOM
-    const alimentarBtn = document.getElementById('alimentar-mascota');
-    const consejoBtn = document.getElementById('consejo-mascota');
-    const mascotaEstado = document.getElementById('mascota-estado');
-    const mascotaHambre = document.getElementById('mascota-hambre');
-    const consejoContainer = document.getElementById('consejo-container');
-    const consejoTexto = document.getElementById('consejo-texto');
-
-    // Función para obtener el CSRF token
-    function getCsrfToken() {
-        return document.getElementById('csrf_token').value;
-    }
-
-  // Alimentar a la mascota
-alimentarBtn.addEventListener('click', function() {
-    fetch("{% url 'moiraflow:alimentar_mascota' %}", {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': getCsrfToken(),
-            'Content-Type': 'application/json'
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => { throw err; });
-        }
-        return response.json();
-    })
-    .then(data => {
-        actualizarUI(data.nuevo_estado, data.nivel_hambre);
-        mostrarMensaje(data.mensaje || '¡Mascota alimentada!', 'success');
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        mostrarMensaje(error.error || 'Error al alimentar mascota', 'error');
-        if (error.nivel_hambre && error.estado) {
-            actualizarUI(error.estado, error.nivel_hambre);
-        }
-    });
-});
-
-// Pedir consejo a la mascota
-consejoBtn.addEventListener('click', function() {
-    fetch("{% url 'moiraflow:consejo_mascota' %}", {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': getCsrfToken(),
-            'Content-Type': 'application/json'
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => { throw err; });
-        }
-        return response.json();
-    })
-    .then(data => {
-        actualizarUI(data.nuevo_estado, data.nivel_hambre);
-        consejoTexto.textContent = data.consejo;
-        consejoContainer.style.display = 'block';
-        mostrarMensaje(data.mensaje || '¡Aquí tienes un consejo!', 'info');
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        mostrarMensaje(error.error || 'Error al obtener consejo', 'error');
-    });
-});
-
-    // Actualizar la interfaz
-    function actualizarUI(estado, nivelHambre) {
-        // Actualizar imagen
-        const imgEstado = document.getElementById('mascota-imagen');
-        if (imgEstado) {
-            imgEstado.src = `/static/images/mascota_${estado}.gif`;
-        }
-
-        // Actualizar estado
-        if (mascotaEstado) {
-            mascotaEstado.textContent = traducirEstado(estado);
-        }
-
-        // Actualizar hambre
-        if (mascotaHambre) {
-            mascotaHambre.textContent = nivelHambre + '%';
-
-            const barraHambre = document.getElementById('barra-hambre');
-            if (barraHambre) {
-                barraHambre.style.width = nivelHambre + '%';
-
-                // Cambiar color según nivel
-                if (nivelHambre < 30) {
-                    barraHambre.className = 'progress-bar progress-bar-striped bg-danger';
-                } else if (nivelHambre < 70) {
-                    barraHambre.className = 'progress-bar progress-bar-striped bg-warning';
-                } else {
-                    barraHambre.className = 'progress-bar progress-bar-striped bg-success';
-                }
-            }
-        }
-    }
-
-    // Traducir estado
-    function traducirEstado(estado) {
-        const traducciones = {
-            'normal': 'Normal',
-            'hambrienta': 'Hambrienta',
-            'comiendo': 'Comiendo',
-            'feliz': 'Feliz',
-            'triste': 'Triste'
-        };
-        return traducciones[estado] || estado;
-    }
-
-    // Mostrar mensaje
-    function mostrarMensaje(mensaje, tipo) {
-        const mensajeDiv = document.getElementById('mascota-mensaje');
-        if (!mensajeDiv) return;
-
-        mensajeDiv.textContent = mensaje;
-        mensajeDiv.className = `alert alert-${tipo} mt-4`;
-        mensajeDiv.style.display = 'block';
-
-        setTimeout(() => {
-            mensajeDiv.style.display = 'none';
-        }, 3000);
-    }
-
-    // Verificar estado cada 30 segundos
-    function verificarEstado() {
-        fetch('/mascota/verificar-estado/', {
-            credentials: 'same-origin'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (!data.error) {
-                actualizarUI(data.estado, data.nivel_hambre);
-
-                // Ocultar consejo si no está feliz
-                if (data.estado !== 'feliz') {
-                    consejoContainer.style.display = 'none';
-                }
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    }
-
-    // Verificar estado inicial
-    verificarEstado();
-
-    // Programar verificación periódica
-    setInterval(verificarEstado, 30000);
-});
-</script>
 {% endblock %}
