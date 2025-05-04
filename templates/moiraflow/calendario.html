@@ -49,6 +49,13 @@
     </table>
 </div>
 
+<div class="symptoms-chart-container">
+    <h3>Estadísticas de Síntomas</h3>
+    <div class="chart-container">
+        <canvas id="symptomsChart"></canvas>
+    </div>
+</div>
+
 <div class="calendar-legend">
     <div><span class="legend-icon menstrual">🩸</span> Menstruación</div>
     <div><span class="legend-icon folicular">🌱</span> Fase Folicular</div>
@@ -56,6 +63,69 @@
     <div><span class="legend-icon lutea">🌕</span> Fase Lútea</div>
     <div><span class="legend-icon hormonal">💊</span> Tratamiento</div>
 </div>
+
+<!-- Incluir Chart.js y jQuery para AJAX -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    const year = {{ year }};
+    const month = {{ month }};
+
+    $.ajax({
+    url: `/api/sintomas/?year=${year}&month=${month}`,
+    method: 'GET',
+    beforeSend: function(xhr) {
+        xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+    },
+    xhrFields: {
+        withCredentials: true
+    },
+    success: function(response) {
+        console.log("Datos recibidos:", response); // Agrega esto para depuración
+        renderChart(response.sintomas);
+    },
+    error: function(xhr, status, error) {
+        console.error("Error en la solicitud:", status, error);
+        console.error("Respuesta del servidor:", xhr.responseText);
+    }
+});
+
+    function renderChart(data) {
+        const ctx = document.getElementById('symptomsChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map(item => item.nombre),
+                datasets: [{
+                    label: 'Días con síntomas',
+                    data: data.map(item => item.dias_presente),
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)'
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Días con síntomas'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Síntomas'
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
 
 <style>
 .calendar-container {
@@ -180,6 +250,26 @@
 
 .legend-icon {
     font-size: 1.2rem;
+}
+
+.symptoms-chart-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.symptoms-chart-container h3 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #495057;
+}
+
+#symptomsChart {
+    margin: 0 auto;
+    max-height: 400px;
 }
 </style>
 {% endblock %}

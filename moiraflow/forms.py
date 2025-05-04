@@ -110,6 +110,7 @@ class RegistroCompletoForm(UserCreationForm):
         user.email = self.cleaned_data['email']
         if commit:
             user.save()
+
             perfil_data = {
                 'usuario': user,
                 'tipo_perfil': self.cleaned_data['tipo_perfil'],
@@ -118,11 +119,13 @@ class RegistroCompletoForm(UserCreationForm):
                 'genero': self.cleaned_data['genero'],
             }
 
-            # Solo guardamos los datos del ciclo si el género es femenino o masculino trans
-            if self.cleaned_data['genero'] in ['femenino', 'masculino trans']:
-                perfil_data['duracion_ciclo_promedio'] = self.cleaned_data['duracion_ciclo_promedio']
-                perfil_data['duracion_periodo_promedio'] = self.cleaned_data['duracion_periodo_promedio']
+            # Solo incluir campos de ciclo si el género lo requiere
+            genero = self.cleaned_data['genero']
+            if genero in ['femenino', 'masculino trans']:
+                perfil_data['duracion_ciclo_promedio'] = self.cleaned_data.get('duracion_ciclo_promedio', 28)
+                perfil_data['duracion_periodo_promedio'] = self.cleaned_data.get('duracion_periodo_promedio', 5)
             else:
+                # Para otros géneros, establecer explícitamente como None
                 perfil_data['duracion_ciclo_promedio'] = None
                 perfil_data['duracion_periodo_promedio'] = None
 
