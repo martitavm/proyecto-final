@@ -27,9 +27,8 @@ class Perfil(models.Model):
     foto_perfil = models.ImageField(upload_to="perfiles/", null=True, blank=True)
     fecha_nacimiento = models.DateField(null=True, blank=True)
     genero = models.CharField(max_length=50, blank=True)
-    duracion_ciclo_promedio = models.PositiveIntegerField(default=28, help_text="Duración promedio del ciclo en días")
-    duracion_periodo_promedio = models.PositiveIntegerField(default=5,
-                                                            help_text="Duración promedio del período en días")
+    duracion_ciclo_promedio = models.PositiveIntegerField(null=True, blank=True, default=28, help_text="Duración promedio del ciclo en días")
+    duracion_periodo_promedio = models.PositiveIntegerField(null=True, blank=True, default=5, help_text="Duración promedio del período en días")
     es_premium = models.BooleanField(default=False, help_text="Indica si el usuario tiene cuenta premium")
     tipo_perfil = models.CharField(max_length=15, choices=TIPO_PERFIL_CHOICES, default='usuario')
     tipo_seguimiento = models.CharField(max_length=20, choices=TIPO_SEGUIMIENTO_CHOICES, default='ninguno')
@@ -48,6 +47,11 @@ class Perfil(models.Model):
     def save(self, *args, **kwargs):
         if not self.tipo_seguimiento:
             self.tipo_seguimiento = self.determinar_tipo_seguimiento()
+        # Si el seguimiento no es menstrual, no necesitamos estos valores
+        if self.tipo_seguimiento not in ['ciclo_menstrual', 'ambos']:
+            self.duracion_ciclo_promedio = None
+            self.duracion_periodo_promedio = None
+
         super().save(*args, **kwargs)
 
     def __str__(self):
