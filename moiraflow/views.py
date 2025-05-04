@@ -14,10 +14,13 @@ import calendar
 from datetime import datetime, date, timedelta
 from django.urls import reverse_lazy, reverse
 from django.views.generic import View
-from django.http import JsonResponse
 from django.utils import timezone
-from django.shortcuts import render
-from .models import Mascota
+from rest_framework import viewsets
+from rest_framework.response import Response
+from django.db.models import Avg, Count, Q
+from datetime import datetime, timedelta
+from moiraflow.serializers import SintomaSerializer
+from rest_framework.permissions import IsAuthenticated
 
 class PaginaPrincipalView(LoginRequiredMixin, TemplateView):
     template_name = 'moiraflow/index.html'
@@ -629,3 +632,85 @@ def consejo_mascota(request):
             })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+
+
+class SintomasViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+    """ViewSet para estadísticas de síntomas"""
+
+    def list(self, request):
+        try:
+            year = int(request.query_params.get('year', datetime.now().year))
+            month = int(request.query_params.get('month', datetime.now().month))
+        except ValueError:
+            return Response({"error": "Año y mes deben ser números válidos"}, status=400)
+
+        # Calculamos el rango de fechas
+        first_day = datetime(year, month, 1).date()
+        if month == 12:
+            last_day = datetime(year + 1, 1, 1).date() - timedelta(days=1)
+        else:
+            last_day = datetime(year, month + 1, 1).date() - timedelta(days=1)
+
+        registros = RegistroDiario.objects.filter(
+            usuario=request.user,
+            fecha__range=(first_day, last_day)
+        )
+
+        # Configuración de síntomas
+        sintomas_config = {
+            # Sintomas numéricos (intensidad 1-10)
+            'numericos': [
+                ('dolor_cabeza', 'Dolor de cabeza'),
+                ('dolor_espalda', 'Dolor de espalda'),
+                ('fatiga', 'Fatiga')
+            ],
+            # Síntomas booleanos (sí/no)
+            'booleanos': [
+                ('senos_sensibles', 'Sensibilidad en senos'),
+                ('retencion_liquidos', 'Retención de líquidos'),
+                ('antojos', 'Antojos'),
+                ('acné', 'Acné'),
+                ('sofocos', 'Sofocos'),
+                ('cambios_apetito', 'Cambios en apetito'),
+                ('insomnio', 'Insomnio'),
+                ('sensibilidad_pezon', 'Sensibilidad en pezones'),
+                ('crecimiento_mamario', 'Crecimiento mamario')
+            ]
+        }
+
+        resultados = []
+
+        # Procesamos síntomas numéricos
+        for campo, nombre in sintomas_config['numericos']:
+            stats = registros.filter(
+                **{f'{campo}__gt': 0}
+            ).aggregate(
+                total_dias=Count('fecha', distinct=True),
+                avg_intensidad=Avg(campo)
+            )
+
+            resultados.append({
+                'nombre': nombre,
+                'dias_presente': stats['total_dias'] or 0,
+                'intensidad_promedio': round(float(stats['avg_intensidad'] or 0), 1) if stats['avg_intensidad'] is not None else None
+            })
+
+        # Procesamos síntomas booleanos
+        for campo, nombre in sintomas_config['booleanos']:
+            count = registros.filter(**{campo: True}).count()
+            resultados.append({
+                'nombre': nombre,
+                'dias_presente': count,
+                'intensidad_promedio': None
+            })
+
+        # Ordenamos por frecuencia descendente
+        resultados.sort(key=lambda x: x['dias_presente'], reverse=True)
+
+        serializer = SintomaSerializer(resultados, many=True)
+        return Response({
+            'year': year,
+            'month': month,
+            'sintomas': serializer.data
+        })
