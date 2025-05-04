@@ -22,7 +22,11 @@ from moiraflow.views import (
     DetalleArticuloView,
     CrearArticuloView,
     EditarArticuloView,
-    EliminarArticuloView
+    EliminarArticuloView,
+    alimentar_mascota,
+    consejo_mascota,
+    MascotaPanelView,
+    finalizar_alimentacion, RegistrosDiaView,
 )
 
 app_name = 'moiraflow'
@@ -45,26 +49,34 @@ urlpatterns = [
     path('admin-perfiles/eliminar/<int:pk>/', AdminEliminarPerfilView.as_view(), name='admin_eliminar_perfil'),
 
     # URLs de calendario
-    path('calendario/', CalendarioInteractivoCirularView.as_view(), name='calendario'),
-    path('calendario/tradicional/', CalendarioView.as_view(), name='calendario_tradicional'),
+    path('calendario/', CalendarioView.as_view(), name='calendario'),
+    path('calendario/<int:year>/<int:month>/', CalendarioView.as_view(), name='calendario'),
+    path('calendario-circular/',CalendarioInteractivoCirularView.as_view(), name='calendario_circular'),
 
+    # URLs de registros diarios
+    # Registros por día
+    path('registros/<int:year>/<int:month>/<int:day>/', RegistrosDiaView.as_view(), name='registros_dia'),
 
-    # URLs de registros diarios (compartidas por ambas vistas)
-    path('calendario/registro/crear/', RegistroDiarioCreateView.as_view(), name='crear_registro'),
-    path('calendario/registro/editar/<int:pk>/', RegistroDiarioUpdateView.as_view(), name='editar_registro'),
-    path('calendario/registro/eliminar/<int:pk>/', RegistroDiarioDeleteView.as_view(), name='eliminar_registro'),
-    path('calendario/registro/<int:anio>/<int:mes>/<int:dia>/', RegistroDiarioDetailView.as_view(), name='detalle_registro'),
-    path('calendario/registro/dia/<int:year>/<int:month>/<int:day>/', RegistroDiarioCreateView.as_view(), name='registro_diario'),
+    # CRUD Registros
+    path('registro/crear/<int:year>/<int:month>/<int:day>/', RegistroDiarioCreateView.as_view(), name='crear_registro'),
+    path('registro/editar/<int:pk>/', RegistroDiarioUpdateView.as_view(), name='editar_registro'),
+    path('registro/eliminar/<int:pk>/', RegistroDiarioDeleteView.as_view(), name='eliminar_registro'),
 
     # URLs de ciclos y tratamientos
     path('calendario/ciclo/crear/', CicloMenstrualCreateView.as_view(), name='crear_ciclo'),
     path('calendario/tratamiento/crear/', TratamientoHormonalCreateView.as_view(), name='crear_tratamiento'),
 
     #URLs de articulos
-    # URLs de articulos (simplificadas usando PK)
     path('articulos/', ListaArticulosView.as_view(), name='lista_articulos'),
     path('articulo/crear/', CrearArticuloView.as_view(), name='crear_articulo'),
     path('articulo/<int:pk>/', DetalleArticuloView.as_view(), name='detalle_articulo'),
     path('articulo/editar/<int:pk>/', EditarArticuloView.as_view(), name='editar_articulo'),
     path('articulo/eliminar/<int:pk>/', EliminarArticuloView.as_view(), name='eliminar_articulo'),
+
+    #URLs de mascota
+    path('mascota/', MascotaPanelView.as_view(), name='mascota_panel'),
+    path('mascota/alimentar/', alimentar_mascota, name='alimentar_mascota'),
+    path('mascota/finalizar-alimentacion/', finalizar_alimentacion, name='finalizar_alimentacion'),
+    path('mascota/consejo/', consejo_mascota, name='consejo_mascota'),
+
 ]

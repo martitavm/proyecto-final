@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="day-records-container">
+    <h2>Registros para el {{ fecha|date:"d/m/Y" }}</h2>
+    
+    {% if ciclo %}
+    <div class="cycle-info">
+        <h3>Ciclo Menstrual</h3>
+        <p>Día {{ ciclo.determinar_fase|title }} -
+           Día {{ fecha|date:"j" }} de {{ ciclo.duracion }}</p>
+    </div>
+    {% endif %}
+
+    <div class="records-list">
+        {% for registro in registros %}
+        <div class="record-card {{ registro.css_class }}">
+            <div class="record-header">
+                <h3>{{ registro.get_tipo_registro_display }}</h3>
+                <div class="record-actions">
+                    <a href="{% url 'moiraflow:editar_registro' pk=registro.pk %}"
+                       class="btn-edit">✏️ Editar</a>
+                    <a href="{% url 'moiraflow:eliminar_registro' pk=registro.pk %}"
+                       class="btn-delete">🗑️ Eliminar</a>
+                </div>
+            </div>
+
+            <div class="record-content">
+                {% if registro.es_registro_menstrual %}
+                    {% if registro.es_dia_periodo %}
+                        <p><strong>Flujo:</strong> {{ registro.get_flujo_menstrual_display }}</p>
+                        <p><strong>Color:</strong> {{ registro.get_color_flujo_display }}</p>
+                        {% if registro.coagulos %}<p>Coágulos presentes</p>{% endif %}
+                    {% endif %}
+                {% endif %}
+
+                {% if registro.es_registro_hormonal %}
+                    <p><strong>Medicación:</strong>
+                       {% if registro.medicacion_tomada %}✅ Tomada{% else %}❌ No tomada{% endif %}
+                       {% if registro.hora_medicacion %}a las {{ registro.hora_medicacion|time:"H:i" }}{% endif %}
+                    </p>
+                {% endif %}
+
+                {% if registro.estados_animo %}
+                    <p><strong>Estado de ánimo:</strong> {{ registro.estados_animo }}</p>
+                {% endif %}
+
+                {% if registro.dolor_cabeza %}
+                    <p><strong>Dolor de cabeza:</strong> {{ registro.dolor_cabeza }}/10</p>
+                {% endif %}
+
+                {% if registro.dolor_espalda %}
+                    <p><strong>Dolor de espalda:</strong> {{ registro.dolor_espalda }}/10</p>
+                {% endif %}
+
+                {% if registro.fatiga %}
+                    <p><strong>Fatiga:</strong> {{ registro.fatiga }}/10</p>
+                {% endif %}
+
+                {% if registro.notas %}
+                    <div class="record-notes">
+                        <h4>Notas:</h4>
+                        <p>{{ registro.notas }}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="no-records">
+            <p>No hay registros para este día.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="add-record-form">
+        <h3>Añadir nuevo registro</h3>
+        <form method="post" action="{% url 'moiraflow:crear_registro' year=fecha.year month=fecha.month day=fecha.day %}">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn-save">Guardar Registro</button>
+        </form>
+    </div>
+
+    <a href="{% url 'moiraflow:calendario' year=fecha.year month=fecha.month %}"
+       class="btn-back">
+        Volver al calendario
+    </a>
+</div>
+
+<style>
+.day-records-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1rem;
+}
+
+.cycle-info {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.records-list {
+    margin-bottom: 2rem;
+}
+
+.record-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-left: 5px solid;
+}
+
+.record-card.menstruacion {
+    border-left-color: #ff6b6b;
+}
+
+.record-card.hormonal {
+    border-left-color: #d8f5a2;
+}
+
+.record-card.fase-folicular {
+    border-left-color: #a5d8ff;
+}
+
+.record-card.fase-ovulacion {
+    border-left-color: #ffd8a8;
+}
+
+.record-card.fase-lutea {
+    border-left-color: #ffdeeb;
+}
+
+.record-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+}
+
+.record-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-edit, .btn-delete {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+
+.btn-edit {
+    background: #4dabf7;
+    color: white;
+}
+
+.btn-delete {
+    background: #ff6b6b;
+    color: white;
+}
+
+.record-content p {
+    margin: 0.5rem 0;
+}
+
+.record-notes {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+}
+
+.no-records {
+    text-align: center;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.add-record-form {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.btn-save {
+    background: #40c057;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-back {
+    display: inline-block;
+    background: #495057;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    margin-top: 1rem;
+}
+</style>
+{% endblock %}

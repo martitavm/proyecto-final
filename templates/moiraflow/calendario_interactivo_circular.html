@@ -1,229 +1,300 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load moiraflow_tags %}
-
 {% block content %}
-<div class="container text-center my-5">
-    <h1 class="mb-4">Mi Seguimiento</h1>
-
-    <!-- Selector de mes -->
-    <div class="d-flex justify-content-center align-items-center mb-4">
-        <a href="?year={{ prev_year }}&month={{ prev_month }}" class="btn btn-outline-secondary me-2">
-            <i class="bi bi-chevron-left"></i>
-        </a>
-        <h3 class="mb-0 mx-3">{{ month_name }} {{ year }}</h3>
-        <a href="?year={{ next_year }}&month={{ next_month }}" class="btn btn-outline-secondary ms-2">
-            <i class="bi bi-chevron-right"></i>
-        </a>
+<div class="calendar-container circular-calendar">
+    <div class="calendar-header">
+        <a href="{% url 'moiraflow:calendario_circular' %}?year={{ prev_year }}&month={{ prev_month }}"
+           class="nav-link arrow">←</a>
+        <h2 class="month-title">{{ month_name }} {{ year }}</h2>
+        <a href="{% url 'moiraflow:calendario_circular' %}?year={{ next_year }}&month={{ next_month }}"
+           class="nav-link arrow">→</a>
     </div>
 
-    <!-- Vista circular -->
-    <div class="circular-calendar-container position-relative mb-5" style="width: 350px; height: 350px; margin: 0 auto;">
-        <!-- Círculo exterior para los días del mes -->
-        <div class="days-circle position-absolute rounded-circle border border-3 border-primary"
-             style="width: 100%; height: 100%;"></div>
+    <!-- Calendario circular -->
+    <div class="circle-container">
+        {% for dia in dias_data %}
+        <div class="day-circle
+             {% if dia.es_hoy %}today{% endif %}
+             {% if dia.fase %}phase-{{ dia.fase }}{% endif %}
+             {% if dia.es_periodo %}period-day{% endif %}"
+             style="transform: rotate({{ forloop.counter0|multiply:11.25 }}deg) translate(12rem) rotate(-{{ forloop.counter0|multiply:11.25 }}deg);"
+             onclick="window.location='{% url 'moiraflow:registros_dia' year=year month=month day=dia.dia %}'">
 
-        <!-- Días del mes posicionados circularmente -->
-{% for day in days_of_month %}
-<div class="day-circle position-absolute rounded-circle
-    {% if day == current_day %}current-day{% endif %}
-    {% if day in registros_por_dia %}
-        {% if registros_por_dia|get_item:day|get_item:'es_dia_periodo' %}has-period
-        {% else %}has-treatment
-        {% endif %}
-    {% endif %}"
-    style="--day-index: {{ forloop.counter0 }}; --total-days: {{ total_days }};">
-    <a href="{% url 'moiraflow:registro_diario' year month day %}"
-       class="text-decoration-none d-flex align-items-center justify-content-center h-100 w-100"
-       data-bs-toggle="tooltip"
-       title="{% if day in registros_por_dia %}Ver registro{% else %}Crear registro{% endif %}">
-        {{ day }}
-    </a>
-</div>
-{% endfor %}
-
-        <!-- Círculo central con información -->
-        <div class="position-absolute top-50 start-50 translate-middle rounded-circle bg-light d-flex flex-column justify-content-center align-items-center"
-             style="width: 120px; height: 120px; border: 2px solid #dee2e6;">
-            <small class="text-muted">Hoy</small>
-            <h4 class="mb-0">{{ current_day }}</h4>
-            <small class="text-muted">{{ current_day_name }}</small>
-        </div>
-    </div>
-
-    <!-- Botón para cambiar a vista de calendario tradicional -->
-    <div class="mb-4">
-        <a href="{% url 'moiraflow:calendario_tradicional' %}" class="btn btn-outline-primary">
-            <i class="bi bi-calendar-week"></i> Ver Calendario Tradicional
-        </a>
-    </div>
-
-    <!-- Resumen del mes -->
-    <div class="row justify-content-center mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">Resumen del Mes</h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-around text-center">
-                        <div>
-                            <div class="stat-circle bg-danger mb-2">{{ dias_periodo }}</div>
-                            <small>Días de periodo</small>
-                        </div>
-                        <div>
-                            <div class="stat-circle bg-success mb-2">{{ dias_medicacion }}</div>
-                            <small>Días con medicación</small>
-                        </div>
-                        <div>
-                            <div class="stat-circle bg-info mb-2">{{ dias_registrados }}</div>
-                            <small>Días registrados</small>
-                        </div>
-                    </div>
+            <div class="day-content">
+                <span class="day-number">{{ dia.dia }}</span>
+                <div class="day-icons">
+                    {% if dia.es_periodo %}🩸{% endif %}
+                    {% if dia.es_hormonal %}💊{% endif %}
                 </div>
             </div>
+
+            <!-- Tooltip con información -->
+            <div class="day-tooltip">
+                {% if dia.fase %}
+                <p>Fase: {{ dia.fase|title }}</p>
+                {% endif %}
+                {% for registro in dia.registros %}
+                <p>{{ registro.resumen }}</p>
+                {% endfor %}
+                {% if not dia.registros %}
+                <p>Sin registros</p>
+                {% endif %}
+            </div>
         </div>
+        {% endfor %}
+    </div>
+
+    <!-- Leyenda -->
+    <div class="calendar-legend">
+        <div class="legend-item">
+            <span class="legend-icon period">🩸</span> Menstruación
+        </div>
+        <div class="legend-item">
+            <span class="legend-icon phase-folicular">🌱</span> Fase Folicular
+        </div>
+        <div class="legend-item">
+            <span class="legend-icon phase-ovulacion">🥚</span> Ovulación
+        </div>
+        <div class="legend-item">
+            <span class="legend-icon phase-lutea">🌕</span> Fase Lútea
+        </div>
+        <div class="legend-item">
+            <span class="legend-icon hormonal">💊</span> Medicación
+        </div>
+    </div>
+
+    <!-- Botón para añadir nuevo registro -->
+    <div class="add-record-container">
+        <button class="btn-add-record" onclick="showAddRecordModal()">
+            + Añadir Registro
+        </button>
     </div>
 </div>
 
-<!-- Modal para registro rápido -->
-<div class="modal fade" id="quickRecordModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Registro Rápido</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <!-- Formulario simplificado para registro rápido -->
-                <form id="quickRecordForm" method="post">
-                    {% csrf_token %}
-                    <input type="hidden" name="fecha" id="quickRecordDate">
-
-                    <div class="mb-3">
-                        <label class="form-label">¿Cómo te sientes hoy?</label>
-                        <div class="d-flex flex-wrap gap-2">
-                            {% for value, label in ESTADO_ANIMO_CHOICES %}
-                            <input type="checkbox" class="btn-check" name="estados_animo" id="mood-{{ value }}" value="{{ value }}" autocomplete="off">
-                            <label class="btn btn-outline-primary" for="mood-{{ value }}">{{ label }}</label>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="quickNotes" class="form-label">Notas rápidas</label>
-                        <textarea class="form-control" id="quickNotes" name="notas" rows="2"></textarea>
-                    </div>
-
-                    <div class="text-end">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+<!-- Modal para añadir registro -->
+<div class="modal" id="addRecordModal">
+    <div class="modal-content">
+        <span class="close" onclick="hideAddRecordModal()">&times;</span>
+        <h3>Añadir registro</h3>
+        <form method="post" action="{% url 'moiraflow:crear_registro' year=year month=month day=1 %}">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn-save">Guardar</button>
+        </form>
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_css %}
 <style>
-    :root {
-    --day-index: 0;
-    --total-days: 30;
-.circular-calendar-container {
+.circular-calendar {
+    text-align: center;
+    padding: 2rem;
     position: relative;
 }
 
-.days-circle {
-    border-color: #dee2e6;
+.circle-container {
+    position: relative;
+    width: 30rem;
+    height: 30rem;
+    margin: 3rem auto;
+    border-radius: 50%;
+    background: #f8f9fa;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
 }
 
 .day-circle {
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 1px solid transparent;
-    --rotation: calc(var(--day-index) * 360deg / var(--total-days));
-    transform:
-        rotate(var(--rotation))
-        translate(150px)
-        rotate(calc(-1 * var(--rotation)));
-    transition: transform 0.3s ease;
-}
-
-.day-circle:hover {
-    transform:
-        rotate(var(--rotation))
-        translate(150px)
-        rotate(calc(-1 * var(--rotation)))
-        scale(1.2);
-}
-
-.current-day {
-    border: 2px solid #0d6efd !important;
-    font-weight: bold;
-    transform: scale(1.3) !important;
-}
-
-.has-record {
-    color: white;
-    font-weight: bold;
-}
-
-.stat-circle {
-    width: 50px;
-    height: 50px;
+    position: absolute;
+    width: 3rem;
+    height: 3rem;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto;
-    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
     font-weight: bold;
+    background: white;
+    border: 2px solid #e9ecef;
+}
+
+.day-circle:hover {
+    transform: scale(1.2);
+    z-index: 10;
+}
+
+.day-content {
+    transform: rotate(90deg);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.day-number {
+    font-size: 1rem;
+}
+
+.day-icons {
+    font-size: 0.8rem;
+}
+
+/* Estilos por fase */
+.phase-folicular {
+    background-color: #a5d8ff;
+    border-color: #74c0fc;
+}
+
+.phase-ovulacion {
+    background-color: #ffd8a8;
+    border-color: #ffc078;
+}
+
+.phase-lutea {
+    background-color: #ffdeeb;
+    border-color: #faa2c1;
+}
+
+.period-day {
+    background-color: #ff6b6b;
+    border-color: #fa5252;
+    color: white;
+}
+
+.hormonal-day {
+    background-color: #d8f5a2;
+    border-color: #94d82d;
+}
+
+.today {
+    border: 3px solid #5c7cfa;
+    box-shadow: 0 0 10px rgba(92, 124, 250, 0.5);
+}
+
+/* Tooltip */
+.day-tooltip {
+    visibility: hidden;
+    width: 150px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 100;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.day-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+.day-circle:hover .day-tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Leyenda */
+.calendar-legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    background: #f1f3f5;
+}
+
+.legend-icon {
     font-size: 1.2rem;
 }
 
-.has-period {
-    background-color: #ff6b6b !important;
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
 }
-.has-treatment {
-    background-color: #51cf66 !important;
+
+.modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 500px;
+    position: relative;
+}
+
+.close {
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.btn-add-record {
+    background-color: #4dabf7;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 50px;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 2rem;
+    transition: background-color 0.3s;
+}
+
+.btn-add-record:hover {
+    background-color: #339af0;
 }
 </style>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar tooltips
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+function showAddRecordModal() {
+    document.getElementById('addRecordModal').style.display = 'block';
+}
 
-    // Manejar clic en día para registro rápido
-    const dayCircles = document.querySelectorAll('.day-circle');
-    dayCircles.forEach(circle => {
-        circle.addEventListener('click', function(e) {
-            if (e.target.tagName !== 'A') {
-                const day = this.textContent.trim();
-                document.getElementById('quickRecordDate').value =
-                    `{{ year }}-{{ month|stringformat:"02d" }}-${day.padStart(2, '0')}`;
+function hideAddRecordModal() {
+    document.getElementById('addRecordModal').style.display = 'none';
+}
 
-                const modal = new bootstrap.Modal(document.getElementById('quickRecordModal'));
-                modal.show();
-            }
-        });
-    });
-
-    // Manejar envío del formulario rápido
-    document.getElementById('quickRecordForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        // Aquí iría la lógica AJAX para guardar el registro rápido
-        console.log("Registro rápido enviado");
-    });
-});
+// Cerrar modal al hacer clic fuera
+window.onclick = function(event) {
+    const modal = document.getElementById('addRecordModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+}
 </script>
 {% endblock %}

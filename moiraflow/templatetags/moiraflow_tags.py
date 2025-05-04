@@ -10,10 +10,10 @@ def get_item(dictionary, key):
     except (AttributeError, TypeError, KeyError):
         return None
 
-@register.filter(name='rotate_degrees')
-def rotate_degrees(index, total_days):
-    """Calcula los grados para posicionar los días en el círculo"""
-    return (index * 360) / total_days
+@register.filter
+def multiply(value, arg):
+    """Multiplica el valor por el argumento"""
+    return value * arg
 
 @register.filter
 def puede_editar(articulo, user):

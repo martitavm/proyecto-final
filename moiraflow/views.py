@@ -1,18 +1,23 @@
+from collections import defaultdict
+
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout, login
-from moiraflow.models import Perfil, RegistroDiario, TratamientoHormonal, CicloMenstrual, Articulo
-from moiraflow.forms import RegistroCompletoForm, RegistroDiarioForm, TratamientoHormonalForm, CicloMenstrualForm, ArticuloForm
+from moiraflow.models import Perfil, RegistroDiario, TratamientoHormonal, CicloMenstrual, Articulo, Mascota
+from moiraflow.forms import RegistroCompletoForm, RegistroDiarioForm, TratamientoHormonalForm, CicloMenstrualForm, \
+    ArticuloForm, EditarPerfilForm
 from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView, FormView, View, DetailView, ListView
 from django.shortcuts import redirect
 from django.contrib import messages
-from django.http import JsonResponse
-from django.utils import timezone
 import calendar
 from datetime import datetime, date, timedelta
-from django.urls import reverse_lazy
-
+from django.urls import reverse_lazy, reverse
+from django.views.generic import View
+from django.http import JsonResponse
+from django.utils import timezone
+from django.shortcuts import render
+from .models import Mascota
 
 class PaginaPrincipalView(LoginRequiredMixin, TemplateView):
     template_name = 'moiraflow/index.html'
@@ -67,9 +72,8 @@ class LogoutUserView(TemplateView):
 class EditarPerfilView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "moiraflow/editar_perfil.html"
     model = Perfil
-    fields = ['foto_perfil', 'fecha_nacimiento', 'genero',
-              'duracion_ciclo_promedio', 'duracion_periodo_promedio', 'tipo_perfil']
-    success_url = reverse_lazy('moiraflow:mi_perfil')
+    form_class = EditarPerfilForm  # Usamos el nuevo formulario
+    success_url = reverse_lazy('moiraflow:mi_perfil')  # Asegúrate que esta URL existe
 
     def test_func(self):
         perfil = self.get_object()
@@ -82,12 +86,21 @@ class EditarPerfilView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         user = self.request.user
         perfil = self.get_object()
 
-        # Si no es administrador, deshabilita el campo tipo_perfil
-        if not (hasattr(user, 'perfil') and user.perfil.es_administrador):
+        # Si el usuario no es administrador, ocultamos el campo tipo_perfil (si está en el formulario)
+        if 'tipo_perfil' in form.fields and not (hasattr(user, 'perfil') and user.perfil.es_administrador):
             form.fields['tipo_perfil'].disabled = True
             form.fields['tipo_perfil'].help_text = "Solo los administradores pueden modificar este campo"
 
         return form
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Perfil actualizado correctamente')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        # Alternativa: redirigir al perfil editado usando su PK
+        # return reverse('moiraflow:mi_perfil', kwargs={'pk': self.object.pk})
+        return super().get_success_url()
 
 
 class EliminarPerfilView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
@@ -154,169 +167,114 @@ class AdminEliminarPerfilView(LoginRequiredMixin, UserPassesTestMixin, DeleteVie
 
 
 class CalendarioView(LoginRequiredMixin, TemplateView):
-    """
-    Vista principal del calendario interactivo para seguimiento menstrual y hormonal
-    """
-    template_name = 'moiraflow/calendario_interactivo_circular.html'
+    template_name = 'moiraflow/calendario.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        year = int(self.kwargs.get('year', date.today().year))
+        month = int(self.kwargs.get('month', date.today().month))
 
-        try:
-            perfil = self.request.user.perfil
-        except:
-            # Si el usuario no tiene perfil, redirigir a completar perfil
-            messages.warning(self.request, "Por favor completa tu perfil primero")
-            return context
-
-        # Obtener año y mes actuales o del parámetro
-        year = int(self.request.GET.get('year', timezone.now().year))
-        month = int(self.request.GET.get('month', timezone.now().month))
-
-        # Crear calendario del mes
+        # Configurar calendario
         cal = calendar.monthcalendar(year, month)
-
-        # Obtener nombre del mes y días de la semana
-        month_name = calendar.month_name[month]
-        weekdays = [day for day in calendar.day_name]
-
-        # Obtener registros del mes actual
         first_day = date(year, month, 1)
-        if month == 12:
-            last_day = date(year + 1, 1, 1) - timedelta(days=1)
-        else:
-            last_day = date(year, month + 1, 1) - timedelta(days=1)
+        last_day = date(year, month, calendar.monthrange(year, month)[1])
 
-        # Obtener el ciclo menstrual actual si existe
-        ciclo_actual = None
-        if perfil.tipo_seguimiento in ['ciclo_menstrual', 'ambos']:
-            ciclos = CicloMenstrual.objects.filter(
-                usuario=self.request.user,
-                fecha_inicio__lte=last_day
-            ).order_by('-fecha_inicio')
-
-            if ciclos.exists():
-                ciclo_actual = ciclos.first()
-
-        # Obtener tratamiento hormonal activo si existe
-        tratamiento_activo = None
-        if perfil.tipo_seguimiento in ['tratamiento_hormonal', 'ambos']:
-            tratamientos = TratamientoHormonal.objects.filter(
-                usuario=self.request.user,
-                activo=True
-            ).order_by('-fecha_inicio')
-
-            if tratamientos.exists():
-                tratamiento_activo = tratamientos.first()
-
-        # Obtener registros diarios del mes
+        # Obtener registros del mes
         registros = RegistroDiario.objects.filter(
             usuario=self.request.user,
             fecha__gte=first_day,
             fecha__lte=last_day
-        )
+        ).order_by('fecha')
 
-        # Crear diccionario de registros por día
-        registros_por_dia = {}
+        # Organizar registros por día
+        registros_dict = defaultdict(list)
         for registro in registros:
-            registros_por_dia[registro.fecha.day] = {
-                'id': registro.id,
-                'es_dia_periodo': registro.es_dia_periodo,
-                'flujo_menstrual': registro.flujo_menstrual,
-                'medicacion_tomada': registro.medicacion_tomada,
-                'estados_animo': registro.estados_animo,
-                'dolor': registro.dolor
-            }
+            registros_dict[registro.fecha.day].append(registro)
 
-        # Crear formularios
-        registro_form = RegistroDiarioForm(tipo_seguimiento=perfil.tipo_seguimiento)
-        ciclo_form = CicloMenstrualForm()
-        tratamiento_form = TratamientoHormonalForm()
-
-        # Calcular mes anterior y siguiente
-        prev_month = month - 1 if month > 1 else 12
-        prev_year = year if month > 1 else year - 1
-        next_month = month + 1 if month < 12 else 1
-        next_year = year if month < 12 else year + 1
+        # Preparar datos para el template
+        weeks = []
+        for week in cal:
+            week_data = []
+            for day in week:
+                if day == 0:
+                    week_data.append(None)
+                else:
+                    week_data.append({
+                        'day': day,
+                        'date': date(year, month, day),
+                        'registros': registros_dict.get(day, [])
+                    })
+            weeks.append(week_data)
 
         context.update({
+            'weeks': weeks,
+            'month_name': first_day.strftime('%B'),
             'year': year,
             'month': month,
-            'month_name': month_name,
-            'cal': cal,
-            'weekdays': weekdays,
-            'perfil': perfil,
-            'registros_por_dia': registros_por_dia,
-            'registro_form': registro_form,
-            'ciclo_form': ciclo_form,
-            'tratamiento_form': tratamiento_form,
-            'ciclo_actual': ciclo_actual,
-            'tratamiento_activo': tratamiento_activo,
-            'prev_month': prev_month,
-            'prev_year': prev_year,
-            'next_month': next_month,
-            'next_year': next_year,
+            'prev_month': month - 1 if month > 1 else 12,
+            'prev_year': year if month > 1 else year - 1,
+            'next_month': month + 1 if month < 12 else 1,
+            'next_year': year if month < 12 else year + 1,
+            'today': date.today()
         })
 
         return context
 
 
+class RegistrosDiaView(LoginRequiredMixin, TemplateView):
+    template_name = 'moiraflow/registros_dia.html'
+
+    def get_context_data(self, year, month, day, **kwargs):
+        context = super().get_context_data(**kwargs)
+        fecha = date(year, month, day)
+
+        registros = RegistroDiario.objects.filter(
+            usuario=self.request.user,
+            fecha=fecha
+        ).order_by('hora_medicacion')
+
+        # Obtener ciclo si aplica
+        ciclo = None
+        if self.request.user.perfil.tipo_seguimiento in ['ciclo_menstrual', 'ambos']:
+            ciclo = CicloMenstrual.objects.filter(
+                usuario=self.request.user,
+                fecha_inicio__lte=fecha,
+                fecha_fin__gte=fecha
+            ).first()
+
+        context.update({
+            'fecha': fecha,
+            'registros': registros,
+            'ciclo': ciclo,
+            'form': RegistroDiarioForm(
+                usuario=self.request.user,
+                fecha=fecha,
+                tipo_seguimiento=self.request.user.perfil.tipo_seguimiento
+            )
+        })
+        return context
+
+
 class RegistroDiarioCreateView(LoginRequiredMixin, CreateView):
-    """
-    Vista para crear un nuevo registro diario
-    """
     model = RegistroDiario
     form_class = RegistroDiarioForm
-    success_url = reverse_lazy('moiraflow:calendario')
+    template_name = 'moiraflow/registro_diario_form.html'
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['tipo_seguimiento'] = self.request.user.perfil.tipo_seguimiento
+        kwargs['usuario'] = self.request.user
+        kwargs['fecha'] = date(
+            year=int(self.kwargs['year']),
+            month=int(self.kwargs['month']),
+            day=int(self.kwargs['day'])
+        )
         return kwargs
 
-    def form_valid(self, form):
-        fecha_str = self.request.POST.get('fecha')
-        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
-
-        # Verificar si ya existe un registro para esta fecha
-        registro_existente = RegistroDiario.objects.filter(
-            usuario=self.request.user,
-            fecha=fecha
-        ).first()
-
-        if registro_existente:
-            messages.warning(self.request, f"Ya existe un registro para el {fecha}. Por favor edítelo.")
-            return redirect(self.success_url)
-
-        nuevo_registro = form.save(commit=False)
-        nuevo_registro.usuario = self.request.user
-        nuevo_registro.fecha = fecha
-
-        # Asignar ciclo o tratamiento si corresponde
-        perfil = self.request.user.perfil
-
-        if perfil.tipo_seguimiento in ['ciclo_menstrual', 'ambos']:
-            ciclo_actual = CicloMenstrual.objects.filter(
-                usuario=self.request.user,
-                fecha_inicio__lte=fecha
-            ).order_by('-fecha_inicio').first()
-
-            if ciclo_actual and (not ciclo_actual.fecha_fin or fecha <= ciclo_actual.fecha_fin):
-                nuevo_registro.ciclo = ciclo_actual
-
-        if perfil.tipo_seguimiento in ['tratamiento_hormonal', 'ambos']:
-            tratamiento_activo = TratamientoHormonal.objects.filter(
-                usuario=self.request.user,
-                activo=True
-            ).first()
-
-            if tratamiento_activo:
-                nuevo_registro.tratamiento = tratamiento_activo
-
-        nuevo_registro.save()
-        messages.success(self.request, f"Registro del {fecha} creado correctamente")
-        return redirect(self.success_url)
-
+    def get_success_url(self):
+        return reverse('moiraflow:calendario', kwargs={
+            'year': self.object.fecha.year,
+            'month': self.object.fecha.month
+        })
 
 class RegistroDiarioUpdateView(LoginRequiredMixin, UpdateView):
     """
@@ -346,7 +304,7 @@ class RegistroDiarioDeleteView(LoginRequiredMixin, DeleteView):
     Vista para eliminar un registro diario
     """
     model = RegistroDiario
-    template_name = 'moiraflow/registrodiario_confirm_delete.html'
+    template_name = 'moiraflow/registro_diario_confirm_delete.html'
     success_url = reverse_lazy('moiraflow:calendario')
 
     def get_queryset(self):
@@ -431,83 +389,82 @@ class TratamientoHormonalCreateView(LoginRequiredMixin, CreateView):
         messages.success(self.request, "Nuevo tratamiento hormonal registrado correctamente")
         return redirect(self.success_url)
 
+
 class CalendarioInteractivoCirularView(LoginRequiredMixin, TemplateView):
-        template_name = 'moiraflow/calendario_interactivo_circular.html'
+    template_name = 'moiraflow/calendario_interactivo_circular.html'
 
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-            perfil = self.request.user.perfil
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        perfil = self.request.user.perfil
 
-            # Obtener año y mes actuales o del parámetro
-            year = int(self.request.GET.get('year', timezone.now().year))
-            month = int(self.request.GET.get('month', timezone.now().month))
+        # Obtener año y mes
+        year = int(self.request.GET.get('year', timezone.now().year))
+        month = int(self.request.GET.get('month', timezone.now().month))
 
-            # Calcular días del mes
-            _, num_days = calendar.monthrange(year, month)
-            days_of_month = list(range(1, num_days + 1))
+        # Configuración del calendario
+        _, num_days = calendar.monthrange(year, month)
+        today = timezone.now().date()
 
-            # Obtener día actual
-            today = timezone.now().date()
-            current_day = today.day if today.year == year and today.month == month else None
-            current_day_name = calendar.day_name[today.weekday()]
-
-            # Obtener registros del mes
-            first_day = date(year, month, 1)
-            last_day = date(year, month, num_days)
-
-            registros = RegistroDiario.objects.filter(
+        # Obtener ciclo actual si aplica
+        ciclo_actual = None
+        if perfil.tipo_seguimiento in ['ciclo_menstrual', 'ambos']:
+            ciclo_actual = CicloMenstrual.objects.filter(
                 usuario=self.request.user,
-                fecha__gte=first_day,
-                fecha__lte=last_day
-            )
+                fecha_inicio__lte=today,
+                fecha_fin__gte=today
+            ).first()
 
-            # Crear diccionario de registros por día
-            registros_por_dia = {}
-            dias_periodo = 0
-            dias_medicacion = 0
+        # Obtener todos los registros del mes
+        registros = RegistroDiario.objects.filter(
+            usuario=self.request.user,
+            fecha__year=year,
+            fecha__month=month
+        ).select_related('ciclo', 'tratamiento')
 
-            for registro in registros:
-                day = registro.fecha.day
-                registros_por_dia[day] = {
-                    'es_dia_periodo': registro.es_dia_periodo,
-                    'medicacion_tomada': registro.medicacion_tomada,
-                    'id': registro.id  # Añadido para poder editar/eliminar
-                }
+        # Organizar datos por día
+        dias_data = []
+        for day in range(1, num_days + 1):
+            fecha = date(year, month, day)
+            registros_dia = [r for r in registros if r.fecha.day == day]
 
-                if registro.es_dia_periodo:
-                    dias_periodo += 1
-                if registro.medicacion_tomada:
-                    dias_medicacion += 1
+            # Determinar fase del ciclo si aplica
+            fase = None
+            if ciclo_actual and (ciclo_actual.fecha_inicio <= fecha <= ciclo_actual.fecha_fin):
+                fase = ciclo_actual.determinar_fase(fecha)
 
-            # Calcular meses anterior/siguiente
-            prev_month = month - 1 if month > 1 else 12
-            prev_year = year if month > 1 else year - 1
-            next_month = month + 1 if month < 12 else 1
-            next_year = year if month < 12 else year + 1
-
-            # Añadir todo al contexto
-            context.update({
-                'year': year,
-                'month': month,
-                'month_name': calendar.month_name[month],
-                'total_days': num_days,
-                'current_day': current_day,
-                'current_day_name': current_day_name,
-                'registros_por_dia': registros_por_dia,
-                'prev_year': prev_year,
-                'prev_month': prev_month,
-                'next_year': next_year,
-                'next_month': next_month,
-                'dias_periodo': dias_periodo,
-                'dias_medicacion': dias_medicacion,
-                'dias_registrados': len(registros_por_dia),
-                'ESTADO_ANIMO_CHOICES': RegistroDiario.ESTADO_ANIMO_CHOICES,
-                'quick_form': RegistroDiarioForm(
-                    tipo_seguimiento=perfil.tipo_seguimiento
-                )
+            dias_data.append({
+                'dia': day,
+                'fecha': fecha,
+                'es_hoy': fecha == today,
+                'registros': registros_dia,
+                'fase': fase,
+                'es_periodo': any(r.es_dia_periodo for r in registros_dia),
+                'es_hormonal': any(r.medicacion_tomada for r in registros_dia)
             })
 
-            return context
+        # Configurar navegación entre meses
+        prev_month = month - 1 if month > 1 else 12
+        prev_year = year if month > 1 else year - 1
+        next_month = month + 1 if month < 12 else 1
+        next_year = year if month < 12 else year + 1
+
+        context.update({
+            'year': year,
+            'month': month,
+            'month_name': calendar.month_name[month],
+            'dias_data': dias_data,
+            'ciclo_actual': ciclo_actual,
+            'prev_year': prev_year,
+            'prev_month': prev_month,
+            'next_year': next_year,
+            'next_month': next_month,
+            'perfil': perfil,
+            'form': RegistroDiarioForm(
+                usuario=self.request.user,
+                tipo_seguimiento=perfil.tipo_seguimiento
+            )
+        })
+        return context
 
 
 class ListaArticulosView(ListView):
@@ -594,3 +551,81 @@ class EliminarArticuloView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(request, 'Artículo eliminado exitosamente!')
         return super().delete(request, *args, **kwargs)
+
+
+class MascotaPanelView(LoginRequiredMixin, TemplateView):
+    template_name = 'moiraflow/mascota_panel.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['mascota'] = self.request.user.mascota
+        return context
+
+
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+@require_POST
+@csrf_exempt
+def alimentar_mascota(request):
+    try:
+        mascota = request.user.mascota
+
+        # Primero devolvemos la imagen de comiendo
+        response_data = {
+            'success': True,
+            'imagen_temporal': '/static/images/mascota_comiendo.gif',
+            'nivel_hambre': mascota.nivel_hambre
+        }
+
+        # Luego procesamos la alimentación (con retraso en frontend)
+        return JsonResponse(response_data)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@require_POST
+@csrf_exempt
+def finalizar_alimentacion(request):
+    try:
+        mascota = request.user.mascota
+        mascota.alimentar()
+        return JsonResponse({
+            'success': True,
+            'estado': mascota.estado,
+            'estado_display': mascota.get_estado_display(),
+            'nivel_hambre': mascota.nivel_hambre,
+            'imagen_estado': mascota.imagen_estado,
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@require_POST
+@csrf_exempt
+def consejo_mascota(request):
+    try:
+        mascota = request.user.mascota
+        consejo = mascota.dar_consejo()
+
+        if consejo:
+            # Asegurarnos de actualizar el estado después de dar el consejo
+            mascota.actualizar_estado()
+            return JsonResponse({
+                'success': True,
+                'consejo': consejo,
+                'estado': mascota.estado,
+                'estado_display': mascota.get_estado_display(),
+                'nivel_hambre': mascota.nivel_hambre,
+                'imagen_estado': mascota.imagen_estado,
+                'nuevo_estado': mascota.estado,  # Añadido para claridad
+                'nueva_imagen': mascota.imagen_estado  # Añadido para claridad
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'La mascota no está lo suficientemente satisfecha para dar consejos'
+            })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})

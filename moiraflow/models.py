@@ -1,9 +1,10 @@
+import random
+from datetime import timedelta
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import User
-from django.utils.text import slugify
 from django.utils import timezone
-from django.contrib.auth import get_user
 
 class Perfil(models.Model):
     """
@@ -35,6 +36,20 @@ class Perfil(models.Model):
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
 
+    # Agregar método para determinar tipo de seguimiento automáticamente
+    def determinar_tipo_seguimiento(self):
+        if self.genero in ['femenino', 'masculino trans']:
+            return 'ciclo_menstrual'
+        elif self.genero == 'femenino trans':
+            return 'tratamiento_hormonal'
+        return 'ninguno'
+
+    # Agregar al save()
+    def save(self, *args, **kwargs):
+        if not self.tipo_seguimiento:
+            self.tipo_seguimiento = self.determinar_tipo_seguimiento()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"Perfil de {self.usuario.username}"
 
@@ -61,6 +76,45 @@ class TratamientoHormonal(models.Model):
     activo = models.BooleanField(default=True)
     notas = models.TextField(blank=True)
 
+    # Añadir tipo de hormonas
+    TIPO_HORMONA_CHOICES = [
+        ('estrogeno', 'Estógeno'),
+        ('progesterona', 'Progesterona'),
+        ('testosterona', 'Testosterona'),
+        ('combinado', 'Combinado')
+    ]
+
+    tipo_hormona = models.CharField(
+        max_length=12,
+        choices=TIPO_HORMONA_CHOICES
+    )
+
+    # Método para dosis diaria recomendada
+    @property
+    def dosis_diaria(self):
+        if self.frecuencia and self.dosis:
+            try:
+                return f"{float(self.dosis)/float(self.frecuencia):.2f}"
+            except:
+                return "N/A"
+        return "N/A"
+
+    # Añadir método para verificar si está activo en una fecha
+    def esta_activo_en_fecha(self, fecha=None):
+        fecha = fecha or timezone.now().date()
+        return (self.activo and
+                self.fecha_inicio <= fecha and
+                (self.fecha_fin is None or fecha <= self.fecha_fin))
+
+    # Añadir propiedad para progreso del tratamiento
+    @property
+    def progreso(self):
+        if not self.fecha_fin:
+            return None
+        total_dias = (self.fecha_fin - self.fecha_inicio).days
+        dias_transcurridos = (timezone.now().date() - self.fecha_inicio).days
+        return min(100, max(0, int((dias_transcurridos / total_dias) * 100)))
+
     def __str__(self):
         return f"Tratamiento de {self.usuario.username} - {self.nombre_tratamiento}"
 
@@ -73,8 +127,75 @@ class CicloMenstrual(models.Model):
     fecha_inicio = models.DateField(help_text="Fecha de inicio del ciclo (primer día de menstruación)")
     fecha_fin = models.DateField(null=True, blank=True,
                                  help_text="Fecha de fin del ciclo (último día antes del siguiente ciclo)")
-    duracion = models.PositiveIntegerField(null=True, blank=True, help_text="Duración total del ciclo en días")
     notas = models.TextField(blank=True)
+
+    # Añadir fase del ciclo
+    FASE_CICLO_CHOICES = [
+        ('folicular', 'Fase Folicular'),
+        ('ovulacion', 'Ovulación'),
+        ('lutea', 'Fase Lútea'),
+        ('menstrual', 'Fase Menstrual')
+    ]
+
+    fase_actual = models.CharField(
+        max_length=10,
+        choices=FASE_CICLO_CHOICES,
+        blank=True,
+        null=True
+    )
+
+    sintomas_importantes = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Síntomas importantes durante este ciclo"
+    )
+
+    # Calcular duración automáticamente
+    @property
+    def duracion(self):
+        if self.fecha_inicio and self.fecha_fin:
+            return (self.fecha_fin - self.fecha_inicio).days + 1
+        return None
+
+    # Añadir método para predecir siguiente ciclo
+    def predecir_proximo_ciclo(self):
+        if not self.fecha_inicio or not self.duracion:
+            return None
+        return self.fecha_inicio + timedelta(days=self.duracion)
+
+    # Mejorar el método de fase con validación
+    def determinar_fase(self, fecha=None):
+        fecha = fecha or timezone.now().date()
+
+        if not (self.fecha_inicio and self.fecha_fin):
+            return None
+
+        if not (self.fecha_inicio <= fecha <= self.fecha_fin):
+            return None
+
+        dias_ciclo = (fecha - self.fecha_inicio).days
+        total_dias = self.duracion
+
+        # Usar el perfil del usuario para personalizar
+        perfil = self.usuario.perfil
+        dias_menstrual = min(7, perfil.duracion_periodo_promedio or 5)
+        dias_folicular = int(total_dias * 0.4) - dias_menstrual
+        dias_ovulacion = 3
+        dias_lutea = total_dias - dias_menstrual - dias_folicular - dias_ovulacion
+
+        # Validar que no haya días negativos
+        dias_folicular = max(0, dias_folicular)
+        dias_ovulacion = max(0, dias_ovulacion)
+        dias_lutea = max(0, dias_lutea)
+
+        if dias_ciclo < dias_menstrual:
+            return 'menstrual'
+        elif dias_ciclo < dias_menstrual + dias_folicular:
+            return 'folicular'
+        elif dias_ciclo < dias_menstrual + dias_folicular + dias_ovulacion:
+            return 'ovulacion'
+        return 'lutea'
 
     def save(self, *args, **kwargs):
         if self.fecha_fin and not self.duracion:
@@ -93,6 +214,29 @@ class RegistroDiario(models.Model):
     """
     Modelo para registrar información diaria durante el ciclo o tratamiento.
     """
+
+    TIPO_REGISTRO_CHOICES = [
+        ('menstrual', 'Registro Menstrual'),
+        ('hormonal', 'Registro Hormonal'),
+        ('general', 'Registro General')
+    ]
+
+    tipo_registro = models.CharField(
+        max_length=10,
+        choices=TIPO_REGISTRO_CHOICES,
+        default='general'
+    )
+    SINTOMAS_CHOICES = [
+        ('dolor_cabeza', 'Dolor de cabeza'),
+        ('dolor_espalda', 'Dolor de espalda'),
+        ('fatiga', 'Fatiga'),
+        ('senos_sensibles', 'Sensibilidad en senos'),
+        ('retencion_liquidos', 'Retención de líquidos'),
+        ('antojos', 'Antojos'),
+        ('acne', 'Acné'),
+        ('sofocos', 'Sofocos'),
+        ('cambios_libido', 'Cambios en la libido'),
+    ]
     FLUJO_CHOICES = [
         ('nulo', 'Nulo'),
         ('ligero', 'Ligero'),
@@ -125,11 +269,21 @@ class RegistroDiario(models.Model):
     ]
 
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='registros_diarios')
-    ciclo = models.ForeignKey('CicloMenstrual', on_delete=models.CASCADE, related_name='registros', null=True,
-                              blank=True)
-    tratamiento = models.ForeignKey('TratamientoHormonal', on_delete=models.CASCADE, related_name='registros',
-                                    null=True, blank=True)
-    fecha = models.DateField()
+    ciclo = models.ForeignKey(
+        CicloMenstrual,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='registros'
+    )
+    tratamiento = models.ForeignKey(
+        TratamientoHormonal,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='registros'
+    )
+    fecha = models.DateField(default=timezone.now)
 
     # --- Campos comunes a todos los tipos de seguimiento ---
     # Estados físicos generales
@@ -266,6 +420,34 @@ class RegistroDiario(models.Model):
     def __str__(self):
         return f"Registro de {self.usuario.username} del {self.fecha}"
 
+    # Agregar método para obtener icono según tipo de registro
+    def get_icono(self):
+        if self.es_registro_menstrual:
+            if self.es_dia_periodo:
+                return '💮'  # Flor para menstruación
+            fase = self.ciclo.determinar_fase(self.fecha) if self.ciclo else None
+            return {
+                'menstrual': '🩸',
+                'folicular': '🌱',
+                'ovulacion': '🥚',
+                'lutea': '🌕'
+            }.get(fase, ' ')
+        elif self.es_registro_hormonal:
+            return '💊'
+        return '📝'
+
+    # Agregar propiedad para CSS class
+    @property
+    def css_class(self):
+        if self.es_registro_menstrual:
+            if self.es_dia_periodo:
+                return 'menstruacion'
+            fase = self.ciclo.determinar_fase(self.fecha) if self.ciclo else None
+            return f'fase-{fase}' if fase else ''
+        elif self.es_registro_hormonal:
+            return 'hormonal'
+        return 'general'
+
     @property
     def es_registro_menstrual(self):
         return self.ciclo is not None and self.usuario.perfil.tipo_seguimiento in ['ciclo_menstrual', 'ambos']
@@ -274,17 +456,79 @@ class RegistroDiario(models.Model):
     def es_registro_hormonal(self):
         return self.tratamiento is not None and self.usuario.perfil.tipo_seguimiento in ['tratamiento_hormonal',
                                                                                          'ambos']
+
+    # Añadir método para resumen rápido
+    def resumen(self):
+        if self.es_registro_menstrual:
+            return f"Registro menstrual: {self.get_flujo_menstrual_display() if self.flujo_menstrual else 'Sin flujo'}"
+        elif self.es_registro_hormonal:
+            return f"Registro hormonal: {'Medicación tomada' if self.medicacion_tomada else 'Medicación pendiente'}"
+        return "Registro general"
+
+    def get_icono_calendario(self):
+        if self.es_registro_menstrual:
+            if self.es_dia_periodo:
+                return '🩸'
+            fase = self.ciclo.determinar_fase(self.fecha) if self.ciclo else None
+            return {
+                'folicular': '🌱',
+                'ovulacion': '🥚',
+                'lutea': '🌕',
+                'menstrual': '🩸'
+            }.get(fase, ' ')
+        elif self.es_registro_hormonal:
+            return '💊'
+        return '•'
+
+    def get_tooltip_info(self):
+        info = []
+        if self.es_registro_menstrual:
+            if self.es_dia_periodo:
+                info.append(f"Flujo: {self.get_flujo_menstrual_display()}")
+            info.append(f"Fase: {self.ciclo.determinar_fase(self.fecha)}")
+        elif self.es_registro_hormonal:
+            info.append(f"Medicación: {'✅' if self.medicacion_tomada else '❌'}")
+        if self.estados_animo:
+            info.append(f"Ánimo: {self.estados_animo}")
+        return "\n".join(info)
+
+    # Mejorar clean para validaciones específicas
     def clean(self):
-        if self.es_registro_menstrual and not self.es_dia_periodo and self.flujo_menstrual:
-            raise ValidationError("No puede haber flujo menstrual si no es día de período")
+        super().clean()
 
+        # Validación para registros menstruales
+        if self.es_registro_menstrual:
+            if not self.es_dia_periodo and any([self.flujo_menstrual, self.coagulos, self.color_flujo]):
+                raise ValidationError({
+                    'es_dia_periodo': "Debe marcar como día de período para registrar detalles menstruales"
+                })
+
+        # Validación para registros hormonales
         if self.es_registro_hormonal and self.medicacion_tomada and not self.hora_medicacion:
-            raise ValidationError("Debe especificar la hora de la medicación")
+            raise ValidationError({
+                'hora_medicacion': "Debe especificar la hora cuando marca la medicación como tomada"
+            })
 
+    # Añadir propiedad para color de visualización
+    @property
+    def color_indicator(self):
+        if self.es_registro_menstrual:
+            if self.es_dia_periodo:
+                return '#ff6b6b'  # Rojo para menstruación
+            fase = self.ciclo.determinar_fase(self.fecha) if self.ciclo else None
+            return {
+                'folicular': '#a5d8ff',  # Azul claro
+                'ovulacion': '#ffd8a8',  # Naranja claro
+                'lutea': '#ffdeeb',  # Rosa claro
+                'menstrual': '#ff6b6b'  # Rojo
+            }.get(fase, '#f1f3f5')  # Gris por defecto
+        elif self.es_registro_hormonal:
+            return '#d8f5a2'  # Verde claro para hormonal
+        return '#f1f3f5'  # Gris para general
 
     class Meta:
-        ordering = ['-fecha']
-        unique_together = ['usuario', 'fecha']
+        ordering = ['-fecha', '-hora_medicacion']
+        unique_together = ['usuario', 'fecha']  # Un registro por usuario por día
 
 
 # Mejora al modelo Recordatorio para permitir recordatorios más específicos
@@ -423,3 +667,61 @@ class Articulo(models.Model):
     def puede_editar(self, user):
         """Determina si un usuario puede editar este artículo"""
         return user == self.autor or user.perfil.es_administrador
+
+
+class Mascota(models.Model):
+    ESTADOS = [
+        ('normal', 'Normal'),
+        ('hambrienta', 'Hambrienta'),
+        ('feliz', 'Feliz'),
+    ]
+
+    usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='mascota')
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='normal')
+    nivel_hambre = models.PositiveIntegerField(default=50)  # Rango de 0 a 100
+    ultimo_cambio_estado = models.DateTimeField(auto_now=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    CONSEJOS = [
+        "Recuerda beber suficiente agua hoy 💧",
+        "Hoy es un buen día para hacer ejercicio 🏃‍♀️",
+        "No olvides tomarte un tiempo para relajarte 🧘‍♀️",
+        "¿Has registrado tus síntomas hoy? 📝",
+        "Mantén una dieta equilibrada hoy 🥗",
+    ]
+
+    def __str__(self):
+        return f"Mascota de {self.usuario.username}"
+
+    @property
+    def imagen_estado(self):
+        return f'images/mascota_{self.estado}.gif'
+
+    def puede_dar_consejo(self):
+        return self.nivel_hambre >= 15
+
+    def alimentar(self):
+        # Aumentar nivel de hambre (entre 20 y 40 puntos)
+        self.nivel_hambre = min(100, self.nivel_hambre + random.randint(20, 40))
+        self.actualizar_estado()
+        self.save()
+        return True
+
+    def dar_consejo(self):
+        if self.puede_dar_consejo():
+            # Disminuir hambre al dar consejo
+            self.nivel_hambre = max(0, self.nivel_hambre - random.randint(5, 15))
+            # Forzar actualización del estado
+            self.actualizar_estado()
+            self.save()
+            return random.choice(self.CONSEJOS)
+        return None
+
+    def actualizar_estado(self):
+        if self.nivel_hambre < 30:
+            self.estado = 'hambrienta'
+        elif self.nivel_hambre > 70:
+            self.estado = 'feliz'
+        else:
+            self.estado = 'normal'
+        self.save()

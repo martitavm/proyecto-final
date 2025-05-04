@@ -3,14 +3,12 @@
 {% block content %}
 <div class="container mt-4">
     <h2>Confirmar eliminación</h2>
-    <p>¿Estás seguro de que deseas eliminar el registro del día {{ object.fecha }}?</p>
-    
+    <p>¿Estás seguro de que quieres eliminar el registro del {{ object.fecha }}?</p>
+
     <form method="post">
         {% csrf_token %}
         <button type="submit" class="btn btn-danger">Sí, eliminar</button>
-        <a href="{% url 'moiraflow:calendario' %}" class="btn btn-secondary ms-2">
-            Cancelar
-        </a>
+        <a href="{% url 'moiraflow:calendario' %}" class="btn btn-secondary">Cancelar</a>
     </form>
 </div>
 {% endblock %}
