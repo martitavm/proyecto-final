@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="calendar-container">
+    <div class="calendar-header">
+        <a href="{% url 'moiraflow:calendario' year=prev_year month=prev_month %}" class="nav-link">← Anterior</a>
+        <h2>{{ month_name }} {{ year }}</h2>
+        <a href="{% url 'moiraflow:calendario' year=next_year month=next_month %}" class="nav-link">Siguiente →</a>
+    </div>
+    
+    <table class="calendar-table">
+        <thead>
+            <tr>
+                <th>Lun</th>
+                <th>Mar</th>
+                <th>Mié</th>
+                <th>Jue</th>
+                <th>Vie</th>
+                <th>Sáb</th>
+                <th>Dom</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for week in weeks %}
+            <tr>
+                {% for day in week %}
+                <td class="{% if not day %}empty{% endif %} {% if day.date == today %}today{% endif %}">
+                    {% if day %}
+                    <div class="day-header">
+                        <a href="{% url 'moiraflow:registros_dia' year=day.date.year month=day.date.month day=day.day %}" 
+                           class="day-number {% if day.registros %}has-records{% endif %}">
+                            {{ day.day }}
+                        </a>
+                    </div>
+                    <div class="day-records">
+                        {% for registro in day.registros %}
+                        <div class="record-badge {{ registro.css_class }}" 
+                             title="{{ registro.resumen }}">
+                            {{ registro.get_icono }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="calendar-legend">
+    <div><span class="legend-icon menstrual">🩸</span> Menstruación</div>
+    <div><span class="legend-icon folicular">🌱</span> Fase Folicular</div>
+    <div><span class="legend-icon ovulacion">🥚</span> Ovulación</div>
+    <div><span class="legend-icon lutea">🌕</span> Fase Lútea</div>
+    <div><span class="legend-icon hormonal">💊</span> Tratamiento</div>
+</div>
+
+<style>
+.calendar-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 1rem;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.calendar-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.calendar-table th {
+    padding: 0.5rem;
+    text-align: center;
+    background: #f8f9fa;
+}
+
+.calendar-table td {
+    height: 100px;
+    vertical-align: top;
+    padding: 0.5rem;
+    border: 1px solid #dee2e6;
+}
+
+.calendar-table td.empty {
+    background: #f8f9fa;
+}
+
+.day-header {
+    text-align: right;
+    margin-bottom: 0.5rem;
+}
+
+.day-number {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    text-align: center;
+    border-radius: 50%;
+    text-decoration: none;
+    color: #212529;
+}
+
+.day-number.has-records {
+    background: #4dabf7;
+    color: white;
+}
+
+.day-number:hover {
+    background: #339af0;
+    color: white;
+}
+
+.day-records {
+    min-height: 60px;
+}
+
+.record-badge {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    text-align: center;
+    border-radius: 50%;
+    margin: 2px;
+    font-size: 12px;
+    cursor: default;
+}
+
+.today .day-number {
+    background: #ff6b6b;
+    color: white;
+    font-weight: bold;
+}
+
+/* Estilos para los tipos de registros */
+.menstrual {
+    background: #ff6b6b;
+    color: white;
+}
+
+.folicular {
+    background: #a5d8ff;
+}
+
+.ovulacion {
+    background: #ffd8a8;
+}
+
+.lutea {
+    background: #ffdeeb;
+}
+
+.hormonal {
+    background: #d8f5a2;
+}
+
+/* Leyenda */
+.calendar-legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.calendar-legend div {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.legend-icon {
+    font-size: 1.2rem;
+}
+</style>
+{% endblock %}
