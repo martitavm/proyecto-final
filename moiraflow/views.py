@@ -4,7 +4,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout, login
-from moiraflow.models import Perfil, RegistroDiario, TratamientoHormonal, CicloMenstrual, Articulo, Mascota
+from moiraflow.models import Perfil, RegistroDiario, TratamientoHormonal, CicloMenstrual, Articulo, Mascota, \
+    EfectoTratamiento
 from moiraflow.forms import RegistroCompletoForm, RegistroDiarioForm, TratamientoHormonalForm, CicloMenstrualForm, \
     ArticuloForm, EditarPerfilForm
 from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView, FormView, View, DetailView, ListView
@@ -17,7 +18,7 @@ from django.views.generic import View
 from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.response import Response
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Q, F
 from datetime import datetime, timedelta
 from moiraflow.serializers import SintomaSerializer
 from rest_framework.permissions import IsAuthenticated
@@ -561,7 +562,8 @@ class MascotaPanelView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['mascota'] = self.request.user.mascota
+        mascota, created = Mascota.objects.get_or_create(usuario=self.request.user)
+        context['mascota'] = mascota
         return context
 
 

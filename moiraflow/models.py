@@ -19,14 +19,12 @@ class Perfil(models.Model):
     TIPO_SEGUIMIENTO_CHOICES = [
         ('ciclo_menstrual', 'Ciclo Menstrual'),
         ('tratamiento_hormonal', 'Tratamiento Hormonal'),
-        ('ambos', 'Ambos'),
-        ('ninguno', 'Sin seguimiento especial'),
     ]
 
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, related_name='perfil')
     foto_perfil = models.ImageField(upload_to="perfiles/", null=True, blank=True)
     fecha_nacimiento = models.DateField(null=True, blank=True)
-    genero = models.CharField(max_length=50, blank=True)
+    genero = models.CharField(max_length=50, blank=False)
     duracion_ciclo_promedio = models.PositiveIntegerField(null=True, blank=True, default=28, help_text="Duración promedio del ciclo en días")
     duracion_periodo_promedio = models.PositiveIntegerField(null=True, blank=True, default=5, help_text="Duración promedio del período en días")
     es_premium = models.BooleanField(default=False, help_text="Indica si el usuario tiene cuenta premium")
@@ -43,12 +41,18 @@ class Perfil(models.Model):
             return 'tratamiento_hormonal'
         return 'ninguno'
 
-    # Agregar al save()
+
     def save(self, *args, **kwargs):
-        if not self.tipo_seguimiento:
-            self.tipo_seguimiento = self.determinar_tipo_seguimiento()
-        # Si el seguimiento no es menstrual, no necesitamos estos valores
-        if self.tipo_seguimiento not in ['ciclo_menstrual', 'ambos']:
+        # Asigna tipo_seguimiento basado en género (obligatorio)
+        if self.genero in ['femenino', 'masculino trans']:
+            self.tipo_seguimiento = 'ciclo_menstrual'
+        elif self.genero == 'femenino trans':
+            self.tipo_seguimiento = 'tratamiento_hormonal'
+        else:
+            raise ValidationError("Género no tiene un tipo de seguimiento asociado")
+
+        # Limpia campos innecesarios
+        if self.tipo_seguimiento != 'ciclo_menstrual':
             self.duracion_ciclo_promedio = None
             self.duracion_periodo_promedio = None
 
@@ -64,6 +68,29 @@ class Perfil(models.Model):
     @property
     def es_administrador(self):
         return self.tipo_perfil == 'administracion'
+
+    @property
+    def puede_acceder_premium(self):
+        return self.es_premium or self.es_administrador
+
+    def calcular_estadisticas_ciclo(self):
+        ciclos = CicloMenstrual.objects.filter(usuario=self.usuario).exclude(fecha_fin__isnull=True)
+        if not ciclos.exists():
+            return None
+
+        # Cálculo de duraciones
+        duraciones = [c.duracion for c in ciclos]
+        promedio = sum(duraciones) / len(duraciones)
+
+        # Fases más comunes con síntomas
+        estadisticas = {
+            'total_ciclos': len(duraciones),
+            'duracion_promedio': promedio,
+            'duracion_min': min(duraciones),
+            'duracion_max': max(duraciones),
+            'regularidad': (max(duraciones) - min(duraciones)) <= 3  # Consideramos regular si varía menos de 3 días
+        }
+        return estadisticas
 
 
 # Nuevo modelo para tratamientos hormonales

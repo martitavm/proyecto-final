@@ -26,7 +26,7 @@ from moiraflow.views import (
     alimentar_mascota,
     consejo_mascota,
     MascotaPanelView,
-    finalizar_alimentacion, RegistrosDiaView,
+    finalizar_alimentacion, RegistrosDiaView, AnalisisPremiumView,
 )
 
 app_name = 'moiraflow'
@@ -78,5 +78,6 @@ urlpatterns = [
     path('mascota/alimentar/', alimentar_mascota, name='alimentar_mascota'),
     path('mascota/finalizar-alimentacion/', finalizar_alimentacion, name='finalizar_alimentacion'),
     path('mascota/consejo/', consejo_mascota, name='consejo_mascota'),
+
 
 ]
