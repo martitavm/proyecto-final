@@ -23,13 +23,13 @@ from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
 from moiraflow.views import SintomasViewSet
-
 router = DefaultRouter()
 router.register(r'sintomas', SintomasViewSet, basename='sintomas')
-
 urlpatterns = [
     path("moiraflow/", include("moiraflow.urls")),
     path("admin/", admin.site.urls),
+
+    path('accounts/', include('django.contrib.auth.urls')),
     path('api/', include(router.urls)),
 ]
 

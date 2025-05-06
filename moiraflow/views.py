@@ -4,7 +4,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout, login
-from moiraflow.models import Perfil, RegistroDiario, TratamientoHormonal, CicloMenstrual, Articulo, Mascota
+from moiraflow.models import Perfil, RegistroDiario, TratamientoHormonal, CicloMenstrual, Articulo, Mascota, \
+    EfectoTratamiento, EstadisticaUsuario
 from moiraflow.forms import RegistroCompletoForm, RegistroDiarioForm, TratamientoHormonalForm, CicloMenstrualForm, \
     ArticuloForm, EditarPerfilForm
 from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView, FormView, View, DetailView, ListView
@@ -17,7 +18,7 @@ from django.views.generic import View
 from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.response import Response
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Q, F
 from datetime import datetime, timedelta
 from moiraflow.serializers import SintomaSerializer
 from rest_framework.permissions import IsAuthenticated
@@ -230,30 +231,62 @@ class RegistrosDiaView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, year, month, day, **kwargs):
         context = super().get_context_data(**kwargs)
         fecha = date(year, month, day)
+        perfil = self.request.user.perfil
 
-        registros = RegistroDiario.objects.filter(
+        registro = RegistroDiario.objects.filter(
             usuario=self.request.user,
             fecha=fecha
-        ).order_by('hora_medicacion')
+        ).first()
 
-        # Obtener ciclo si aplica
         ciclo = None
-        if self.request.user.perfil.tipo_seguimiento in ['ciclo_menstrual', 'ambos']:
+        tratamiento_activo = None
+
+        if perfil.tipo_seguimiento == 'ciclo_menstrual':
+            # Buscar ciclo activo para esta fecha
             ciclo = CicloMenstrual.objects.filter(
                 usuario=self.request.user,
                 fecha_inicio__lte=fecha,
                 fecha_fin__gte=fecha
             ).first()
 
+            # Si no hay ciclo activo, crear uno automáticamente
+            if not ciclo and perfil.duracion_ciclo_promedio:
+                fecha_inicio = fecha - timedelta(days=perfil.duracion_ciclo_promedio - 1)
+                fecha_fin = fecha_inicio + timedelta(days=perfil.duracion_ciclo_promedio - 1)
+
+                ciclo = CicloMenstrual.objects.create(
+                    usuario=self.request.user,
+                    fecha_inicio=fecha_inicio,
+                    fecha_fin=fecha_fin
+                )
+
+        elif perfil.tipo_seguimiento == 'tratamiento_hormonal':
+            tratamiento_activo = TratamientoHormonal.objects.filter(
+                usuario=self.request.user,
+                activo=True,
+                fecha_inicio__lte=fecha,
+                fecha_fin__gte=fecha
+            ).first()
+
+        form_kwargs = {
+            'usuario': self.request.user,
+            'fecha': fecha,
+            'tipo_seguimiento': perfil.tipo_seguimiento,
+            'instance': registro
+        }
+
+        if perfil.tipo_seguimiento == 'ciclo_menstrual' and ciclo:
+            form_kwargs['ciclo'] = ciclo
+        elif perfil.tipo_seguimiento == 'tratamiento_hormonal' and tratamiento_activo:
+            form_kwargs['tratamiento'] = tratamiento_activo
+
         context.update({
             'fecha': fecha,
-            'registros': registros,
+            'registro': registro,
             'ciclo': ciclo,
-            'form': RegistroDiarioForm(
-                usuario=self.request.user,
-                fecha=fecha,
-                tipo_seguimiento=self.request.user.perfil.tipo_seguimiento
-            )
+            'tratamiento_activo': tratamiento_activo,
+            'perfil': perfil,
+            'form': RegistroDiarioForm(**form_kwargs)
         })
         return context
 
@@ -261,7 +294,7 @@ class RegistrosDiaView(LoginRequiredMixin, TemplateView):
 class RegistroDiarioCreateView(LoginRequiredMixin, CreateView):
     model = RegistroDiario
     form_class = RegistroDiarioForm
-    template_name = 'moiraflow/registro_diario_form.html'
+    template_name = 'moiraflow/registro_diario_crear.html'
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -272,6 +305,35 @@ class RegistroDiarioCreateView(LoginRequiredMixin, CreateView):
             day=int(self.kwargs['day'])
         )
         return kwargs
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial['fecha'] = date(
+            year=int(self.kwargs['year']),
+            month=int(self.kwargs['month']),
+            day=int(self.kwargs['day'])
+        )
+        return initial
+
+    def form_valid(self, form):
+        form.instance.usuario = self.request.user
+        form.instance.fecha = date(
+            year=int(self.kwargs['year']),
+            month=int(self.kwargs['month']),
+            day=int(self.kwargs['day'])
+        )
+
+        # Verifica si el formulario es válido
+        if not form.is_valid():
+            return self.form_invalid(form)
+
+        try:
+            self.object = form.save()
+            messages.success(self.request, "Registro creado correctamente")
+            return super().form_valid(form)
+        except Exception as e:
+            messages.error(self.request, f"Error al crear el registro: {str(e)}")
+            return self.form_invalid(form)
 
     def get_success_url(self):
         return reverse('moiraflow:calendario', kwargs={
@@ -285,7 +347,7 @@ class RegistroDiarioUpdateView(LoginRequiredMixin, UpdateView):
     """
     model = RegistroDiario
     form_class = RegistroDiarioForm
-    template_name = 'moiraflow/registro_diario.html'
+    template_name = 'moiraflow/registro_diario_crear.html'
     success_url = reverse_lazy('moiraflow:calendario')
 
     def get_form_kwargs(self):
@@ -561,7 +623,8 @@ class MascotaPanelView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['mascota'] = self.request.user.mascota
+        mascota, created = Mascota.objects.get_or_create(usuario=self.request.user)
+        context['mascota'] = mascota
         return context
 
 
@@ -633,84 +696,173 @@ def consejo_mascota(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
+from rest_framework import viewsets
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from datetime import datetime
+from django.db.models import Q
+from .models import RegistroDiario
 
 class SintomasViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
-    """ViewSet para estadísticas de síntomas"""
 
     def list(self, request):
         try:
-            year = int(request.query_params.get('year', datetime.now().year))
-            month = int(request.query_params.get('month', datetime.now().month))
-        except ValueError:
-            return Response({"error": "Año y mes deben ser números válidos"}, status=400)
+            year = int(request.GET.get('year', datetime.now().year))
+            month = int(request.GET.get('month', datetime.now().month))
 
-        # Calculamos el rango de fechas
-        first_day = datetime(year, month, 1).date()
-        if month == 12:
-            last_day = datetime(year + 1, 1, 1).date() - timedelta(days=1)
-        else:
-            last_day = datetime(year, month + 1, 1).date() - timedelta(days=1)
+            start_date = datetime(year, month, 1).date()
+            if month == 12:
+                end_date = datetime(year + 1, 1, 1).date()
+            else:
+                end_date = datetime(year, month + 1, 1).date()
 
-        registros = RegistroDiario.objects.filter(
-            usuario=request.user,
-            fecha__range=(first_day, last_day)
-        )
-
-        # Configuración de síntomas
-        sintomas_config = {
-            # Sintomas numéricos (intensidad 1-10)
-            'numericos': [
-                ('dolor_cabeza', 'Dolor de cabeza'),
-                ('dolor_espalda', 'Dolor de espalda'),
-                ('fatiga', 'Fatiga')
-            ],
-            # Síntomas booleanos (sí/no)
-            'booleanos': [
-                ('senos_sensibles', 'Sensibilidad en senos'),
-                ('retencion_liquidos', 'Retención de líquidos'),
-                ('antojos', 'Antojos'),
-                ('acné', 'Acné'),
-                ('sofocos', 'Sofocos'),
-                ('cambios_apetito', 'Cambios en apetito'),
-                ('insomnio', 'Insomnio'),
-                ('sensibilidad_pezon', 'Sensibilidad en pezones'),
-                ('crecimiento_mamario', 'Crecimiento mamario')
+            sintomas_a_analizar = [
+                RegistroDiario.SintomasComunes.DOLOR_CABEZA,
+                RegistroDiario.SintomasComunes.DOLOR_ESPALDA,
+                RegistroDiario.SintomasComunes.FATIGA,
+                # ... añade aquí el resto de los síntomas de SintomasComunes que quieras analizar
             ]
-        }
 
-        resultados = []
-
-        # Procesamos síntomas numéricos
-        for campo, nombre in sintomas_config['numericos']:
-            stats = registros.filter(
-                **{f'{campo}__gt': 0}
-            ).aggregate(
-                total_dias=Count('fecha', distinct=True),
-                avg_intensidad=Avg(campo)
+            registros_base = RegistroDiario.objects.filter(
+                usuario=request.user,
+                fecha__gte=start_date,
+                fecha__lt=end_date
             )
 
-            resultados.append({
-                'nombre': nombre,
-                'dias_presente': stats['total_dias'] or 0,
-                'intensidad_promedio': round(float(stats['avg_intensidad'] or 0), 1) if stats['avg_intensidad'] is not None else None
+            resultados = []
+            for sintoma_clave in sintomas_a_analizar:
+                conteo = registros_base.filter(Q(sintomas_comunes__contains=[sintoma_clave])).count()
+                if conteo > 0:
+                    resultados.append({
+                        'nombre': RegistroDiario.SintomasComunes(sintoma_clave).label,
+                        'dias_presente': conteo,
+                        'intensidad_promedio': 1
+                    })
+
+            return Response({
+                'year': year,
+                'month': month,
+                'sintomas': resultados
             })
 
-        # Procesamos síntomas booleanos
-        for campo, nombre in sintomas_config['booleanos']:
-            count = registros.filter(**{campo: True}).count()
-            resultados.append({
-                'nombre': nombre,
-                'dias_presente': count,
-                'intensidad_promedio': None
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
+
+
+class AnalisisPremiumView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    template_name = 'moiraflow/analisis_premium.html'
+    model = EstadisticaUsuario
+    context_object_name = 'estadisticas'
+
+    def test_func(self):
+        """Solo para usuarios premium o administradores"""
+        return self.request.user.perfil.puede_acceder_premium
+
+    def get_object(self):
+        """Obtiene o crea automáticamente las estadísticas del usuario"""
+        estadisticas, created = EstadisticaUsuario.objects.get_or_create(
+            usuario=self.request.user,
+            defaults={
+                'ultima_actualizacion': timezone.now()
+            }
+        )
+
+        # Si se acaba de crear o necesita actualización
+        if created or (timezone.now() - estadisticas.ultima_actualizacion).days >= 1:
+            estadisticas.actualizar_estadisticas()
+
+        return estadisticas
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        perfil = self.request.user.perfil
+
+        # Asegurarse de que las estadísticas estén actualizadas
+        if not hasattr(self.request.user, 'estadisticas'):
+            self.object = self.get_object()
+
+        # Datos específicos según tipo de seguimiento
+        if perfil.tipo_seguimiento == 'ciclo_menstrual':
+            context.update({
+                'titulo_seccion': 'Análisis de tu ciclo',
+                'graficos': self._preparar_graficos_ciclo(),
+                'resumen': self._generar_resumen_ciclo(),
+                'estadisticas': self.object
+            })
+        elif perfil.tipo_seguimiento == 'tratamiento_hormonal':
+            context.update({
+                'titulo_seccion': 'Progreso de tratamiento',
+                'graficos': self._preparar_graficos_hormonal(),
+                'resumen': self._generar_resumen_hormonal(),
+                'estadisticas': self.object
+            })
+        else:
+            context.update({
+                'titulo_seccion': 'Tus estadísticas',
+                'graficos': {},
+                'resumen': {}
             })
 
-        # Ordenamos por frecuencia descendente
-        resultados.sort(key=lambda x: x['dias_presente'], reverse=True)
+        return context
 
-        serializer = SintomaSerializer(resultados, many=True)
-        return Response({
-            'year': year,
-            'month': month,
-            'sintomas': serializer.data
-        })
+    def _preparar_graficos_ciclo(self):
+        """Prepara datos para gráficos de ciclo menstrual"""
+        return {
+            'heatmap_data': self.object.ciclo_heatmap_data,
+            'sintomas_fase': self.object.sintomas_por_fase,
+            'ovulacion_promedio': self.object.dias_ovulacion_probables
+            # Cambiado de dias_ovulacion_tipicos a dias_ovulacion_probables
+        }
+
+    def _generar_resumen_ciclo(self):
+        """Genera texto resumen para ciclo menstrual"""
+        duracion_max = None
+        duracion_min = None
+
+        if hasattr(self.object, 'variabilidad_ciclo') and self.object.duracion_ciclo_promedio:
+            duracion_max = self.object.duracion_ciclo_promedio + (self.object.variabilidad_ciclo / 2)
+            duracion_min = self.object.duracion_ciclo_promedio - (self.object.variabilidad_ciclo / 2)
+
+        return {
+            'regularidad': "Regular" if (
+                        duracion_max and duracion_min and (duracion_max - duracion_min) <= 3) else "Irregular",
+            'sintoma_principal': max(
+                self.object.sintomas_frecuentes.items(),
+                key=lambda x: x[1],
+                default=("Ninguno", 0)
+            ) if self.object.sintomas_frecuentes else ("Ninguno", 0)
+        }
+
+    def _preparar_graficos_hormonal(self):
+        """Prepara datos para gráficos de tratamiento hormonal"""
+        return {
+            'progreso_data': self.object.tratamiento_progreso_data,
+            'efectos_frecuentes': sorted(
+                self.object.sintomas_frecuentes.items(),
+                key=lambda x: x[1],
+                reverse=True
+            )[:5] if self.object.sintomas_frecuentes else []
+        }
+
+    def _generar_resumen_hormonal(self):
+        """Genera texto resumen para tratamiento hormonal"""
+        return {
+            'efectividad': self.object.progreso_tratamiento.get('efectividad_estimada',
+                                                                'No disponible') if self.object.progreso_tratamiento else 'No disponible',
+            'proxima_cita': self.request.user.recordatorios.filter(
+                tipo='cita_medica',
+                fecha_inicio__gte=timezone.now()
+            ).order_by('fecha_inicio').first()
+        }
+    def _calcular_efectividad(self):
+        """Lógica personalizada para calcular efectividad"""
+        # Implementa según tus métricas
+        return "85% (Alta)"
+
+    def _obtener_proxima_cita(self):
+        """Obtiene próxima cita médica relacionada"""
+        return self.request.user.recordatorios.filter(
+            tipo='cita_medica',
+            fecha_inicio__gte=timezone.now()
+        ).order_by('fecha_inicio').first()

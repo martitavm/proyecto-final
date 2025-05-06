@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">🌟 {{ titulo_seccion }} (Premium)</h2>
+
+    <!-- Tarjeta 1: Resumen principal -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">📌 Resumen</h4>
+        </div>
+        <div class="card-body">
+            {% if user.perfil.tipo_seguimiento == 'ciclo_menstrual' %}
+                <p>Tu ciclo es <strong>{{ resumen.regularidad }}</strong> con una duración promedio de <strong>{{ estadisticas.duracion_ciclo_promedio_calculado }} días</strong>.</p>
+                <p>Síntoma más frecuente: <strong>{{ resumen.sintoma_principal.0 }} ({{ resumen.sintoma_principal.1 }} veces)</strong></p>
+            {% else %}
+                <p>Efectividad estimada del tratamiento: <strong>{{ resumen.efectividad }}</strong></p>
+                {% if resumen.proxima_cita %}
+                    <p>Próxima cita: <strong>{{ resumen.proxima_cita.fecha_inicio|date:"d M Y" }}</strong></p>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Gráficos dinámicos -->
+    <div class="row">
+        {% if user.perfil.tipo_seguimiento == 'ciclo_menstrual' %}
+            <!-- Heatmap del ciclo -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">📅 Calendario de ciclo</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="cycle-heatmap" data-data='{{ graficos.heatmap_data|safe }}'></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Síntomas por fase -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">📊 Síntomas por fase</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="symptoms-chart" data-data='{{ graficos.sintomas_fase|safe }}'></canvas>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <!-- Progreso tratamiento -->
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">📈 Progreso semanal</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="treatment-chart" data-data='{{ graficos.progreso_data|safe }}'></canvas>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    // Heatmap para ciclo menstrual
+    if (document.getElementById('cycle-heatmap')) {
+        const heatmapData = JSON.parse(
+            document.getElementById('cycle-heatmap').dataset.data
+        );
+        // Configura CalHeatmap con tus datos
+        new CalHeatmap().paint({
+            data: heatmapData,
+            itemSelector: "#cycle-heatmap",
+            range: 3,
+            legend: [1, 3, 5],
+            domain: 'month',
+            subDomain: 'day',
+            tooltip: true
+        });
+    }
+
+    // Gráfico de síntomas por fase
+    if (document.getElementById('symptoms-chart')) {
+        const ctx = document.getElementById('symptoms-chart').getContext('2d');
+        const data = JSON.parse(
+            document.getElementById('symptoms-chart').dataset.data
+        );
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(data),
+                datasets: [{
+                    label: 'Frecuencia de síntomas',
+                    data: Object.values(data),
+                    backgroundColor: '#6c63ff'
+                }]
+            }
+        });
+    }
+
+    // Gráfico de progreso hormonal
+    if (document.getElementById('treatment-chart')) {
+        const ctx = document.getElementById('treatment-chart').getContext('2d');
+        const rawData = JSON.parse(
+            document.getElementById('treatment-chart').dataset.data
+        );
+
+        // Procesamiento de datos para Chart.js
+        const labels = Object.keys(rawData);
+        const datasets = [];
+
+        // Esto es adaptable según tu estructura de datos
+        if (labels.length > 0) {
+            const firstKey = labels[0];
+            const symptoms = Object.keys(rawData[firstKey]);
+
+            symptoms.forEach(symptom => {
+                datasets.push({
+                    label: symptom,
+                    data: labels.map(week => rawData[week][symptom]),
+                    borderColor: getRandomColor(),
+                    fill: false
+                });
+            });
+        }
+
+        new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets },
+            options: { responsive: true }
+        });
+    }
+});
+
+function getRandomColor() {
+    // Función auxiliar para colores de gráficos
+    return `#${Math.floor(Math.random()*16777215).toString(16)}`;
+}
+</script>
+
+<!-- Scripts para gráficos -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/cal-heatmap.min.js' %}"></script>
+<script src="{% static 'js/analisis-premium.js' %}"></script>
+{% endblock %}

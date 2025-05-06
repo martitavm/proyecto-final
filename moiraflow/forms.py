@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from datetime import datetime, timedelta
 from moiraflow.models import RegistroDiario, TratamientoHormonal, CicloMenstrual, Perfil, Articulo
 
 class RegistroCompletoForm(UserCreationForm):
@@ -216,114 +217,116 @@ class EditarPerfilForm(forms.ModelForm):
 
 
 class RegistroDiarioForm(forms.ModelForm):
-    fecha = forms.DateField(
-        widget=forms.DateInput(attrs={
-            'type': 'date',
-            'class': 'form-control'
-        }),
-        required=True
-    )
-
     class Meta:
         model = RegistroDiario
         fields = '__all__'
-        exclude = ['usuario', 'ciclo', 'tratamiento']  # Quitamos 'fecha' del exclude
+        exclude = ['usuario', 'ciclo', 'tratamiento', 'fecha']
         widgets = {
-            'hora_medicacion': forms.TimeInput(
-                attrs={'type': 'time', 'class': 'form-control'},
-                format='%H:%M'
-            ),
-            # ... mantén tus otros widgets ...
+            'notas': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Escribe cualquier observación adicional...'
+            }),
+            'es_dia_periodo': forms.CheckboxInput(attrs={
+                'class': 'form-check-input',
+            }),
+            'senos_sensibles': forms.CheckboxInput(attrs={
+                'class': 'form-check-input',
+            }),
+            'retencion_liquidos': forms.CheckboxInput(attrs={
+                'class': 'form-check-input',
+            }),
+            'antojos': forms.CheckboxInput(attrs={
+                'class': 'form-check-input',
+            }),
+            'acne': forms.CheckboxInput(attrs={
+                'class': 'form-check-input',
+            }),
+            'coagulos': forms.CheckboxInput(attrs={
+                'class': 'form-check-input',
+            }),
         }
 
     def __init__(self, *args, **kwargs):
         self.usuario = kwargs.pop('usuario', None)
-        tipo_seguimiento = kwargs.pop('tipo_seguimiento', 'ninguno')
-        fecha = kwargs.pop('fecha', None)
+        self.fecha = kwargs.pop('fecha', None)
+        self.tipo_seguimiento = kwargs.pop('tipo_seguimiento', 'ninguno')
+        self.ciclo = kwargs.pop('ciclo', None)
+        self.tratamiento = kwargs.pop('tratamiento', None)
 
         super().__init__(*args, **kwargs)
 
-        # Establecer fecha inicial si se proporciona
-        if fecha:
-            self.fields['fecha'].initial = fecha
-
-        # Determinar tipo de registro basado en perfil de usuario
-        if self.usuario and hasattr(self.usuario, 'perfil'):
-            perfil = self.usuario.perfil
-            if perfil.genero in ['femenino', 'masculino trans']:
-                tipo_seguimiento = 'ciclo_menstrual'
-            elif perfil.genero == 'femenino trans':
-                tipo_seguimiento = 'tratamiento_hormonal'
-
         # Configurar campos según tipo de seguimiento
-        campos_por_tipo = {
-            'ciclo_menstrual': [
-                'es_dia_periodo', 'flujo_menstrual', 'coagulos',
-                'color_flujo', 'senos_sensibles', 'retencion_liquidos',
-                'antojos', 'acné', 'dolor_cabeza', 'dolor_espalda',
-                'fatiga', 'estados_animo', 'cambios_apetito', 'insomnio',
-                'medicamentos', 'notas', 'otros_sintomas'
-            ],
-            'tratamiento_hormonal': [
-                'medicacion_tomada', 'hora_medicacion',
-                'sensibilidad_pezon', 'cambios_libido',
-                'sofocos', 'cambios_piel', 'crecimiento_mamario',
-                'dolor_cabeza', 'fatiga', 'estados_animo',
-                'notas', 'otros_sintomas'
-            ],
-            'ninguno': [
-                'dolor_cabeza', 'dolor_espalda', 'fatiga',
-                'estados_animo', 'cambios_apetito', 'insomnio',
-                'medicamentos', 'notas', 'otros_sintomas'
-            ]
-        }
+        if self.tipo_seguimiento == 'ciclo_menstrual':
+            # Asegurarse que los campos del ciclo estén presentes
+            self.fields['es_dia_periodo'].required = False
+            self.fields['flujo_menstrual'] = forms.ChoiceField(
+                choices=RegistroDiario.FlujoMenstrual.choices,
+                widget=forms.RadioSelect(),
+                required=False
+            )
+            self.fields['color_flujo'] = forms.ChoiceField(
+                choices=RegistroDiario.ColorFlujo.choices,
+                widget=forms.RadioSelect(),
+                required=False
+            )
+        elif self.tipo_seguimiento == 'tratamiento_hormonal':
+            # Mostrar campos específicos para tratamiento hormonal
+            pass
 
-        # Ocultar campos no relevantes
-        campos_visibles = campos_por_tipo.get(tipo_seguimiento, [])
-        for field_name in list(self.fields.keys()):
-            if field_name not in campos_visibles:
-                self.fields[field_name].widget = forms.HiddenInput()
-                self.fields[field_name].required = False
+        # Configurar choices para campos de selección múltiple
+        self.fields['estados_animo'] = forms.MultipleChoiceField(
+            choices=RegistroDiario.EstadoAnimo.choices,
+            widget=forms.CheckboxSelectMultiple(),
+            required=False,
+            initial=self.instance.estados_animo if self.instance else []
+        )
 
-        # Configurar choices dinámicos
-        self.fields['estados_animo'].choices = RegistroDiario.ESTADO_ANIMO_CHOICES
-        self.fields['flujo_menstrual'].choices = RegistroDiario.FLUJO_CHOICES
-        self.fields['color_flujo'].choices = RegistroDiario.COLOR_FLUJO_CHOICES
-        self.fields['cambios_libido'].choices = RegistroDiario.LIBIDO_CHOICES
+        self.fields['sintomas_comunes'] = forms.MultipleChoiceField(
+            choices=RegistroDiario.SintomasComunes.choices,
+            widget=forms.CheckboxSelectMultiple(),
+            required=False,
+            initial=self.instance.sintomas_comunes if self.instance else []
+        )
 
-        # Configurar campos booleanos
-        for field_name, field in self.fields.items():
-            if isinstance(field, forms.BooleanField):
-                field.widget.attrs['class'] = 'form-check-input'
+        # Configuración inicial para campos condicionales
+        if self.instance and self.instance.pk:
+            self.initial['estados_animo'] = self.instance.estados_animo
+            self.initial['sintomas_comunes'] = self.instance.sintomas_comunes
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        # Validación para campos de día de período
+        if cleaned_data.get('es_dia_periodo'):
+            if not cleaned_data.get('flujo_menstrual'):
+                self.add_error('flujo_menstrual', 'Este campo es requerido para días de período')
+            if not cleaned_data.get('color_flujo'):
+                self.add_error('color_flujo', 'Este campo es requerido para días de período')
+
+        return cleaned_data
 
     def save(self, commit=True):
         instance = super().save(commit=False)
+
         if self.usuario:
             instance.usuario = self.usuario
+            instance.fecha = self.fecha
 
-            # Relacionar con ciclo menstrual si aplica
-            if self.usuario.perfil.genero in ['femenino', 'masculino trans']:
-                ciclo_actual = CicloMenstrual.objects.filter(
-                    usuario=self.usuario,
-                    fecha_inicio__lte=instance.fecha,
-                    fecha_fin__gte=instance.fecha
-                ).first()
-                if ciclo_actual:
-                    instance.ciclo = ciclo_actual
-
-            # Relacionar con tratamiento hormonal si aplica
-            if self.usuario.perfil.genero == 'femenino trans':
-                tratamiento_actual = TratamientoHormonal.objects.filter(
-                    usuario=self.usuario,
-                    activo=True
-                ).first()
-                if tratamiento_actual:
-                    instance.tratamiento = tratamiento_actual
+            # Asignar ciclo o tratamiento según corresponda
+            if self.tipo_seguimiento == 'ciclo_menstrual' and self.ciclo:
+                instance.ciclo = self.ciclo
+            elif self.tipo_seguimiento == 'tratamiento_hormonal' and self.tratamiento:
+                instance.tratamiento = self.tratamiento
 
         if commit:
             instance.save()
-        return instance
+            # Guardar campos ManyToMany manualmente
+            instance.estados_animo = self.cleaned_data.get('estados_animo', [])
+            instance.sintomas_comunes = self.cleaned_data.get('sintomas_comunes', [])
+            instance.save()
 
+        return instance
 
 class TratamientoHormonalForm(forms.ModelForm):
     TIPO_HORMONA_CHOICES = [
@@ -341,7 +344,7 @@ class TratamientoHormonalForm(forms.ModelForm):
     class Meta:
         model = TratamientoHormonal
         fields = ['nombre_tratamiento', 'tipo_hormona', 'fecha_inicio',
-                  'fecha_fin', 'dosis', 'frecuencia', 'activo', 'notas']
+                  'fecha_fin', 'dosis', 'frecuencia', 'frecuencia_tipo', 'activo', 'notas']
         widgets = {
             'nombre_tratamiento': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -356,13 +359,15 @@ class TratamientoHormonalForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Opcional para tratamientos temporales'
             }),
-            'dosis': forms.TextInput(attrs={
+            'dosis': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Ej: 2mg por día'
+                'step': '0.01'
             }),
-            'frecuencia': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Ej: Cada 12 horas'
+            'frecuencia': forms.NumberInput(attrs={
+                'class': 'form-control'
+            }),
+            'frecuencia_tipo': forms.Select(attrs={
+                'class': 'form-control'
             }),
             'activo': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
@@ -419,9 +424,9 @@ class CicloMenstrualForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Observaciones sobre este ciclo...'
             }),
-            'sintomas_importantes': forms.SelectMultiple(attrs={
-                'class': 'form-control select2-multiple',
-                'choices': RegistroDiario.SINTOMAS_CHOICES
+            'sintomas_importantes': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Describe los síntomas importantes'
             }),
         }
 
@@ -472,6 +477,7 @@ class CicloMenstrualForm(forms.ModelForm):
                 )
 
         return cleaned_data
+
 
 class ArticuloForm(forms.ModelForm):
     class Meta:
