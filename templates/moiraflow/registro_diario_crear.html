@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ object|yesno:"Editar registro,Crear nuevo registro" }}</h2>
+    
+   <form method="post" class="needs-validation" novalidate>
+    {% csrf_token %}
+
+    {% if form.errors %}
+    <div class="alert alert-danger">
+        <strong>Error!</strong> Por favor corrige los siguientes errores:
+        <ul>
+            {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                    <li>{{ field|title }}: {{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+        <!-- Campos comunes -->
+        <div class="card mb-4">
+            <div class="card-header">Estado de ánimo y síntomas</div>
+            <div class="card-body">
+                <!-- Estados de ánimo -->
+                <div class="mb-3">
+                    <label class="form-label">Estados de ánimo</label>
+                    <div class="form-check-group">
+                        {% for choice in form.estados_animo.field.choices %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="{{ form.estados_animo.name }}"
+                                   id="{{ form.estados_animo.id_for_label }}_{{ forloop.counter0 }}"
+                                   value="{{ choice.0 }}"
+                                   {% if choice.0 in form.estados_animo.value or choice.0 in form.estados_animo.initial %}checked{% endif %}>
+                            <label class="form-check-label" for="{{ form.estados_animo.id_for_label }}_{{ forloop.counter0 }}">
+                                {{ choice.1 }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Síntomas comunes -->
+                <div class="mb-3">
+                    <label class="form-label">Síntomas comunes</label>
+                    <div class="form-check-group">
+                        {% for choice in form.sintomas_comunes.field.choices %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="{{ form.sintomas_comunes.name }}"
+                                   id="{{ form.sintomas_comunes.id_for_label }}_{{ forloop.counter0 }}"
+                                   value="{{ choice.0 }}"
+                                   {% if choice.0 in form.sintomas_comunes.value or choice.0 in form.sintomas_comunes.initial %}checked{% endif %}>
+                            <label class="form-check-label" for="{{ form.sintomas_comunes.id_for_label }}_{{ forloop.counter0 }}">
+                                {{ choice.1 }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Notas -->
+                <div class="mb-3">
+                    <label for="{{ form.notas.id_for_label }}" class="form-label">Notas</label>
+                    {{ form.notas }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Campos para ciclo menstrual - SIEMPRE visible si está en el formulario -->
+        {% if 'es_dia_periodo' in form.fields %}
+        <div class="card mb-4">
+            <div class="card-header">Datos del ciclo menstrual</div>
+            <div class="card-body">
+                <!-- Campo principal que controla la visibilidad -->
+                <div class="mb-3 form-check form-switch">
+                    {{ form.es_dia_periodo }}
+                    <label class="form-check-label" for="{{ form.es_dia_periodo.id_for_label }}">
+                        <strong>¿Es día de período?</strong>
+                    </label>
+                </div>
+
+                <!-- Campos condicionales - inicialmente ocultos -->
+                <div id="periodo-fields" style="display: {% if form.es_dia_periodo.value %}block{% else %}none{% endif %};">
+                    <!-- Flujo menstrual -->
+                    <div class="mb-3">
+                        <label class="form-label">Flujo menstrual</label>
+                        {% for choice in form.flujo_menstrual.field.choices %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio"
+                                   name="{{ form.flujo_menstrual.name }}"
+                                   id="{{ form.flujo_menstrual.id_for_label }}_{{ forloop.counter0 }}"
+                                   value="{{ choice.0 }}"
+                                   {% if form.flujo_menstrual.value|stringformat:"s" == choice.0|stringformat:"s" %}checked{% endif %}>
+                            <label class="form-check-label" for="{{ form.flujo_menstrual.id_for_label }}_{{ forloop.counter0 }}">
+                                {{ choice.1 }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Color del flujo -->
+                    <div class="mb-3">
+                        <label class="form-label">Color del flujo</label>
+                        {% for choice in form.color_flujo.field.choices %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio"
+                                   name="{{ form.color_flujo.name }}"
+                                   id="{{ form.color_flujo.id_for_label }}_{{ forloop.counter0 }}"
+                                   value="{{ choice.0 }}"
+                                   {% if form.color_flujo.value|stringformat:"s" == choice.0|stringformat:"s" %}checked{% endif %}>
+                            <label class="form-check-label" for="{{ form.color_flujo.id_for_label }}_{{ forloop.counter0 }}">
+                                {{ choice.1 }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Síntomas adicionales -->
+                    <div class="mb-3 form-check form-switch">
+                        {{ form.coagulos }}
+                        <label class="form-check-label" for="{{ form.coagulos.id_for_label }}">
+                            ¿Coágulos?
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Otros síntomas del ciclo (siempre visibles) -->
+                <div class="mb-3 form-check form-switch">
+                    {{ form.senos_sensibles }}
+                    <label class="form-check-label" for="{{ form.senos_sensibles.id_for_label }}">
+                        Sensibilidad en senos
+                    </label>
+                </div>
+
+                <div class="mb-3 form-check form-switch">
+                    {{ form.retencion_liquidos }}
+                    <label class="form-check-label" for="{{ form.retencion_liquidos.id_for_label }}">
+                        Retención de líquidos
+                    </label>
+                </div>
+
+                <div class="mb-3 form-check form-switch">
+                    {{ form.antojos }}
+                    <label class="form-check-label" for="{{ form.antojos.id_for_label }}">
+                        Antojos
+                    </label>
+                </div>
+
+                <div class="mb-3 form-check form-switch">
+                    {{ form.acne }}
+                    <label class="form-check-label" for="{{ form.acne.id_for_label }}">
+                        Acné
+                    </label>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Botones de acción -->
+        <div class="d-flex justify-content-between mt-4">
+            <a href="{% url 'moiraflow:calendario' %}" class="btn btn-secondary">
+                Cancelar
+            </a>
+
+            <div>
+                {% if object %}
+                <a href="{% url 'moiraflow:eliminar_registro' object.id %}"
+                   class="btn btn-danger me-2">
+                    Eliminar
+                </a>
+                {% endif %}
+
+                <button type="submit" class="btn btn-primary">
+                    {{ object|yesno:"Actualizar,Guardar" }}
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+// Mostrar/ocultar campos de período
+document.addEventListener('DOMContentLoaded', function() {
+    const togglePeriodo = document.getElementById('{{ form.es_dia_periodo.id_for_label }}');
+    const periodoFields = document.getElementById('periodo-fields');
+
+    if (togglePeriodo && periodoFields) {
+        // Configurar estado inicial
+        periodoFields.style.display = togglePeriodo.checked ? 'block' : 'none';
+
+        // Configurar evento change
+        togglePeriodo.addEventListener('change', function() {
+            periodoFields.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+});
+</script>
+
+<style>
+.form-check-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.card {
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    font-weight: 500;
+    background-color: #f8f9fa;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid rgba(0,0,0,.125);
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+.form-check {
+    margin-bottom: 0.5rem;
+    padding-left: 2.5em;
+}
+
+.form-switch .form-check-input {
+    width: 2.5em;
+    margin-left: -2.5em;
+}
+
+.form-check-label {
+    margin-left: 0.5em;
+}
+
+#periodo-fields {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+    border: 1px solid #dee2e6;
+}
+</style>
+{% endblock %}

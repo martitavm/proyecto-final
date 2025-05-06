@@ -1,58 +1,61 @@
 import random
+from collections import defaultdict
 from datetime import timedelta
 
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django_cron import CronJobBase, Schedule
 
 class Perfil(models.Model):
-    """
-    Modelo para almacenar información adicional del usuario.
-    """
-    TIPO_PERFIL_CHOICES = [
-        ('usuario', 'Usuario normal'),
-        ('autor', 'Autor/Artículos'),
-        ('administracion', 'Administración'),
-    ]
+    class TipoPerfil(models.TextChoices):
+        USUARIO = 'usuario', 'Usuario normal'
+        AUTOR = 'autor', 'Autor/Artículos'
+        ADMIN = 'administracion', 'Administración'
 
-    TIPO_SEGUIMIENTO_CHOICES = [
-        ('ciclo_menstrual', 'Ciclo Menstrual'),
-        ('tratamiento_hormonal', 'Tratamiento Hormonal'),
-    ]
+    class TipoSeguimiento(models.TextChoices):
+        MENSTRUAL = 'ciclo_menstrual', 'Ciclo Menstrual'
+        HORMONAL = 'tratamiento_hormonal', 'Tratamiento Hormonal'
+        NINGUNO = 'ninguno', 'Ninguno'
 
-    usuario = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, related_name='perfil')
+    class Genero(models.TextChoices):
+        FEMENINO = 'femenino', 'Femenino'
+        MASCULINO_TRANS = 'masculino trans', 'Masculino Trans'
+        FEMENINO_TRANS = 'femenino trans', 'Femenino Trans'
+        OTRO = 'otro', 'Otro'
+
+    usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil')
     foto_perfil = models.ImageField(upload_to="perfiles/", null=True, blank=True)
     fecha_nacimiento = models.DateField(null=True, blank=True)
-    genero = models.CharField(max_length=50, blank=False)
-    duracion_ciclo_promedio = models.PositiveIntegerField(null=True, blank=True, default=28, help_text="Duración promedio del ciclo en días")
-    duracion_periodo_promedio = models.PositiveIntegerField(null=True, blank=True, default=5, help_text="Duración promedio del período en días")
-    es_premium = models.BooleanField(default=False, help_text="Indica si el usuario tiene cuenta premium")
-    tipo_perfil = models.CharField(max_length=15, choices=TIPO_PERFIL_CHOICES, default='usuario')
-    tipo_seguimiento = models.CharField(max_length=20, choices=TIPO_SEGUIMIENTO_CHOICES, default='ninguno')
+    genero = models.CharField(max_length=20, choices=Genero.choices)
+    duracion_ciclo_promedio = models.PositiveIntegerField(
+        null=True, blank=True,
+        default=28,
+        help_text="Duración promedio del ciclo en días (solo para seguimiento menstrual)"
+    )
+    duracion_periodo_promedio = models.PositiveIntegerField(
+        null=True, blank=True,
+        default=5,
+        help_text="Duración promedio del período en días (solo para seguimiento menstrual)"
+    )
+    es_premium = models.BooleanField(default=False)
+    tipo_perfil = models.CharField(max_length=15, choices=TipoPerfil.choices, default=TipoPerfil.USUARIO)
+    tipo_seguimiento = models.CharField(max_length=20, choices=TipoSeguimiento.choices, default=TipoSeguimiento.NINGUNO)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
 
-    # Agregar método para determinar tipo de seguimiento automáticamente
-    def determinar_tipo_seguimiento(self):
-        if self.genero in ['femenino', 'masculino trans']:
-            return 'ciclo_menstrual'
-        elif self.genero == 'femenino trans':
-            return 'tratamiento_hormonal'
-        return 'ninguno'
-
-
     def save(self, *args, **kwargs):
-        # Asigna tipo_seguimiento basado en género (obligatorio)
-        if self.genero in ['femenino', 'masculino trans']:
-            self.tipo_seguimiento = 'ciclo_menstrual'
-        elif self.genero == 'femenino trans':
-            self.tipo_seguimiento = 'tratamiento_hormonal'
+        # Asignación automática de tipo_seguimiento basado en género
+        if self.genero in [self.Genero.FEMENINO, self.Genero.MASCULINO_TRANS]:
+            self.tipo_seguimiento = self.TipoSeguimiento.MENSTRUAL
+        elif self.genero == self.Genero.FEMENINO_TRANS:
+            self.tipo_seguimiento = self.TipoSeguimiento.HORMONAL
         else:
-            raise ValidationError("Género no tiene un tipo de seguimiento asociado")
+            self.tipo_seguimiento = self.TipoSeguimiento.NINGUNO
 
-        # Limpia campos innecesarios
-        if self.tipo_seguimiento != 'ciclo_menstrual':
+        # Limpieza de campos no relevantes
+        if self.tipo_seguimiento != self.TipoSeguimiento.MENSTRUAL:
             self.duracion_ciclo_promedio = None
             self.duracion_periodo_promedio = None
 
@@ -95,40 +98,30 @@ class Perfil(models.Model):
 
 # Nuevo modelo para tratamientos hormonales
 class TratamientoHormonal(models.Model):
-    """
-    Modelo para seguimiento de tratamientos hormonales
-    """
+    class TipoHormona(models.TextChoices):
+        ESTROGENO = 'estrogeno', 'Estógeno'
+        PROGESTERONA = 'progesterona', 'Progesterona'
+        TESTOSTERONA = 'testosterona', 'Testosterona'
+        COMBINADO = 'combinado', 'Combinado'
+
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tratamientos_hormonales')
     nombre_tratamiento = models.CharField(max_length=100)
+    tipo_hormona = models.CharField(max_length=12, choices=TipoHormona.choices)
     fecha_inicio = models.DateField()
     fecha_fin = models.DateField(null=True, blank=True)
-    dosis = models.CharField(max_length=100)
-    frecuencia = models.CharField(max_length=100)
+    dosis = models.DecimalField(max_digits=6, decimal_places=2)  # Más preciso que CharField
+    frecuencia = models.PositiveIntegerField(help_text="Veces por día/semana según frecuencia_tipo")
+    frecuencia_tipo = models.CharField(max_length=10, choices=[('diario', 'Diario'), ('semanal', 'Semanal')])
     activo = models.BooleanField(default=True)
     notas = models.TextField(blank=True)
 
-    # Añadir tipo de hormonas
-    TIPO_HORMONA_CHOICES = [
-        ('estrogeno', 'Estógeno'),
-        ('progesterona', 'Progesterona'),
-        ('testosterona', 'Testosterona'),
-        ('combinado', 'Combinado')
-    ]
-
-    tipo_hormona = models.CharField(
-        max_length=12,
-        choices=TIPO_HORMONA_CHOICES
-    )
-
-    # Método para dosis diaria recomendada
     @property
     def dosis_diaria(self):
-        if self.frecuencia and self.dosis:
-            try:
-                return f"{float(self.dosis)/float(self.frecuencia):.2f}"
-            except:
-                return "N/A"
-        return "N/A"
+        if self.frecuencia_tipo == 'diario':
+            return self.dosis / self.frecuencia
+        elif self.frecuencia_tipo == 'semanal':
+            return (self.dosis / self.frecuencia) / 7
+        return 0
 
     # Añadir método para verificar si está activo en una fecha
     def esta_activo_en_fecha(self, fecha=None):
@@ -151,87 +144,61 @@ class TratamientoHormonal(models.Model):
 
 # Resto de los modelos permanecen igual...
 class CicloMenstrual(models.Model):
-    """
-    Modelo para registrar cada ciclo menstrual.
-    """
+    class FaseCiclo(models.TextChoices):
+        FOLICULAR = 'folicular', 'Fase Folicular'
+        OVULACION = 'ovulacion', 'Ovulación'
+        LUTEA = 'lutea', 'Fase Lútea'
+        MENSTRUAL = 'menstrual', 'Fase Menstrual'
+
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ciclos')
-    fecha_inicio = models.DateField(help_text="Fecha de inicio del ciclo (primer día de menstruación)")
-    fecha_fin = models.DateField(null=True, blank=True,
-                                 help_text="Fecha de fin del ciclo (último día antes del siguiente ciclo)")
-    notas = models.TextField(blank=True)
-
-    # Añadir fase del ciclo
-    FASE_CICLO_CHOICES = [
-        ('folicular', 'Fase Folicular'),
-        ('ovulacion', 'Ovulación'),
-        ('lutea', 'Fase Lútea'),
-        ('menstrual', 'Fase Menstrual')
-    ]
-
+    fecha_inicio = models.DateField(help_text="Primer día de menstruación")
+    fecha_fin = models.DateField(
+        null=True, blank=True,
+        help_text="Último día antes del siguiente ciclo",
+        verbose_name="Fecha de fin (automática)"
+    )
     fase_actual = models.CharField(
         max_length=10,
-        choices=FASE_CICLO_CHOICES,
-        blank=True,
-        null=True
-    )
-
-    sintomas_importantes = models.CharField(
-        max_length=255,
+        choices=FaseCiclo.choices,
         blank=True,
         null=True,
-        help_text="Síntomas importantes durante este ciclo"
+        editable=False  # Se calcula automáticamente
     )
+    notas = models.TextField(blank=True)
+    sintomas_importantes = models.JSONField(default=dict, blank=True)  # Más flexible que CharField
 
-    # Calcular duración automáticamente
     @property
     def duracion(self):
+        """Calcula la duración en días, incluyendo ambos extremos"""
         if self.fecha_inicio and self.fecha_fin:
             return (self.fecha_fin - self.fecha_inicio).days + 1
         return None
 
-    # Añadir método para predecir siguiente ciclo
-    def predecir_proximo_ciclo(self):
-        if not self.fecha_inicio or not self.duracion:
-            return None
-        return self.fecha_inicio + timedelta(days=self.duracion)
-
-    # Mejorar el método de fase con validación
     def determinar_fase(self, fecha=None):
         fecha = fecha or timezone.now().date()
 
-        if not (self.fecha_inicio and self.fecha_fin):
+        if not all([self.fecha_inicio, self.fecha_fin, self.fecha_inicio <= fecha <= self.fecha_fin]):
             return None
 
-        if not (self.fecha_inicio <= fecha <= self.fecha_fin):
-            return None
-
-        dias_ciclo = (fecha - self.fecha_inicio).days
-        total_dias = self.duracion
-
-        # Usar el perfil del usuario para personalizar
+        dias_transcurridos = (fecha - self.fecha_inicio).days
         perfil = self.usuario.perfil
-        dias_menstrual = min(7, perfil.duracion_periodo_promedio or 5)
-        dias_folicular = int(total_dias * 0.4) - dias_menstrual
-        dias_ovulacion = 3
-        dias_lutea = total_dias - dias_menstrual - dias_folicular - dias_ovulacion
 
-        # Validar que no haya días negativos
-        dias_folicular = max(0, dias_folicular)
-        dias_ovulacion = max(0, dias_ovulacion)
-        dias_lutea = max(0, dias_lutea)
+        # Cálculo basado en porcentajes del ciclo
+        porcentaje_ciclo = dias_transcurridos / self.duracion
 
-        if dias_ciclo < dias_menstrual:
-            return 'menstrual'
-        elif dias_ciclo < dias_menstrual + dias_folicular:
-            return 'folicular'
-        elif dias_ciclo < dias_menstrual + dias_folicular + dias_ovulacion:
-            return 'ovulacion'
-        return 'lutea'
+        if porcentaje_ciclo < 0.2:  # Primer 20% -> menstrual
+            return self.FaseCiclo.MENSTRUAL
+        elif porcentaje_ciclo < 0.5:  # 20-50% -> folicular
+            return self.FaseCiclo.FOLICULAR
+        elif porcentaje_ciclo < 0.6:  # 50-60% -> ovulación
+            return self.FaseCiclo.OVULACION
+        else:  # Restante -> lútea
+            return self.FaseCiclo.LUTEA
 
     def save(self, *args, **kwargs):
-        if self.fecha_fin and not self.duracion:
-            delta = self.fecha_fin - self.fecha_inicio
-            self.duracion = delta.days + 1
+        # Actualizar fase actual al guardar
+        if self.fecha_inicio and self.fecha_fin:
+            self.fase_actual = self.determinar_fase()
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -241,65 +208,55 @@ class CicloMenstrual(models.Model):
         ordering = ['-fecha_inicio']
 
 
+from django.db import models
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+
+
 class RegistroDiario(models.Model):
     """
-    Modelo para registrar información diaria durante el ciclo o tratamiento.
+    Modelo para registro diario que varía completamente según el tipo de seguimiento:
+    - Ciclo menstrual (género femenino o masculino trans)
+    - Tratamiento hormonal (género femenino trans)
     """
 
-    TIPO_REGISTRO_CHOICES = [
-        ('menstrual', 'Registro Menstrual'),
-        ('hormonal', 'Registro Hormonal'),
-        ('general', 'Registro General')
-    ]
+    # ---------------------------
+    # Opciones comunes (para ambos tipos)
+    # ---------------------------
+    class EstadoAnimo(models.TextChoices):
+        FELIZ = 'feliz', 'Feliz'
+        TRISTE = 'triste', 'Triste'
+        IRRITABLE = 'irritable', 'Irritable'
+        ANSIOSO = 'ansioso', 'Ansioso/a'
+        NEUTRAL = 'neutral', 'Neutral'
+        CANSADO = 'cansado', 'Cansado/a'
+        ENERGETICO = 'energico', 'Enérgico/a'
 
-    tipo_registro = models.CharField(
-        max_length=10,
-        choices=TIPO_REGISTRO_CHOICES,
-        default='general'
+    class SintomasComunes(models.TextChoices):
+        DOLOR_CABEZA = 'dolor_cabeza', 'Dolor de cabeza'
+        DOLOR_ESPALDA = 'dolor_espalda', 'Dolor de espalda'
+        FATIGA = 'fatiga', 'Fatiga'
+        CAMBIOS_APETITO = 'cambios_apetito', 'Cambios en el apetito'
+        INSOMNIO = 'insomnio', 'Insomnio'
+
+    # ---------------------------
+    # Campos base
+    # ---------------------------
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='registros_diarios'
     )
-    SINTOMAS_CHOICES = [
-        ('dolor_cabeza', 'Dolor de cabeza'),
-        ('dolor_espalda', 'Dolor de espalda'),
-        ('fatiga', 'Fatiga'),
-        ('senos_sensibles', 'Sensibilidad en senos'),
-        ('retencion_liquidos', 'Retención de líquidos'),
-        ('antojos', 'Antojos'),
-        ('acne', 'Acné'),
-        ('sofocos', 'Sofocos'),
-        ('cambios_libido', 'Cambios en la libido'),
-    ]
-    FLUJO_CHOICES = [
-        ('nulo', 'Nulo'),
-        ('ligero', 'Ligero'),
-        ('moderado', 'Moderado'),
-        ('abundante', 'Abundante'),
-        ('muy_abundante', 'Muy abundante'),
-    ]
+    fecha = models.DateField(default=timezone.now)
 
-    ESTADO_ANIMO_CHOICES = [
-        ('feliz', 'Feliz'),
-        ('triste', 'Triste'),
-        ('irritable', 'Irritable'),
-        ('ansiosa', 'Ansiosa'),
-        ('neutral', 'Neutral'),
-        ('cansada', 'Cansada'),
-        ('energica', 'Enérgica'),
-    ]
+    # Campos comunes a todos
+    estados_animo = models.JSONField(default=list)  # Almacena claves de EstadoAnimo
+    sintomas_comunes = models.JSONField(default=list)  # Almacena claves de SintomasComunes
+    notas = models.TextField(blank=True)
 
-    COLOR_FLUJO_CHOICES = [
-        ('rojo', 'Rojo vivo'),
-        ('oscuro', 'Rojo oscuro'),
-        ('marron', 'Marrón'),
-        ('rosado', 'Rosado')
-    ]
-
-    LIBIDO_CHOICES = [
-        ('aumento', 'Aumento'),
-        ('disminucion', 'Disminución'),
-        ('normal', 'Normal')
-    ]
-
-    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='registros_diarios')
+    # ---------------------------
+    # Campos específicos para CICLO MENSTRUAL
+    # ---------------------------
     ciclo = models.ForeignKey(
         CicloMenstrual,
         on_delete=models.SET_NULL,
@@ -307,6 +264,40 @@ class RegistroDiario(models.Model):
         blank=True,
         related_name='registros'
     )
+
+    class FlujoMenstrual(models.TextChoices):
+        NULO = 'nulo', 'Nulo'
+        LIGERO = 'ligero', 'Ligero'
+        MODERADO = 'moderado', 'Moderado'
+        ABUNDANTE = 'abundante', 'Abundante'
+        MUY_ABUNDANTE = 'muy_abundante', 'Muy abundante'
+
+    class ColorFlujo(models.TextChoices):
+        ROJO = 'rojo', 'Rojo vivo'
+        OSCURO = 'oscuro', 'Rojo oscuro'
+        MARRON = 'marron', 'Marrón'
+        ROSADO = 'rosado', 'Rosado'
+
+    es_dia_periodo = models.BooleanField(default=False)
+    flujo_menstrual = models.CharField(
+        max_length=15,
+        choices=FlujoMenstrual.choices,
+        blank=True, null=True
+    )
+    coagulos = models.BooleanField(default=False)
+    color_flujo = models.CharField(
+        max_length=20,
+        choices=ColorFlujo.choices,
+        blank=True, null=True
+    )
+    senos_sensibles = models.BooleanField(default=False)
+    retencion_liquidos = models.BooleanField(default=False)
+    antojos = models.BooleanField(default=False)
+    acne = models.BooleanField(default=False)
+
+    # ---------------------------
+    # Campos específicos para TRATAMIENTO HORMONAL
+    # ---------------------------
     tratamiento = models.ForeignKey(
         TratamientoHormonal,
         on_delete=models.SET_NULL,
@@ -314,253 +305,95 @@ class RegistroDiario(models.Model):
         blank=True,
         related_name='registros'
     )
-    fecha = models.DateField(default=timezone.now)
 
-    # --- Campos comunes a todos los tipos de seguimiento ---
-    # Estados físicos generales
-    dolor_cabeza = models.PositiveIntegerField(
-        blank=True, null=True,
-        help_text="Intensidad de dolor de cabeza (0-10)",
-        verbose_name="Dolor de cabeza"
-    )
-    dolor_espalda = models.PositiveIntegerField(
-        blank=True, null=True,
-        help_text="Intensidad de dolor de espalda (0-10)",
-        verbose_name="Dolor de espalda"
-    )
-    fatiga = models.PositiveIntegerField(
-        blank=True, null=True,
-        help_text="Nivel de fatiga (0-10)",
-        verbose_name="Fatiga"
-    )
+    class Libido(models.TextChoices):
+        AUMENTO = 'aumento', 'Aumento'
+        DISMINUCION = 'disminucion', 'Disminución'
+        NORMAL = 'normal', 'Normal'
 
-    # Estados emocionales/anímicos
-    estados_animo = models.CharField(
-        max_length=100,
-        blank=True,
-        help_text="Separados por comas si hay varios"
-    )
-
-    # Hábitos
-    cambios_apetito = models.BooleanField(
-        default=False,
-        help_text="¿Has experimentado cambios en el apetito?",
-        verbose_name="Cambios en el apetito"
-    )
-    insomnio = models.BooleanField(
-        default=False,
-        help_text="¿Has tenido dificultades para dormir?",
-        verbose_name="Insomnio"
-    )
-
-    # --- Campos específicos para seguimiento menstrual ---
-    es_dia_periodo = models.BooleanField(
-        default=False,
-        verbose_name="Día de período"
-    )
-    flujo_menstrual = models.CharField(
-        max_length=15,
-        choices=FLUJO_CHOICES,
-        blank=True, null=True,
-        verbose_name="Flujo menstrual"
-    )
-    coagulos = models.BooleanField(
-        default=False,
-        help_text="¿Has notado coágulos en el flujo?",
-        verbose_name="Coágulos"
-    )
-    color_flujo = models.CharField(
-        max_length=20,
-        choices=COLOR_FLUJO_CHOICES,
-        blank=True, null=True,
-        verbose_name="Color del flujo"
-    )
-    senos_sensibles = models.BooleanField(
-        default=False,
-        help_text="¿Tienes los senos/sensibilidad mamaria aumentada?",
-        verbose_name="Senos sensibles"
-    )
-    retencion_liquidos = models.BooleanField(
-        default=False,
-        help_text="¿Sientes retención de líquidos?",
-        verbose_name="Retención de líquidos"
-    )
-    antojos = models.BooleanField(
-        default=False,
-        help_text="¿Has tenido antojos alimenticios?",
-        verbose_name="Antojos"
-    )
-    acné = models.BooleanField(
-        default=False,
-        help_text="¿Has notado aumento de acné?",
-        verbose_name="Acné"
-    )
-
-    # --- Campos específicos para tratamiento hormonal ---
-    medicacion_tomada = models.BooleanField(
-        default=False,
-        verbose_name="Medicación tomada"
-    )
-    hora_medicacion = models.TimeField(
-        null=True, blank=True,
-        verbose_name="Hora de medicación"
-    )
-    sensibilidad_pezon = models.BooleanField(
-        default=False,
-        help_text="¿Sensibilidad en los pezones?",
-        verbose_name="Sensibilidad en pezones"
-    )
+    medicacion_tomada = models.BooleanField(default=False)
+    hora_medicacion = models.TimeField(null=True, blank=True)
+    sensibilidad_pezon = models.BooleanField(default=False)
     cambios_libido = models.CharField(
         max_length=11,
-        choices=LIBIDO_CHOICES,
-        blank=True, null=True,
-        verbose_name="Cambios en la libido"
+        choices=Libido.choices,
+        blank=True, null=True
     )
-    sofocos = models.BooleanField(
-        default=False,
-        help_text="¿Has experimentado sofocos?",
-        verbose_name="Sofocos"
-    )
-    cambios_piel = models.CharField(
-        max_length=100,
-        blank=True, null=True,
-        help_text="Describe cambios en la piel",
-        verbose_name="Cambios en la piel"
-    )
-    crecimiento_mamario = models.BooleanField(
-        default=False,
-        help_text="¿Has notado crecimiento mamario?",
-        verbose_name="Crecimiento mamario"
-    )
+    sofocos = models.BooleanField(default=False)
+    cambios_piel = models.CharField(max_length=100, blank=True)
+    crecimiento_mamario = models.BooleanField(default=False)
 
-    # --- Campos adicionales ---
-    medicamentos = models.TextField(
-        blank=True,
-        verbose_name="Medicamentos adicionales"
-    )
-    notas = models.TextField(
-        blank=True,
-        verbose_name="Notas adicionales"
-    )
-    otros_sintomas = models.TextField(
-        blank=True,
-        help_text="Describe cualquier otro síntoma no listado",
-        verbose_name="Otros síntomas"
-    )
-
-    def __str__(self):
-        return f"Registro de {self.usuario.username} del {self.fecha}"
-
-    # Agregar método para obtener icono según tipo de registro
-    def get_icono(self):
-        if self.es_registro_menstrual:
-            if self.es_dia_periodo:
-                return '💮'  # Flor para menstruación
-            fase = self.ciclo.determinar_fase(self.fecha) if self.ciclo else None
-            return {
-                'menstrual': '🩸',
-                'folicular': '🌱',
-                'ovulacion': '🥚',
-                'lutea': '🌕'
-            }.get(fase, ' ')
-        elif self.es_registro_hormonal:
-            return '💊'
-        return '📝'
-
-    # Agregar propiedad para CSS class
+    # ---------------------------
+    # Métodos y propiedades
+    # ---------------------------
     @property
-    def css_class(self):
-        if self.es_registro_menstrual:
-            if self.es_dia_periodo:
-                return 'menstruacion'
-            fase = self.ciclo.determinar_fase(self.fecha) if self.ciclo else None
-            return f'fase-{fase}' if fase else ''
-        elif self.es_registro_hormonal:
-            return 'hormonal'
-        return 'general'
+    def tipo_seguimiento(self):
+        """Determina automáticamente el tipo de seguimiento basado en el perfil del usuario"""
+        return self.usuario.perfil.tipo_seguimiento
 
     @property
-    def es_registro_menstrual(self):
-        return self.ciclo is not None and self.usuario.perfil.tipo_seguimiento in ['ciclo_menstrual', 'ambos']
+    def fase_ciclo(self):
+        """Para registros menstruales, devuelve la fase actual"""
+        if self.tipo_seguimiento == 'ciclo_menstrual' and self.ciclo:
+            return self.ciclo.determinar_fase(self.fecha)
+        return None
 
-    @property
-    def es_registro_hormonal(self):
-        return self.tratamiento is not None and self.usuario.perfil.tipo_seguimiento in ['tratamiento_hormonal',
-                                                                                         'ambos']
-
-    # Añadir método para resumen rápido
-    def resumen(self):
-        if self.es_registro_menstrual:
-            return f"Registro menstrual: {self.get_flujo_menstrual_display() if self.flujo_menstrual else 'Sin flujo'}"
-        elif self.es_registro_hormonal:
-            return f"Registro hormonal: {'Medicación tomada' if self.medicacion_tomada else 'Medicación pendiente'}"
-        return "Registro general"
-
-    def get_icono_calendario(self):
-        if self.es_registro_menstrual:
-            if self.es_dia_periodo:
-                return '🩸'
-            fase = self.ciclo.determinar_fase(self.fecha) if self.ciclo else None
-            return {
-                'folicular': '🌱',
-                'ovulacion': '🥚',
-                'lutea': '🌕',
-                'menstrual': '🩸'
-            }.get(fase, ' ')
-        elif self.es_registro_hormonal:
-            return '💊'
-        return '•'
-
-    def get_tooltip_info(self):
-        info = []
-        if self.es_registro_menstrual:
-            if self.es_dia_periodo:
-                info.append(f"Flujo: {self.get_flujo_menstrual_display()}")
-            info.append(f"Fase: {self.ciclo.determinar_fase(self.fecha)}")
-        elif self.es_registro_hormonal:
-            info.append(f"Medicación: {'✅' if self.medicacion_tomada else '❌'}")
-        if self.estados_animo:
-            info.append(f"Ánimo: {self.estados_animo}")
-        return "\n".join(info)
-
-    # Mejorar clean para validaciones específicas
     def clean(self):
-        super().clean()
+        # No validar si no hay usuario asignado
+        if not hasattr(self, 'usuario') or not self.usuario:
+            return
 
-        # Validación para registros menstruales
-        if self.es_registro_menstrual:
+        # Validación específica para cada tipo de seguimiento
+        if self.usuario.perfil.tipo_seguimiento == 'ciclo_menstrual':
+            if not self.ciclo:
+                raise ValidationError("Debe asociar un ciclo menstrual para este tipo de registro")
+
             if not self.es_dia_periodo and any([self.flujo_menstrual, self.coagulos, self.color_flujo]):
                 raise ValidationError({
-                    'es_dia_periodo': "Debe marcar como día de período para registrar detalles menstruales"
+                    'es_dia_periodo': "Los detalles menstruales solo pueden registrarse en días de período"
                 })
 
-        # Validación para registros hormonales
-        if self.es_registro_hormonal and self.medicacion_tomada and not self.hora_medicacion:
-            raise ValidationError({
-                'hora_medicacion': "Debe especificar la hora cuando marca la medicación como tomada"
-            })
+        elif self.usuario.perfil.tipo_seguimiento == 'tratamiento_hormonal':
+            if not self.tratamiento:
+                raise ValidationError("Debe asociar un tratamiento hormonal para este tipo de registro")
 
-    # Añadir propiedad para color de visualización
-    @property
-    def color_indicator(self):
-        if self.es_registro_menstrual:
-            if self.es_dia_periodo:
-                return '#ff6b6b'  # Rojo para menstruación
-            fase = self.ciclo.determinar_fase(self.fecha) if self.ciclo else None
-            return {
-                'folicular': '#a5d8ff',  # Azul claro
-                'ovulacion': '#ffd8a8',  # Naranja claro
-                'lutea': '#ffdeeb',  # Rosa claro
-                'menstrual': '#ff6b6b'  # Rojo
-            }.get(fase, '#f1f3f5')  # Gris por defecto
-        elif self.es_registro_hormonal:
-            return '#d8f5a2'  # Verde claro para hormonal
-        return '#f1f3f5'  # Gris para general
+            if self.medicacion_tomada and not self.hora_medicacion:
+                raise ValidationError({
+                    'hora_medicacion': "Debe especificar la hora de la medicación"
+                })
+
+        # Limpiar campos que no correspondan al tipo de seguimiento
+        if self.tipo_seguimiento == 'ciclo_menstrual':
+            self.tratamiento = None
+            # Limpiar campos hormonales
+            self.medicacion_tomada = False
+            self.hora_medicacion = None
+            self.sensibilidad_pezon = False
+            self.cambios_libido = None
+            self.sofocos = False
+            self.cambios_piel = ''
+            self.crecimiento_mamario = False
+
+        elif self.tipo_seguimiento == 'tratamiento_hormonal':
+            self.ciclo = None
+            # Limpiar campos menstruales
+            self.es_dia_periodo = False
+            self.flujo_menstrual = None
+            self.coagulos = False
+            self.color_flujo = None
+            self.senos_sensibles = False
+            self.retencion_liquidos = False
+            self.antojos = False
+            self.acne = False
 
     class Meta:
-        ordering = ['-fecha', '-hora_medicacion']
-        unique_together = ['usuario', 'fecha']  # Un registro por usuario por día
+        ordering = ['-fecha']
+        unique_together = ['usuario', 'fecha']
+        verbose_name = 'Registro diario'
+        verbose_name_plural = 'Registros diarios'
 
+    def __str__(self):
+        return f"Registro de {self.usuario.username} ({self.tipo_seguimiento}) - {self.fecha}"
 
 # Mejora al modelo Recordatorio para permitir recordatorios más específicos
 class Recordatorio(models.Model):
@@ -608,20 +441,180 @@ class Recordatorio(models.Model):
 
 # Nuevo modelo para estadísticas
 class EstadisticaUsuario(models.Model):
-    """
-    Modelo para almacenar estadísticas calculadas del usuario
-    """
+    class Meta:
+        verbose_name = "Estadísticas de usuario"
+        verbose_name_plural = "Estadísticas de usuarios"
+
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='estadisticas')
     ultima_actualizacion = models.DateTimeField(auto_now=True)
-    duracion_ciclo_promedio_calculado = models.FloatField(null=True, blank=True)
-    duracion_periodo_promedio_calculado = models.FloatField(null=True, blank=True)
-    dias_ovulacion_tipicos = models.CharField(max_length=100, blank=True,
-                                              help_text="Días del ciclo separados por comas")
-    sintomas_comunes = models.TextField(blank=True, help_text="JSON con síntomas frecuentes y su frecuencia")
-    estados_animo_comunes = models.TextField(blank=True, help_text="JSON con estados de ánimo frecuentes")
+
+    # Menstrual
+    duracion_ciclo_promedio = models.FloatField(null=True, blank=True, help_text="Días")
+    variabilidad_ciclo = models.FloatField(null=True, blank=True, help_text="Desviación estándar en días")
+    dias_ovulacion_probables = models.JSONField(default=list, help_text="Días del ciclo más probables para ovulación")
+
+    # Síntomas (común a ambos)
+    sintomas_frecuentes = models.JSONField(
+        default=list,
+        help_text="Lista de {'sintoma': str, 'frecuencia': int, 'fase_ciclo': str|null}"
+    )
+
+    # Hormonal
+    progreso_tratamiento = models.JSONField(
+        null=True, blank=True,
+        help_text="Para tratamientos activos: {'progreso': %, 'efectividad_estimada': %}"
+    )
+
+    # Métricas emocionales
+    estado_animo_promedio = models.JSONField(
+        default=dict,
+        help_text="Distribución de estados de ánimo: {'feliz': 25%, 'cansado': 15%, ...}"
+    )
+
+    # Nuevos campos para análisis visual
+    ciclo_heatmap_data = models.JSONField(
+        default=dict,
+        help_text="Datos para calendario de ciclo (ej: {'2023-10-01': 'menstrual', ...})"
+    )
+
+    tratamiento_progreso_data = models.JSONField(
+        default=list,
+        help_text="Evolución semanal de síntomas hormonales"
+    )
+
+    sintomas_por_fase = models.JSONField(
+        default=dict,
+        help_text="Frecuencia de síntomas por fase (ej: {'folicular': {'dolor_cabeza': 3}})"
+    )
+
+    def actualizar_estadisticas(self):
+        """Método que centraliza todos los cálculos"""
+        perfil = self.usuario.perfil
+
+        if perfil.tipo_seguimiento == 'ciclo_menstrual':
+            self.actualizar_datos_ciclo()
+        elif perfil.tipo_seguimiento == 'tratamiento_hormonal':
+            self.actualizar_datos_hormonal()
+
+        # Actualizar métricas comunes a ambos tipos
+        self.actualizar_estados_animo()
+        self.save()
+
+    def actualizar_datos_ciclo(self):
+        """Actualiza todos los datos para análisis de ciclo menstrual"""
+        ciclos = CicloMenstrual.objects.filter(
+            usuario=self.usuario
+        ).exclude(fecha_fin__isnull=True)
+
+        if not ciclos.exists():
+            return
+
+        # Calcular duraciones
+        duraciones = [c.duracion for c in ciclos if c.duracion is not None]
+
+        if duraciones:
+            self.duracion_ciclo_promedio = sum(duraciones) / len(duraciones)
+            self.variabilidad_ciclo = max(duraciones) - min(duraciones)
+
+            # Calcular días probables de ovulación (aproximadamente 14 días antes del fin del ciclo)
+            self.dias_ovulacion_probables = [
+                int(self.duracion_ciclo_promedio) - 14
+            ]
+
+        # Actualizar heatmap y síntomas por fase
+        registros = RegistroDiario.objects.filter(
+            usuario=self.usuario,
+            ciclo__isnull=False
+        ).select_related('ciclo')
+
+        # Heatmap
+        self.ciclo_heatmap_data = {
+            str(r.fecha): r.ciclo.determinar_fase(r.fecha)
+            for r in registros if r.ciclo
+        }
+
+        # Síntomas por fase
+        sintomas_por_fase = defaultdict(lambda: defaultdict(int))
+        for r in registros:
+            if r.ciclo and r.sintomas_comunes:
+                fase = r.ciclo.determinar_fase(r.fecha)
+                for sintoma in r.sintomas_comunes:
+                    sintomas_por_fase[fase][sintoma] += 1
+
+        self.sintomas_por_fase = dict(sintomas_por_fase)
+
+    def actualizar_datos_hormonal(self):
+        """Actualiza datos para análisis de tratamiento hormonal"""
+        tratamientos = TratamientoHormonal.objects.filter(
+            usuario=self.usuario,
+            activo=True
+        )
+
+        # Progreso semanal
+        progreso = defaultdict(dict)
+        for t in tratamientos:
+            semanas = (timezone.now().date() - t.fecha_inicio).days // 7
+            for semana in range(semanas + 1):
+                inicio_semana = t.fecha_inicio + timedelta(weeks=semana)
+                fin_semana = inicio_semana + timedelta(days=6)
+
+                registros = RegistroDiario.objects.filter(
+                    usuario=self.usuario,
+                    tratamiento=t,
+                    fecha__range=(inicio_semana, fin_semana)
+                )
+
+                for sintoma in ['sofocos', 'cambios_libido', 'sensibilidad_pezon']:
+                    count = registros.filter(**{sintoma: True}).count()
+                    progreso[f"Semana {semana + 1}"][sintoma] = count
+
+        self.tratamiento_progreso_data = dict(progreso)
+
+        # Calcular progreso del tratamiento
+        if tratamientos.exists():
+            tratamiento = tratamientos.first()
+            if tratamiento.fecha_fin:
+                total_dias = (tratamiento.fecha_fin - tratamiento.fecha_inicio).days
+                dias_transcurridos = (timezone.now().date() - tratamiento.fecha_inicio).days
+                self.progreso_tratamiento = {
+                    'progreso': min(100, max(0, int((dias_transcurridos / total_dias) * 100))),
+                    'efectividad_estimada': 80  # Valor temporal, puedes implementar tu propia lógica
+                }
+
+    def actualizar_estados_animo(self):
+        """Actualiza las estadísticas de estados de ánimo"""
+        registros = RegistroDiario.objects.filter(usuario=self.usuario)
+
+        contador_animos = defaultdict(int)
+        total_registros = 0
+
+        for r in registros:
+            if r.estados_animo:
+                for animo in r.estados_animo:
+                    contador_animos[animo] += 1
+                total_registros += 1
+
+        if total_registros > 0:
+            self.estado_animo_promedio = {
+                animo: f"{round((count / total_registros) * 100)}%"
+                for animo, count in contador_animos.items()
+            }
+        else:
+            self.estado_animo_promedio = {}
 
     def __str__(self):
         return f"Estadísticas de {self.usuario.username}"
+
+
+
+class ActualizarEstadisticasCronJob(CronJobBase):
+    schedule = Schedule(run_every_mins=1440)  # 24h
+    code = 'app.actualizar_estadisticas'
+
+    def do(self):
+        for usuario in User.objects.all():
+            stats, _ = EstadisticaUsuario.objects.get_or_create(usuario=usuario)
+            stats.actualizar_estadisticas()
 
 
 # Nuevo modelo para seguimiento de efectos de tratamientos hormonales

@@ -79,5 +79,7 @@ urlpatterns = [
     path('mascota/finalizar-alimentacion/', finalizar_alimentacion, name='finalizar_alimentacion'),
     path('mascota/consejo/', consejo_mascota, name='consejo_mascota'),
 
+    #URLs de analisis
+    path('analisis-premium/', AnalisisPremiumView.as_view(), name='analisis_premium'),
 
 ]
