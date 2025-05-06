@@ -696,87 +696,58 @@ def consejo_mascota(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
+from rest_framework import viewsets
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from datetime import datetime
+from django.db.models import Q
+from .models import RegistroDiario
 
 class SintomasViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
-    """ViewSet para estadísticas de síntomas"""
 
     def list(self, request):
         try:
-            year = int(request.query_params.get('year', datetime.now().year))
-            month = int(request.query_params.get('month', datetime.now().month))
-        except ValueError:
-            return Response({"error": "Año y mes deben ser números válidos"}, status=400)
+            year = int(request.GET.get('year', datetime.now().year))
+            month = int(request.GET.get('month', datetime.now().month))
 
-        # Calculamos el rango de fechas
-        first_day = datetime(year, month, 1).date()
-        if month == 12:
-            last_day = datetime(year + 1, 1, 1).date() - timedelta(days=1)
-        else:
-            last_day = datetime(year, month + 1, 1).date() - timedelta(days=1)
+            start_date = datetime(year, month, 1).date()
+            if month == 12:
+                end_date = datetime(year + 1, 1, 1).date()
+            else:
+                end_date = datetime(year, month + 1, 1).date()
 
-        registros = RegistroDiario.objects.filter(
-            usuario=request.user,
-            fecha__range=(first_day, last_day)
-        )
-
-        # Configuración de síntomas
-        sintomas_config = {
-            # Sintomas numéricos (intensidad 1-10)
-            'numericos': [
-                ('dolor_cabeza', 'Dolor de cabeza'),
-                ('dolor_espalda', 'Dolor de espalda'),
-                ('fatiga', 'Fatiga')
-            ],
-            # Síntomas booleanos (sí/no)
-            'booleanos': [
-                ('senos_sensibles', 'Sensibilidad en senos'),
-                ('retencion_liquidos', 'Retención de líquidos'),
-                ('antojos', 'Antojos'),
-                ('acné', 'Acné'),
-                ('sofocos', 'Sofocos'),
-                ('cambios_apetito', 'Cambios en apetito'),
-                ('insomnio', 'Insomnio'),
-                ('sensibilidad_pezon', 'Sensibilidad en pezones'),
-                ('crecimiento_mamario', 'Crecimiento mamario')
+            sintomas_a_analizar = [
+                RegistroDiario.SintomasComunes.DOLOR_CABEZA,
+                RegistroDiario.SintomasComunes.DOLOR_ESPALDA,
+                RegistroDiario.SintomasComunes.FATIGA,
+                # ... añade aquí el resto de los síntomas de SintomasComunes que quieras analizar
             ]
-        }
 
-        resultados = []
-
-        # Procesamos síntomas numéricos
-        for campo, nombre in sintomas_config['numericos']:
-            stats = registros.filter(
-                **{f'{campo}__gt': 0}
-            ).aggregate(
-                total_dias=Count('fecha', distinct=True),
-                avg_intensidad=Avg(campo)
+            registros_base = RegistroDiario.objects.filter(
+                usuario=request.user,
+                fecha__gte=start_date,
+                fecha__lt=end_date
             )
 
-            resultados.append({
-                'nombre': nombre,
-                'dias_presente': stats['total_dias'] or 0,
-                'intensidad_promedio': round(float(stats['avg_intensidad'] or 0), 1) if stats['avg_intensidad'] is not None else None
+            resultados = []
+            for sintoma_clave in sintomas_a_analizar:
+                conteo = registros_base.filter(Q(sintomas_comunes__contains=[sintoma_clave])).count()
+                if conteo > 0:
+                    resultados.append({
+                        'nombre': RegistroDiario.SintomasComunes(sintoma_clave).label,
+                        'dias_presente': conteo,
+                        'intensidad_promedio': 1
+                    })
+
+            return Response({
+                'year': year,
+                'month': month,
+                'sintomas': resultados
             })
 
-        # Procesamos síntomas booleanos
-        for campo, nombre in sintomas_config['booleanos']:
-            count = registros.filter(**{campo: True}).count()
-            resultados.append({
-                'nombre': nombre,
-                'dias_presente': count,
-                'intensidad_promedio': None
-            })
-
-        # Ordenamos por frecuencia descendente
-        resultados.sort(key=lambda x: x['dias_presente'], reverse=True)
-
-        serializer = SintomaSerializer(resultados, many=True)
-        return Response({
-            'year': year,
-            'month': month,
-            'sintomas': serializer.data
-        })
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
 
 
 class AnalisisPremiumView(LoginRequiredMixin, UserPassesTestMixin, DetailView):

@@ -73,36 +73,58 @@ $(document).ready(function() {
     const year = {{ year }};
     const month = {{ month }};
 
+    // Obtener datos de la API
     $.ajax({
     url: `/api/sintomas/?year=${year}&month=${month}`,
     method: 'GET',
     beforeSend: function(xhr) {
         xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
     },
-    xhrFields: {
-        withCredentials: true
-    },
     success: function(response) {
-        console.log("Datos recibidos:", response); // Agrega esto para depuración
+        console.log("Datos recibidos:", response);  // <-- Agrega esto
         renderChart(response.sintomas);
     },
     error: function(xhr, status, error) {
-        console.error("Error en la solicitud:", status, error);
-        console.error("Respuesta del servidor:", xhr.responseText);
+        console.error("Error completo:", xhr.responseText);  // <-- Muestra la respuesta completa
+        $('.symptoms-chart-container').html(
+            `<div class="alert alert-danger">
+                Error al cargar los datos: ${xhr.status} ${xhr.statusText}<br>
+                ${xhr.responseText || 'Sin detalles'}
+            </div>`
+        );
     }
 });
 
     function renderChart(data) {
         const ctx = document.getElementById('symptomsChart').getContext('2d');
+
+        // Preparar datos para el gráfico
+        const labels = data.map(item => item.nombre);
+        const diasData = data.map(item => item.dias_presente);
+        const avgData = data.map(item => item.intensidad_promedio || 0);
+
         new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: data.map(item => item.nombre),
-                datasets: [{
-                    label: 'Días con síntomas',
-                    data: data.map(item => item.dias_presente),
-                    backgroundColor: 'rgba(75, 192, 192, 0.6)'
-                }]
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Días con síntomas',
+                        data: diasData,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Intensidad promedio',
+                        data: avgData,
+                        backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1,
+                        type: 'line',
+                        yAxisID: 'y1'
+                    }
+                ]
             },
             options: {
                 responsive: true,
@@ -114,10 +136,35 @@ $(document).ready(function() {
                             text: 'Días con síntomas'
                         }
                     },
+                    y1: {
+                        position: 'right',
+                        beginAtZero: true,
+                        max: 10,
+                        title: {
+                            display: true,
+                            text: 'Intensidad (1-10)'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    },
                     x: {
                         title: {
                             display: true,
                             text: 'Síntomas'
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const data = context.dataset.data[context.dataIndex];
+                                if (context.datasetIndex === 0) {
+                                    const avg = avgData[context.dataIndex];
+                                    return `Intensidad promedio: ${avg !== null ? avg.toFixed(1) : 'N/A'}`;
+                                }
+                            }
                         }
                     }
                 }

@@ -1,4 +1,6 @@
 from django.urls import path
+from rest_framework.routers import DefaultRouter
+
 from moiraflow.views import (
     PaginaPrincipalView,
     LoginUserView,
@@ -26,7 +28,7 @@ from moiraflow.views import (
     alimentar_mascota,
     consejo_mascota,
     MascotaPanelView,
-    finalizar_alimentacion, RegistrosDiaView, AnalisisPremiumView,
+    finalizar_alimentacion, RegistrosDiaView, AnalisisPremiumView, SintomasViewSet,
 )
 
 app_name = 'moiraflow'
