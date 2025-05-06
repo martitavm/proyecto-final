@@ -28,6 +28,8 @@ router.register(r'sintomas', SintomasViewSet, basename='sintomas')
 urlpatterns = [
     path("moiraflow/", include("moiraflow.urls")),
     path("admin/", admin.site.urls),
+
+    path('accounts/', include('django.contrib.auth.urls')),
     path('api/', include(router.urls)),
 ]
 

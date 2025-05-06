@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
-from django_cron import CronJobBase, Schedule
+#from django_cron import CronJobBase, Schedule
 
 class Perfil(models.Model):
     class TipoPerfil(models.TextChoices):
@@ -607,14 +607,14 @@ class EstadisticaUsuario(models.Model):
 
 
 
-class ActualizarEstadisticasCronJob(CronJobBase):
-    schedule = Schedule(run_every_mins=1440)  # 24h
-    code = 'app.actualizar_estadisticas'
+# class ActualizarEstadisticasCronJob(CronJobBase):
+#    schedule = Schedule(run_every_mins=1440)  # 24h
+#    code = 'app.actualizar_estadisticas'
 
-    def do(self):
-        for usuario in User.objects.all():
-            stats, _ = EstadisticaUsuario.objects.get_or_create(usuario=usuario)
-            stats.actualizar_estadisticas()
+#    def do(self):
+#        for usuario in User.objects.all():
+#            stats, _ = EstadisticaUsuario.objects.get_or_create(usuario=usuario)
+#            stats.actualizar_estadisticas()
 
 
 # Nuevo modelo para seguimiento de efectos de tratamientos hormonales

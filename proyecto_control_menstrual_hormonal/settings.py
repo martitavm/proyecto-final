@@ -80,7 +80,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": "django_db",
         "USER": "postgres",
-        "PASSWORD": "postgres",
+        "PASSWORD": "password",
         "HOST": "db",
         "PORT": "5432",
     }
@@ -147,3 +147,9 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ]
 }
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'mailpit'
+EMAIL_PORT = 1025
+EMAIL_USE_TLS = False
+DEFAULT_FROM_EMAIL = 'noreply@planmytrip.com'
