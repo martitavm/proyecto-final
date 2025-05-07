@@ -3,7 +3,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
-from moiraflow.models import RegistroDiario, TratamientoHormonal, CicloMenstrual, Perfil, Articulo
+from moiraflow.models import RegistroDiario, TratamientoHormonal, CicloMenstrual, Perfil, Articulo, EfectoTratamiento
+
 
 class RegistroCompletoForm(UserCreationForm):
     GENERO_CHOICES = [
@@ -227,54 +228,18 @@ class RegistroDiarioForm(forms.ModelForm):
                 'rows': 3,
                 'placeholder': 'Escribe cualquier observación adicional...'
             }),
-            'es_dia_periodo': forms.CheckboxInput(attrs={
-                'class': 'form-check-input',
-            }),
-            'senos_sensibles': forms.CheckboxInput(attrs={
-                'class': 'form-check-input',
-            }),
-            'retencion_liquidos': forms.CheckboxInput(attrs={
-                'class': 'form-check-input',
-            }),
-            'antojos': forms.CheckboxInput(attrs={
-                'class': 'form-check-input',
-            }),
-            'acne': forms.CheckboxInput(attrs={
-                'class': 'form-check-input',
-            }),
-            'coagulos': forms.CheckboxInput(attrs={
-                'class': 'form-check-input',
-            }),
         }
 
     def __init__(self, *args, **kwargs):
         self.usuario = kwargs.pop('usuario', None)
         self.fecha = kwargs.pop('fecha', None)
-        self.tipo_seguimiento = kwargs.pop('tipo_seguimiento', 'ninguno')
+        self.tipo_seguimiento = kwargs.pop('tipo_seguimiento')
         self.ciclo = kwargs.pop('ciclo', None)
         self.tratamiento = kwargs.pop('tratamiento', None)
 
         super().__init__(*args, **kwargs)
 
-        # Configurar campos según tipo de seguimiento
-        if self.tipo_seguimiento == 'ciclo_menstrual':
-            # Asegurarse que los campos del ciclo estén presentes
-            self.fields['es_dia_periodo'].required = False
-            self.fields['flujo_menstrual'] = forms.ChoiceField(
-                choices=RegistroDiario.FlujoMenstrual.choices,
-                widget=forms.RadioSelect(),
-                required=False
-            )
-            self.fields['color_flujo'] = forms.ChoiceField(
-                choices=RegistroDiario.ColorFlujo.choices,
-                widget=forms.RadioSelect(),
-                required=False
-            )
-        elif self.tipo_seguimiento == 'tratamiento_hormonal':
-            # Mostrar campos específicos para tratamiento hormonal
-            pass
-
-        # Configurar choices para campos de selección múltiple
+        # Campos comunes a ambos tipos de seguimiento
         self.fields['estados_animo'] = forms.MultipleChoiceField(
             choices=RegistroDiario.EstadoAnimo.choices,
             widget=forms.CheckboxSelectMultiple(),
@@ -289,20 +254,130 @@ class RegistroDiarioForm(forms.ModelForm):
             initial=self.instance.sintomas_comunes if self.instance else []
         )
 
-        # Configuración inicial para campos condicionales
-        if self.instance and self.instance.pk:
-            self.initial['estados_animo'] = self.instance.estados_animo
-            self.initial['sintomas_comunes'] = self.instance.sintomas_comunes
+        # Eliminar todos los campos específicos primero
+        campos_menstrual = [
+            'es_dia_periodo', 'flujo_menstrual', 'color_flujo',
+            'coagulos', 'senos_sensibles', 'retencion_liquidos',
+            'antojos', 'acne'
+        ]
+
+        campos_hormonal = [
+            'medicacion_tomada', 'hora_medicacion', 'efectos_tratamiento',
+            'sensibilidad_pezon', 'cambios_libido', 'sofocos',
+            'cambios_piel', 'crecimiento_mamario'
+        ]
+
+        for field in campos_menstrual + campos_hormonal:
+            if field in self.fields:
+                del self.fields[field]
+
+        # Configurar campos según el tipo de seguimiento
+        if self.tipo_seguimiento == 'ciclo_menstrual':
+            self._configurar_campos_menstruales()
+        elif self.tipo_seguimiento == 'tratamiento_hormonal':
+            self._configurar_campos_hormonales()
+
+    def _configurar_campos_menstruales(self):
+        """Configura los campos específicos para seguimiento menstrual"""
+        self.fields['es_dia_periodo'] = forms.BooleanField(
+            required=False,
+            widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+        )
+
+        self.fields['flujo_menstrual'] = forms.ChoiceField(
+            choices=RegistroDiario.FlujoMenstrual.choices,
+            widget=forms.RadioSelect(),
+            required=False
+        )
+
+        self.fields['color_flujo'] = forms.ChoiceField(
+            choices=RegistroDiario.ColorFlujo.choices,
+            widget=forms.RadioSelect(),
+            required=False
+        )
+
+        # Síntomas menstruales
+        sintomas_menstruales = {
+            'coagulos': '¿Coágulos?',
+            'senos_sensibles': 'Sensibilidad en senos',
+            'retencion_liquidos': 'Retención de líquidos',
+            'antojos': 'Antojos',
+            'acne': 'Acné'
+        }
+
+        for field_name, label in sintomas_menstruales.items():
+            self.fields[field_name] = forms.BooleanField(
+                required=False,
+                widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+                label=label
+            )
+
+    def _configurar_campos_hormonales(self):
+        """Configura los campos específicos para tratamiento hormonal"""
+        self.fields['medicacion_tomada'] = forms.BooleanField(
+            required=False,
+            widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            label='¿Tomaste la medicación hoy?'
+        )
+
+        self.fields['hora_medicacion'] = forms.TimeField(
+            required=False,
+            widget=forms.TimeInput(attrs={
+                'class': 'form-control',
+                'type': 'time'
+            }),
+            label='Hora de la medicación'
+        )
+
+        self.fields['efectos_tratamiento'] = forms.MultipleChoiceField(
+            choices=EfectoTratamiento.EFECTO_CHOICES,
+            widget=forms.CheckboxSelectMultiple(),
+            required=False,
+            label='Efectos del tratamiento'
+        )
+
+        # Otros síntomas hormonales
+        sintomas_hormonales = {
+            'sensibilidad_pezon': 'Sensibilidad en pezones',
+            'cambios_libido': forms.ChoiceField(
+                choices=RegistroDiario.Libido.choices,
+                widget=forms.RadioSelect(),
+                required=False,
+                label='Cambios en la libido'
+            ),
+            'sofocos': forms.BooleanField(
+                required=False,
+                widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+                label='Sofocos'
+            ),
+            'cambios_piel': forms.CharField(
+                required=False,
+                widget=forms.TextInput(attrs={'class': 'form-control'}),
+                label='Cambios en la piel'
+            ),
+            'crecimiento_mamario': forms.BooleanField(
+                required=False,
+                widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+                label='Crecimiento mamario'
+            )
+        }
+
+        for field_name, field in sintomas_hormonales.items():
+            self.fields[field_name] = field
 
     def clean(self):
         cleaned_data = super().clean()
 
-        # Validación para campos de día de período
-        if cleaned_data.get('es_dia_periodo'):
-            if not cleaned_data.get('flujo_menstrual'):
-                self.add_error('flujo_menstrual', 'Este campo es requerido para días de período')
-            if not cleaned_data.get('color_flujo'):
-                self.add_error('color_flujo', 'Este campo es requerido para días de período')
+        if self.tipo_seguimiento == 'ciclo_menstrual':
+            if cleaned_data.get('es_dia_periodo'):
+                if not cleaned_data.get('flujo_menstrual'):
+                    self.add_error('flujo_menstrual', 'Este campo es requerido para días de período')
+                if not cleaned_data.get('color_flujo'):
+                    self.add_error('color_flujo', 'Este campo es requerido para días de período')
+
+        elif self.tipo_seguimiento == 'tratamiento_hormonal':
+            if cleaned_data.get('medicacion_tomada') and not cleaned_data.get('hora_medicacion'):
+                self.add_error('hora_medicacion', 'Debe especificar la hora cuando ha tomado la medicación')
 
         return cleaned_data
 
@@ -322,8 +397,13 @@ class RegistroDiarioForm(forms.ModelForm):
         if commit:
             instance.save()
             # Guardar campos ManyToMany manualmente
+            self.save_m2m = lambda: None  # Desactivar el save_m2m por defecto
             instance.estados_animo = self.cleaned_data.get('estados_animo', [])
             instance.sintomas_comunes = self.cleaned_data.get('sintomas_comunes', [])
+
+            if self.tipo_seguimiento == 'tratamiento_hormonal':
+                instance.efectos_tratamiento = self.cleaned_data.get('efectos_tratamiento', [])
+
             instance.save()
 
         return instance

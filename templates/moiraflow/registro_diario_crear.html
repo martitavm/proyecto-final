@@ -3,22 +3,22 @@
 {% block content %}
 <div class="container mt-4">
     <h2>{{ object|yesno:"Editar registro,Crear nuevo registro" }}</h2>
-    
-   <form method="post" class="needs-validation" novalidate>
-    {% csrf_token %}
 
-    {% if form.errors %}
-    <div class="alert alert-danger">
-        <strong>Error!</strong> Por favor corrige los siguientes errores:
-        <ul>
-            {% for field, errors in form.errors.items %}
-                {% for error in errors %}
-                    <li>{{ field|title }}: {{ error }}</li>
+    <form method="post" class="needs-validation" novalidate>
+        {% csrf_token %}
+
+        {% if form.errors %}
+        <div class="alert alert-danger">
+            <strong>Error!</strong> Por favor corrige los siguientes errores:
+            <ul>
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                        <li>{{ field|title }}: {{ error }}</li>
+                    {% endfor %}
                 {% endfor %}
-            {% endfor %}
-        </ul>
-    </div>
-    {% endif %}
+            </ul>
+        </div>
+        {% endif %}
 
         <!-- Campos comunes -->
         <div class="card mb-4">
@@ -70,12 +70,13 @@
             </div>
         </div>
 
-        <!-- Campos para ciclo menstrual - SIEMPRE visible si está en el formulario -->
-        {% if 'es_dia_periodo' in form.fields %}
+        <!-- SECCIÓN DE CICLO MENSTRUAL - Siempre mostraremos esta sección si los campos existen -->
+        {% if 'es_dia_periodo' in form.fields or 'senos_sensibles' in form.fields or 'retencion_liquidos' in form.fields or 'antojos' in form.fields or 'acne' in form.fields %}
         <div class="card mb-4">
             <div class="card-header">Datos del ciclo menstrual</div>
             <div class="card-body">
                 <!-- Campo principal que controla la visibilidad -->
+                {% if 'es_dia_periodo' in form.fields %}
                 <div class="mb-3 form-check form-switch">
                     {{ form.es_dia_periodo }}
                     <label class="form-check-label" for="{{ form.es_dia_periodo.id_for_label }}">
@@ -86,6 +87,7 @@
                 <!-- Campos condicionales - inicialmente ocultos -->
                 <div id="periodo-fields" style="display: {% if form.es_dia_periodo.value %}block{% else %}none{% endif %};">
                     <!-- Flujo menstrual -->
+                    {% if 'flujo_menstrual' in form.fields %}
                     <div class="mb-3">
                         <label class="form-label">Flujo menstrual</label>
                         {% for choice in form.flujo_menstrual.field.choices %}
@@ -101,8 +103,10 @@
                         </div>
                         {% endfor %}
                     </div>
+                    {% endif %}
 
                     <!-- Color del flujo -->
+                    {% if 'color_flujo' in form.fields %}
                     <div class="mb-3">
                         <label class="form-label">Color del flujo</label>
                         {% for choice in form.color_flujo.field.choices %}
@@ -118,44 +122,104 @@
                         </div>
                         {% endfor %}
                     </div>
+                    {% endif %}
 
                     <!-- Síntomas adicionales -->
+                    {% if 'coagulos' in form.fields %}
                     <div class="mb-3 form-check form-switch">
                         {{ form.coagulos }}
                         <label class="form-check-label" for="{{ form.coagulos.id_for_label }}">
                             ¿Coágulos?
                         </label>
                     </div>
+                    {% endif %}
                 </div>
+                {% endif %}
 
                 <!-- Otros síntomas del ciclo (siempre visibles) -->
+                {% if 'senos_sensibles' in form.fields %}
                 <div class="mb-3 form-check form-switch">
                     {{ form.senos_sensibles }}
                     <label class="form-check-label" for="{{ form.senos_sensibles.id_for_label }}">
                         Sensibilidad en senos
                     </label>
                 </div>
+                {% endif %}
 
+                {% if 'retencion_liquidos' in form.fields %}
                 <div class="mb-3 form-check form-switch">
                     {{ form.retencion_liquidos }}
                     <label class="form-check-label" for="{{ form.retencion_liquidos.id_for_label }}">
                         Retención de líquidos
                     </label>
                 </div>
+                {% endif %}
 
+                {% if 'antojos' in form.fields %}
                 <div class="mb-3 form-check form-switch">
                     {{ form.antojos }}
                     <label class="form-check-label" for="{{ form.antojos.id_for_label }}">
                         Antojos
                     </label>
                 </div>
+                {% endif %}
 
+                {% if 'acne' in form.fields %}
                 <div class="mb-3 form-check form-switch">
                     {{ form.acne }}
                     <label class="form-check-label" for="{{ form.acne.id_for_label }}">
                         Acné
                     </label>
                 </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- SECCIÓN DE TRATAMIENTO HORMONAL - Siempre mostraremos esta sección si los campos existen -->
+        {% if 'medicacion_tomada' in form.fields or 'hora_medicacion' in form.fields or 'efectos_tratamiento' in form.fields %}
+        <div class="card mb-4">
+            <div class="card-header">Datos del tratamiento hormonal</div>
+            <div class="card-body">
+                <!-- Campos específicos de tratamiento hormonal -->
+                {% if 'medicacion_tomada' in form.fields %}
+                <div class="mb-3 form-check form-switch">
+                    {{ form.medicacion_tomada }}
+                    <label class="form-check-label" for="{{ form.medicacion_tomada.id_for_label }}">
+                        <strong>¿Tomaste la medicación hoy?</strong>
+                    </label>
+                </div>
+
+                <div id="tratamiento-fields" style="display: {% if form.medicacion_tomada.value %}block{% else %}none{% endif %};">
+                    {% if 'hora_medicacion' in form.fields %}
+                    <div class="mb-3">
+                        <label for="{{ form.hora_medicacion.id_for_label }}" class="form-label">Hora de la medicación</label>
+                        {{ form.hora_medicacion }}
+                    </div>
+                    {% endif %}
+
+                    <!-- Efectos del tratamiento -->
+                    {% if 'efectos_tratamiento' in form.fields %}
+                    <div class="mb-3">
+                        <label class="form-label">Efectos del tratamiento</label>
+                        <div class="form-check-group">
+                            {% for choice in form.efectos_tratamiento.field.choices %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox"
+                                       name="{{ form.efectos_tratamiento.name }}"
+                                       id="{{ form.efectos_tratamiento.id_for_label }}_{{ forloop.counter0 }}"
+                                       value="{{ choice.0 }}"
+                                       {% if choice.0 in form.efectos_tratamiento.value or choice.0 in form.efectos_tratamiento.initial %}checked{% endif %}>
+                                <label class="form-check-label" for="{{ form.efectos_tratamiento.id_for_label }}_{{ forloop.counter0 }}">
+                                    {{ choice.1 }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
         </div>
         {% endif %}
@@ -195,6 +259,22 @@ document.addEventListener('DOMContentLoaded', function() {
         // Configurar evento change
         togglePeriodo.addEventListener('change', function() {
             periodoFields.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+});
+
+// Mostrar/ocultar campos de tratamiento hormonal
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleTratamiento = document.getElementById('{{ form.medicacion_tomada.id_for_label }}');
+    const tratamientoFields = document.getElementById('tratamiento-fields');
+
+    if (toggleTratamiento && tratamientoFields) {
+        // Configurar estado inicial
+        tratamientoFields.style.display = toggleTratamiento.checked ? 'block' : 'none';
+
+        // Configurar evento change
+        toggleTratamiento.addEventListener('change', function() {
+            tratamientoFields.style.display = this.checked ? 'block' : 'none';
         });
     }
 });

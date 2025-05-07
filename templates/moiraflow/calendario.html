@@ -57,11 +57,11 @@
 </div>
 
 <div class="calendar-legend">
-    <div><span class="legend-icon menstrual">🩸</span> Menstruación</div>
-    <div><span class="legend-icon folicular">🌱</span> Fase Folicular</div>
-    <div><span class="legend-icon ovulacion">🥚</span> Ovulación</div>
-    <div><span class="legend-icon lutea">🌕</span> Fase Lútea</div>
-    <div><span class="legend-icon hormonal">💊</span> Tratamiento</div>
+    <div>Menstruación</div>
+    <div>Fase Folicular</div>
+    <div>Ovulación</div>
+    <div>Fase Lútea</div>
+    <div>Tratamiento</div>
 </div>
 
 <!-- Incluir Chart.js y jQuery para AJAX -->
@@ -75,98 +75,124 @@ $(document).ready(function() {
 
     // Obtener datos de la API
     $.ajax({
-    url: `/api/sintomas/?year=${year}&month=${month}`,
-    method: 'GET',
-    beforeSend: function(xhr) {
-        xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
-    },
-    success: function(response) {
-        console.log("Datos recibidos:", response);  // <-- Agrega esto
-        renderChart(response.sintomas);
-    },
-    error: function(xhr, status, error) {
-        console.error("Error completo:", xhr.responseText);  // <-- Muestra la respuesta completa
-        $('.symptoms-chart-container').html(
-            `<div class="alert alert-danger">
-                Error al cargar los datos: ${xhr.status} ${xhr.statusText}<br>
-                ${xhr.responseText || 'Sin detalles'}
-            </div>`
-        );
-    }
-});
+        url: `/api/sintomas/?year=${year}&month=${month}`,
+        method: 'GET',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+        },
+        success: function(response) {
+            console.log("Datos recibidos:", response);
+            renderChart(response.sintomas);
+        },
+        error: function(xhr, status, error) {
+            console.error("Error completo:", xhr.responseText);
+            $('.symptoms-chart-container').html(
+                `<div class="alert alert-danger">
+                    Error al cargar los datos: ${xhr.status} ${xhr.statusText}<br>
+                    ${xhr.responseText || 'Sin detalles'}
+                </div>`
+            );
+        }
+    });
 
     function renderChart(data) {
         const ctx = document.getElementById('symptomsChart').getContext('2d');
 
+        // Colores más atractivos para las barras
+        const backgroundColors = data.map((_, i) => {
+            const hue = (i * 30) % 360; // Variar el tono para cada síntoma
+            return `hsla(${hue}, 70%, 60%, 0.7)`;
+        });
+
+        const borderColors = data.map((_, i) => {
+            const hue = (i * 30) % 360;
+            return `hsla(${hue}, 70%, 40%, 1)`;
+        });
+
         // Preparar datos para el gráfico
         const labels = data.map(item => item.nombre);
         const diasData = data.map(item => item.dias_presente);
-        const avgData = data.map(item => item.intensidad_promedio || 0);
 
         new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [
-                    {
-                        label: 'Días con síntomas',
-                        data: diasData,
-                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1
-                    },
-                    {
-                        label: 'Intensidad promedio',
-                        data: avgData,
-                        backgroundColor: 'rgba(255, 99, 132, 0.6)',
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        borderWidth: 1,
-                        type: 'line',
-                        yAxisID: 'y1'
-                    }
-                ]
+                datasets: [{
+                    label: 'Días con síntomas',
+                    data: diasData,
+                    backgroundColor: backgroundColors,
+                    borderColor: borderColors,
+                    borderWidth: 2,
+                    borderRadius: 6, // Bordes redondeados en las barras
+                    borderSkipped: false // Aplicar bordes redondeados a todos los lados
+                }]
             },
             options: {
                 responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Días con síntomas'
-                        }
-                    },
-                    y1: {
-                        position: 'right',
-                        beginAtZero: true,
-                        max: 10,
-                        title: {
-                            display: true,
-                            text: 'Intensidad (1-10)'
-                        },
-                        grid: {
-                            drawOnChartArea: false
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Síntomas'
-                        }
-                    }
-                },
+                maintainAspectRatio: false,
                 plugins: {
+                    legend: {
+                        display: false
+                    },
                     tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 1,
+                        padding: 12,
                         callbacks: {
-                            afterLabel: function(context) {
-                                const data = context.dataset.data[context.dataIndex];
-                                if (context.datasetIndex === 0) {
-                                    const avg = avgData[context.dataIndex];
-                                    return `Intensidad promedio: ${avg !== null ? avg.toFixed(1) : 'N/A'}`;
-                                }
+                            label: function(context) {
+                                return ` ${context.raw} día${context.raw !== 1 ? 's' : ''}`;
                             }
                         }
                     }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 31,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#666',
+                            stepSize: 5
+                        },
+                        title: {
+                            display: true,
+                            text: 'Días con síntomas',
+                            color: '#666',
+                            font: {
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false,
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#666',
+                            font: {
+                                size: 12
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Síntomas',
+                            color: '#666',
+                            font: {
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'easeOutQuart'
                 }
             }
         });
@@ -287,36 +313,31 @@ $(document).ready(function() {
     flex-wrap: wrap;
     gap: 1.5rem;
     margin-top: 2rem;
-}
-
-.calendar-legend div {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.legend-icon {
-    font-size: 1.2rem;
+    font-size: 0.9rem;
+    color: #555;
 }
 
 .symptoms-chart-container {
     max-width: 900px;
     margin: 2rem auto;
-    padding: 1rem;
+    padding: 1.5rem;
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 .symptoms-chart-container h3 {
     text-align: center;
     margin-bottom: 1.5rem;
-    color: #495057;
+    color: #444;
+    font-weight: 600;
 }
 
-#symptomsChart {
+.chart-container {
+    position: relative;
+    height: 400px;
+    width: 100%;
     margin: 0 auto;
-    max-height: 400px;
 }
 </style>
 {% endblock %}
