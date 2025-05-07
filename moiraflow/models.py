@@ -17,7 +17,6 @@ class Perfil(models.Model):
     class TipoSeguimiento(models.TextChoices):
         MENSTRUAL = 'ciclo_menstrual', 'Ciclo Menstrual'
         HORMONAL = 'tratamiento_hormonal', 'Tratamiento Hormonal'
-        NINGUNO = 'ninguno', 'Ninguno'
 
     class Genero(models.TextChoices):
         FEMENINO = 'femenino', 'Femenino'
@@ -41,7 +40,7 @@ class Perfil(models.Model):
     )
     es_premium = models.BooleanField(default=False)
     tipo_perfil = models.CharField(max_length=15, choices=TipoPerfil.choices, default=TipoPerfil.USUARIO)
-    tipo_seguimiento = models.CharField(max_length=20, choices=TipoSeguimiento.choices, default=TipoSeguimiento.NINGUNO)
+    tipo_seguimiento = models.CharField(max_length=20, choices=TipoSeguimiento.choices)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
 
@@ -51,8 +50,6 @@ class Perfil(models.Model):
             self.tipo_seguimiento = self.TipoSeguimiento.MENSTRUAL
         elif self.genero == self.Genero.FEMENINO_TRANS:
             self.tipo_seguimiento = self.TipoSeguimiento.HORMONAL
-        else:
-            self.tipo_seguimiento = self.TipoSeguimiento.NINGUNO
 
         # Limpieza de campos no relevantes
         if self.tipo_seguimiento != self.TipoSeguimiento.MENSTRUAL:
@@ -629,10 +626,27 @@ class EfectoTratamiento(models.Model):
         ('deseado', 'Efecto deseado'),
         ('otro', 'Otro'),
     ]
+    # Añade estas opciones
+    EFECTO_CHOICES = [
+        ('aumento_energia', 'Aumento de energía'),
+        ('cambios_humor', 'Cambios de humor'),
+        ('sensibilidad_pechos', 'Sensibilidad en los pechos'),
+        ('nauseas', 'Náuseas'),
+        ('aumento_peso', 'Aumento de peso'),
+        ('dolor_cabeza', 'Dolor de cabeza'),
+        ('sofocos', 'Sofocos'),
+        ('sequedad_vaginal', 'Sequedad vaginal'),
+        ('libido_aumentada', 'Libido aumentada'),
+        ('libido_disminuida', 'Libido disminuida'),
+    ]
 
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='efectos_tratamiento')
     tratamiento = models.ForeignKey('TratamientoHormonal', on_delete=models.CASCADE, related_name='efectos')
-    nombre_efecto = models.CharField(max_length=100)
+    nombre_efecto = models.CharField(
+        max_length=20,
+        choices=EFECTO_CHOICES,
+        help_text="Efecto específico del tratamiento"
+    )
     descripcion = models.TextField(blank=True)
     tipo_efecto = models.CharField(max_length=15, choices=TIPO_EFECTO_CHOICES)
     fecha_inicio = models.DateField()

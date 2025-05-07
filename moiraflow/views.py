@@ -304,6 +304,8 @@ class RegistroDiarioCreateView(LoginRequiredMixin, CreateView):
             month=int(self.kwargs['month']),
             day=int(self.kwargs['day'])
         )
+        # Añadir tipo_seguimiento del perfil del usuario
+        kwargs['tipo_seguimiento'] = self.request.user.perfil.tipo_seguimiento
         return kwargs
 
     def get_initial(self):
