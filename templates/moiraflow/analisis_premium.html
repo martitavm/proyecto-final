@@ -1,150 +1,245 @@
 {% extends 'base.html' %}
-{% load static %}
+
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">🌟 {{ titulo_seccion }} (Premium)</h2>
+    <div class="row">
+        <div class="col-md-12">
+            <h2 class="mb-4">
+                <i class="fas fa-chart-line"></i> Análisis Premium
+                <span class="badge badge-pill badge-primary ml-2">PREMIUM</span>
+            </h2>
 
-    <!-- Tarjeta 1: Resumen principal -->
-    <div class="card shadow mb-4">
-        <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">📌 Resumen</h4>
-        </div>
-        <div class="card-body">
-            {% if user.perfil.tipo_seguimiento == 'ciclo_menstrual' %}
-                <p>Tu ciclo es <strong>{{ resumen.regularidad }}</strong> con una duración promedio de <strong>{{ estadisticas.duracion_ciclo_promedio_calculado }} días</strong>.</p>
-                <p>Síntoma más frecuente: <strong>{{ resumen.sintoma_principal.0 }} ({{ resumen.sintoma_principal.1 }} veces)</strong></p>
+            {% if error %}
+                <div class="alert alert-danger">
+                    Ocurrió un error al cargar el análisis. Por favor intenta más tarde.
+                </div>
             {% else %}
-                <p>Efectividad estimada del tratamiento: <strong>{{ resumen.efectividad }}</strong></p>
-                {% if resumen.proxima_cita %}
-                    <p>Próxima cita: <strong>{{ resumen.proxima_cita.fecha_inicio|date:"d M Y" }}</strong></p>
-                {% endif %}
+                <!-- Pestañas de navegación -->
+                <ul class="nav nav-tabs mb-4" id="analisisTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="resumen-tab" data-toggle="tab" href="#resumen" role="tab">
+                            <i class="fas fa-info-circle"></i> Resumen
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="graficos-tab" data-toggle="tab" href="#graficos" role="tab">
+                            <i class="fas fa-chart-bar"></i> Gráficos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="recomendaciones-tab" data-toggle="tab" href="#recomendaciones" role="tab">
+                            <i class="fas fa-lightbulb"></i> Recomendaciones
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Contenido de las pestañas -->
+                <div class="tab-content" id="analisisTabsContent">
+                    <!-- Pestaña Resumen -->
+                    <div class="tab-pane fade show active" id="resumen" role="tabpanel">
+                        {% if tipo_analisis == 'ciclo_menstrual' %}
+                            {% include 'moiraflow/resumen_ciclo.html' %}
+                        {% else %}
+                            {% include 'moiraflow/resumen_hormonal.html' %}
+                        {% endif %}
+                    </div>
+
+                    <!-- Pestaña Gráficos -->
+                    <div class="tab-pane fade" id="graficos" role="tabpanel">
+                        <div id="loading-graficos" class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Cargando...</span>
+                            </div>
+                            <p class="mt-2">Generando gráficos...</p>
+                        </div>
+                        <div id="contenido-graficos" style="display: none;"></div>
+                    </div>
+
+                    <!-- Pestaña Recomendaciones -->
+                    <div class="tab-pane fade" id="recomendaciones" role="tabpanel">
+                        {% if recomendaciones %}
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h4 class="mb-0">
+                                    <i class="fas fa-lightbulb"></i> Recomendaciones Personalizadas
+                                </h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group">
+                                    {% for recomendacion in recomendaciones %}
+                                        <div class="list-group-item">
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-check-circle text-success mr-3"></i>
+                                                <div>{{ recomendacion }}</div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            No hay recomendaciones disponibles actualmente.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
             {% endif %}
         </div>
     </div>
-
-    <!-- Gráficos dinámicos -->
-    <div class="row">
-        {% if user.perfil.tipo_seguimiento == 'ciclo_menstrual' %}
-            <!-- Heatmap del ciclo -->
-            <div class="col-md-6 mb-4">
-                <div class="card h-100">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0">📅 Calendario de ciclo</h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="cycle-heatmap" data-data='{{ graficos.heatmap_data|safe }}'></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Síntomas por fase -->
-            <div class="col-md-6 mb-4">
-                <div class="card h-100">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0">📊 Síntomas por fase</h5>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="symptoms-chart" data-data='{{ graficos.sintomas_fase|safe }}'></canvas>
-                    </div>
-                </div>
-            </div>
-        {% else %}
-            <!-- Progreso tratamiento -->
-            <div class="col-12 mb-4">
-                <div class="card">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0">📈 Progreso semanal</h5>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="treatment-chart" data-data='{{ graficos.progreso_data|safe }}'></canvas>
-                    </div>
-                </div>
-            </div>
-        {% endif %}
-    </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-    // Heatmap para ciclo menstrual
-    if (document.getElementById('cycle-heatmap')) {
-        const heatmapData = JSON.parse(
-            document.getElementById('cycle-heatmap').dataset.data
-        );
-        // Configura CalHeatmap con tus datos
-        new CalHeatmap().paint({
-            data: heatmapData,
-            itemSelector: "#cycle-heatmap",
-            range: 3,
-            legend: [1, 3, 5],
-            domain: 'month',
-            subDomain: 'day',
-            tooltip: true
-        });
+$(document).ready(function() {
+    // Variables de estado
+    let graficosCargados = false;
+
+    // Inicializar tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+
+    // Manejar clic en pestaña de gráficos
+    $('#graficos-tab').on('click', function(e) {
+        if (!graficosCargados) {
+            e.preventDefault();
+            loadGraficos().then(() => {
+                graficosCargados = true;
+                $('#graficos-tab').tab('show');
+            });
+        }
+    });
+});
+
+async function loadGraficos() {
+    $('#loading-graficos').show();
+    $('#contenido-graficos').hide().empty();
+
+    try {
+        const response = await fetch("{% url 'moiraflow:analisis_premium_data' %}");
+        const data = await response.json();
+
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        renderGraficos(data);
+    } catch (error) {
+        showError(error.message);
+    } finally {
+        $('#loading-graficos').hide();
+        $('#contenido-graficos').show();
+    }
+}
+
+function renderGraficos(data) {
+    const container = $('#contenido-graficos');
+    container.empty();
+
+    // Verificar si hay datos
+    if ((!data.duraciones || data.duraciones.length === 0) &&
+        (!data.sintomas_por_fase || Object.keys(data.sintomas_por_fase).length === 0)) {
+        container.html('<div class="alert alert-info">No hay datos suficientes para generar gráficos.</div>');
+        return;
     }
 
-    // Gráfico de síntomas por fase
-    if (document.getElementById('symptoms-chart')) {
-        const ctx = document.getElementById('symptoms-chart').getContext('2d');
-        const data = JSON.parse(
-            document.getElementById('symptoms-chart').dataset.data
-        );
+    // Gráfico de duración de ciclos
+    if (data.duraciones && data.duraciones.length > 0) {
+        const canvas = $('<canvas class="mb-4" height="300">');
+        container.append($('<h4 class="mt-3">Duración de ciclos</h4>'), canvas);
 
-        new Chart(ctx, {
-            type: 'bar',
+        new Chart(canvas[0], {
+            type: 'line',
             data: {
-                labels: Object.keys(data),
+                labels: data.duraciones.map(d => d.inicio),
                 datasets: [{
-                    label: 'Frecuencia de síntomas',
-                    data: Object.values(data),
-                    backgroundColor: '#6c63ff'
+                    label: 'Días de duración',
+                    data: data.duraciones.map(d => d.duracion),
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.3,
+                    fill: true
                 }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true },
+                    tooltip: { enabled: true }
+                },
+                scales: {
+                    y: { beginAtZero: false }
+                }
             }
         });
     }
 
-    // Gráfico de progreso hormonal
-    if (document.getElementById('treatment-chart')) {
-        const ctx = document.getElementById('treatment-chart').getContext('2d');
-        const rawData = JSON.parse(
-            document.getElementById('treatment-chart').dataset.data
-        );
+    // Gráfico de síntomas por fase
+    if (data.sintomas_por_fase && Object.keys(data.sintomas_por_fase).length > 0) {
+        const canvas = $('<canvas class="mb-4" height="300">');
+        container.append($('<h4 class="mt-3">Síntomas por fase</h4>'), canvas);
 
-        // Procesamiento de datos para Chart.js
-        const labels = Object.keys(rawData);
-        const datasets = [];
+        const fases = Object.keys(data.sintomas_por_fase);
+        const sintomas = new Set();
 
-        // Esto es adaptable según tu estructura de datos
-        if (labels.length > 0) {
-            const firstKey = labels[0];
-            const symptoms = Object.keys(rawData[firstKey]);
-
-            symptoms.forEach(symptom => {
-                datasets.push({
-                    label: symptom,
-                    data: labels.map(week => rawData[week][symptom]),
-                    borderColor: getRandomColor(),
-                    fill: false
-                });
+        fases.forEach(fase => {
+            Object.keys(data.sintomas_por_fase[fase]).forEach(sintoma => {
+                sintomas.add(sintoma);
             });
-        }
+        });
 
-        new Chart(ctx, {
-            type: 'line',
-            data: { labels, datasets },
-            options: { responsive: true }
+        const datasets = Array.from(sintomas).map(sintoma => {
+            return {
+                label: sintoma,
+                data: fases.map(fase => data.sintomas_por_fase[fase][sintoma] || 0),
+                backgroundColor: getRandomColor()
+            };
+        });
+
+        new Chart(canvas[0], {
+            type: 'bar',
+            data: {
+                labels: fases,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true },
+                    tooltip: { enabled: true }
+                },
+                scales: {
+                    x: { stacked: true },
+                    y: { stacked: true, beginAtZero: true }
+                }
+            }
         });
     }
-});
+}
 
 function getRandomColor() {
-    // Función auxiliar para colores de gráficos
-    return `#${Math.floor(Math.random()*16777215).toString(16)}`;
+    return `hsla(${Math.floor(Math.random() * 360)}, 70%, 50%, 0.7)`;
+}
+
+function showError(message) {
+    $('#contenido-graficos').html(
+        `<div class="alert alert-danger">${message}</div>`
+    );
 }
 </script>
 
-<!-- Scripts para gráficos -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{% static 'js/cal-heatmap.min.js' %}"></script>
-<script src="{% static 'js/analisis-premium.js' %}"></script>
+<style>
+.premium-container { max-width: 1200px; }
+.nav-tabs .nav-link.active {
+    font-weight: bold;
+    border-bottom: 3px solid #007bff;
+}
+.badge-pill { padding: 0.4em 0.8em; }
+.card-hover-effect:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+</style>
 {% endblock %}

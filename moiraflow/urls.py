@@ -30,7 +30,7 @@ from moiraflow.views import (
     alimentar_mascota,
     consejo_mascota,
     MascotaPanelView,
-    finalizar_alimentacion, RegistrosDiaView, AnalisisPremiumView, SintomasViewSet,
+    finalizar_alimentacion, RegistrosDiaView, AnalisisPremiumView, SintomasViewSet, AnalisisPremiumDataView,
 )
 
 app_name = 'moiraflow'
@@ -91,5 +91,6 @@ urlpatterns = [
 
     #URLs de analisis
     path('analisis-premium/', AnalisisPremiumView.as_view(), name='analisis_premium'),
+    path('analisis-premium/data/', AnalisisPremiumDataView.as_view(), name='analisis_premium_data'),
 
 ]

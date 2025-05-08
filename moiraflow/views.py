@@ -752,119 +752,281 @@ class SintomasViewSet(viewsets.ViewSet):
             return Response({'error': str(e)}, status=400)
 
 
-class AnalisisPremiumView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+# views.py
+from collections import defaultdict
+from django.db import transaction
+
+class AnalisisPremiumView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
     template_name = 'moiraflow/analisis_premium.html'
-    model = EstadisticaUsuario
-    context_object_name = 'estadisticas'
 
     def test_func(self):
-        """Solo para usuarios premium o administradores"""
+        """Verifica si el usuario tiene acceso premium"""
         return self.request.user.perfil.puede_acceder_premium
-
-    def get_object(self):
-        """Obtiene o crea automáticamente las estadísticas del usuario"""
-        estadisticas, created = EstadisticaUsuario.objects.get_or_create(
-            usuario=self.request.user,
-            defaults={
-                'ultima_actualizacion': timezone.now()
-            }
-        )
-
-        # Si se acaba de crear o necesita actualización
-        if created or (timezone.now() - estadisticas.ultima_actualizacion).days >= 1:
-            estadisticas.actualizar_estadisticas()
-
-        return estadisticas
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         perfil = self.request.user.perfil
 
-        # Asegurarse de que las estadísticas estén actualizadas
-        if not hasattr(self.request.user, 'estadisticas'):
-            self.object = self.get_object()
+        try:
+            with transaction.atomic():
+                estadisticas, created = EstadisticaUsuario.objects.select_for_update().get_or_create(
+                    usuario=self.request.user
+                )
 
-        # Datos específicos según tipo de seguimiento
-        if perfil.tipo_seguimiento == 'ciclo_menstrual':
-            context.update({
-                'titulo_seccion': 'Análisis de tu ciclo',
-                'graficos': self._preparar_graficos_ciclo(),
-                'resumen': self._generar_resumen_ciclo(),
-                'estadisticas': self.object
-            })
-        elif perfil.tipo_seguimiento == 'tratamiento_hormonal':
-            context.update({
-                'titulo_seccion': 'Progreso de tratamiento',
-                'graficos': self._preparar_graficos_hormonal(),
-                'resumen': self._generar_resumen_hormonal(),
-                'estadisticas': self.object
-            })
-        else:
-            context.update({
-                'titulo_seccion': 'Tus estadísticas',
-                'graficos': {},
-                'resumen': {}
-            })
+                # Actualizar estadísticas si es necesario
+                if created or self._necesita_actualizacion(estadisticas):
+                    estadisticas.actualizar_estadisticas()
+                    estadisticas.refresh_from_db()
+
+                # Datos según tipo de seguimiento
+                if perfil.tipo_seguimiento == 'ciclo_menstrual':
+                    context.update(self._get_ciclo_context(estadisticas))
+                elif perfil.tipo_seguimiento == 'tratamiento_hormonal':
+                    context.update(self._get_hormonal_context(estadisticas))
+
+                context['estadisticas'] = estadisticas
+
+        except Exception as e:
+            messages.error(self.request, f"Error al cargar análisis: {str(e)}")
+            context['error'] = True
 
         return context
 
-    def _preparar_graficos_ciclo(self):
-        """Prepara datos para gráficos de ciclo menstrual"""
-        return {
-            'heatmap_data': self.object.ciclo_heatmap_data,
-            'sintomas_fase': self.object.sintomas_por_fase,
-            'ovulacion_promedio': self.object.dias_ovulacion_probables
-            # Cambiado de dias_ovulacion_tipicos a dias_ovulacion_probables
-        }
+    def _necesita_actualizacion(self, estadisticas):
+        """Determina si las estadísticas necesitan actualización"""
+        # Actualizar si han pasado más de 24 horas o nunca se han actualizado
+        return (not estadisticas.ultima_actualizacion or
+                (timezone.now() - estadisticas.ultima_actualizacion) > timedelta(hours=24))
 
-    def _generar_resumen_ciclo(self):
-        """Genera texto resumen para ciclo menstrual"""
-        duracion_max = None
-        duracion_min = None
+    def _get_ciclo_context(self, estadisticas):
+        """Prepara contexto para análisis de ciclo menstrual"""
+        ciclos = CicloMenstrual.objects.filter(
+            usuario=self.request.user,
+            fecha_fin__isnull=False
+        ).order_by('-fecha_inicio')[:6]
 
-        if hasattr(self.object, 'variabilidad_ciclo') and self.object.duracion_ciclo_promedio:
-            duracion_max = self.object.duracion_ciclo_promedio + (self.object.variabilidad_ciclo / 2)
-            duracion_min = self.object.duracion_ciclo_promedio - (self.object.variabilidad_ciclo / 2)
+        predicciones = self._calcular_predicciones(ciclos, estadisticas)
+        sintomas_por_fase = self._organizar_sintomas(estadisticas)
 
         return {
-            'regularidad': "Regular" if (
-                        duracion_max and duracion_min and (duracion_max - duracion_min) <= 3) else "Irregular",
-            'sintoma_principal': max(
-                self.object.sintomas_frecuentes.items(),
-                key=lambda x: x[1],
-                default=("Ninguno", 0)
-            ) if self.object.sintomas_frecuentes else ("Ninguno", 0)
+            'tipo_analisis': 'ciclo_menstrual',
+            'ciclos': ciclos,
+            'predicciones': predicciones,
+            'sintomas_por_fase': sintomas_por_fase,
+            'recomendaciones': self._generar_recomendaciones_ciclo(estadisticas),
+            'tiene_datos': bool(ciclos)
         }
 
-    def _preparar_graficos_hormonal(self):
-        """Prepara datos para gráficos de tratamiento hormonal"""
+    def _calcular_predicciones(self, ciclos, estadisticas):
+        """Calcula predicciones basadas en ciclos anteriores"""
+        if not ciclos:
+            return {}
+
+        ultimo_ciclo = ciclos[0]
+        dias_ovulacion = self._get_dias_ovulacion(estadisticas)
+
         return {
-            'progreso_data': self.object.tratamiento_progreso_data,
-            'efectos_frecuentes': sorted(
-                self.object.sintomas_frecuentes.items(),
-                key=lambda x: x[1],
-                reverse=True
-            )[:5] if self.object.sintomas_frecuentes else []
+            'proximo_periodo': ultimo_ciclo.fecha_fin + timedelta(days=1),
+            'proxima_ovulacion': ultimo_ciclo.fecha_inicio + timedelta(days=dias_ovulacion),
+            'ventana_fertil_inicio': (ultimo_ciclo.fecha_inicio +
+                                      timedelta(days=max(1, dias_ovulacion - 3))),
+            'ventana_fertil_fin': (ultimo_ciclo.fecha_inicio +
+                                   timedelta(days=dias_ovulacion + 1))
         }
 
-    def _generar_resumen_hormonal(self):
-        """Genera texto resumen para tratamiento hormonal"""
+    def _get_dias_ovulacion(self, estadisticas):
+        """Obtiene días típicos para ovulación"""
+        if (hasattr(estadisticas, 'dias_ovulacion_probables') and
+                estadisticas.dias_ovulacion_probables and
+                isinstance(estadisticas.dias_ovulacion_probables, list)):
+            return estadisticas.dias_ovulacion_probables[0]
+        return 14  # Valor por defecto
+
+    def _organizar_sintomas(self, estadisticas):
+        """Organiza síntomas por fase para visualización"""
+        sintomas_por_fase = defaultdict(list)
+
+        if (hasattr(estadisticas, 'sintomas_por_fase') and
+                estadisticas.sintomas_por_fase and
+                isinstance(estadisticas.sintomas_por_fase, dict)):
+
+            for fase, sintomas in estadisticas.sintomas_por_fase.items():
+                if not isinstance(sintomas, dict):
+                    continue
+
+                for sintoma, frecuencia in sintomas.items():
+                    sintomas_por_fase[fase].append({
+                        'nombre': sintoma,
+                        'frecuencia': frecuencia,
+                        'intensidad': self._calcular_intensidad(frecuencia)
+                    })
+
+        return dict(sintomas_por_fase)
+
+    def _calcular_intensidad(self, frecuencia):
+        """Calcula intensidad basada en frecuencia (para estilos CSS)"""
+        try:
+            freq_num = float(frecuencia.strip('%'))
+            if freq_num > 60:
+                return 'alta'
+            elif freq_num > 30:
+                return 'media'
+            return 'baja'
+        except:
+            return 'baja'
+
+    def _get_hormonal_context(self, estadisticas):
+        """Prepara contexto para análisis hormonal"""
+        tratamiento = TratamientoHormonal.objects.filter(
+            usuario=self.request.user,
+            activo=True
+        ).first()
+
+        evolucion_sintomas = []
+        if (hasattr(estadisticas, 'tratamiento_progreso_data') and
+                estadisticas.tratamiento_progreso_data and
+                isinstance(estadisticas.tratamiento_progreso_data, dict)):
+
+            for semana, datos in estadisticas.tratamiento_progreso_data.items():
+                if not isinstance(datos, dict):
+                    continue
+
+                evolucion_sintomas.append({
+                    'semana': semana,
+                    'datos': datos
+                })
+
         return {
-            'efectividad': self.object.progreso_tratamiento.get('efectividad_estimada',
-                                                                'No disponible') if self.object.progreso_tratamiento else 'No disponible',
-            'proxima_cita': self.request.user.recordatorios.filter(
-                tipo='cita_medica',
-                fecha_inicio__gte=timezone.now()
-            ).order_by('fecha_inicio').first()
+            'tipo_analisis': 'tratamiento_hormonal',
+            'tratamiento_activo': tratamiento,
+            'evolucion_sintomas': evolucion_sintomas,
+            'recomendaciones': self._generar_recomendaciones_hormonales(estadisticas),
+            'tiene_datos': bool(tratamiento)
         }
-    def _calcular_efectividad(self):
-        """Lógica personalizada para calcular efectividad"""
-        # Implementa según tus métricas
-        return "85% (Alta)"
 
-    def _obtener_proxima_cita(self):
-        """Obtiene próxima cita médica relacionada"""
-        return self.request.user.recordatorios.filter(
-            tipo='cita_medica',
-            fecha_inicio__gte=timezone.now()
-        ).order_by('fecha_inicio').first()
+    def _generar_recomendaciones_ciclo(self, estadisticas):
+        """Genera recomendaciones personalizadas para ciclo menstrual"""
+        recomendaciones = [
+            "Mantén un registro diario para mejorar la precisión del análisis."
+        ]
+
+        # Regularidad del ciclo
+        if (hasattr(estadisticas, 'variabilidad_ciclo') and
+                estadisticas.variabilidad_ciclo):
+
+            if estadisticas.variabilidad_ciclo > 5:
+                recomendaciones.append(
+                    "Tus ciclos muestran variabilidad significativa. Considera "
+                    "llevar un registro más detallado o consultar con un especialista."
+                )
+            else:
+                recomendaciones.append(
+                    "Tus ciclos son bastante regulares. ¡Sigue así!"
+                )
+
+        # Síntoma principal
+        sintoma_principal = self._obtener_sintoma_principal(estadisticas)
+        if sintoma_principal:
+            nombre, frecuencia, fase = sintoma_principal
+            recomendaciones.append(
+                f"Tu síntoma más frecuente es '{nombre}' ({frecuencia}), "
+                f"principalmente en la fase {fase}. Considera llevar un "
+                "diario más detallado de este síntoma."
+            )
+
+        return recomendaciones
+
+    def _obtener_sintoma_principal(self, estadisticas):
+        """Obtiene el síntoma más frecuente"""
+        if not (hasattr(estadisticas, 'sintomas_frecuentes') and
+                estadisticas.sintomas_frecuentes and
+                isinstance(estadisticas.sintomas_frecuentes, dict)):
+            return None
+
+        try:
+            sintoma, datos = max(
+                estadisticas.sintomas_frecuentes.items(),
+                key=lambda x: x[1].get('frecuencia', 0)
+            )
+            return (
+                sintoma,
+                datos.get('frecuencia', ''),
+                datos.get('fase_ciclo', 'varias fases')
+            )
+        except (ValueError, AttributeError):
+            return None
+
+    def _generar_recomendaciones_hormonales(self, estadisticas):
+        """Genera recomendaciones para tratamiento hormonal"""
+        recomendaciones = []
+        tratamiento = TratamientoHormonal.objects.filter(
+            usuario=self.request.user,
+            activo=True
+        ).first()
+
+        if not tratamiento:
+            return ["No tienes tratamientos activos actualmente."]
+
+        # Recomendación base
+        recomendaciones.append(
+            f"Toma tu medicación '{tratamiento.nombre_tratamiento}' "
+            "siempre a la misma hora para mantener niveles estables."
+        )
+
+        # Efectos frecuentes
+        if (hasattr(estadisticas, 'sintomas_frecuentes') and
+                estadisticas.sintomas_frecuentes and
+                isinstance(estadisticas.sintomas_frecuentes, dict)):
+
+            for sintoma, datos in estadisticas.sintomas_frecuentes.items():
+                if not isinstance(datos, dict):
+                    continue
+
+                if datos.get('frecuencia', 0) > 3:
+                    recomendaciones.append(
+                        f"El efecto '{sintoma}' aparece frecuentemente. "
+                        "Considera comentarlo en tu próxima revisión médica."
+                    )
+
+        # Progreso del tratamiento
+        if (hasattr(tratamiento, 'progreso') and
+                tratamiento.progreso is not None):
+
+            if tratamiento.progreso > 80:
+                recomendaciones.append(
+                    "Estás en la fase final de tu tratamiento. Prepara "
+                    "preguntas para tu próxima consulta médica."
+                )
+            elif tratamiento.progreso < 20:
+                recomendaciones.append(
+                    "Estás comenzando tu tratamiento. Presta atención "
+                    "a cualquier efecto inusual."
+                )
+
+        return recomendaciones
+
+
+class AnalisisPremiumDataView(LoginRequiredMixin, UserPassesTestMixin, View):
+    def get(self, request, *args, **kwargs):
+        try:
+            estadisticas = EstadisticaUsuario.objects.get(usuario=request.user)
+            data = {
+                'duraciones': self._get_duraciones_ciclos(request.user),
+                'sintomas_por_fase': estadisticas.sintomas_por_fase,
+                # ... otros datos ...
+            }
+            return JsonResponse(data)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    def _get_duraciones_ciclos(self, usuario):
+        ciclos = CicloMenstrual.objects.filter(
+            usuario=usuario,
+            fecha_fin__isnull=False
+        ).order_by('-fecha_inicio')[:6]
+
+        return [{
+            'inicio': ciclo.fecha_inicio.strftime('%Y-%m-%d'),
+            'fin': ciclo.fecha_fin.strftime('%Y-%m-%d'),
+            'duracion': ciclo.duracion
+        } for ciclo in ciclos]

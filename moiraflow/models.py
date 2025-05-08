@@ -1,12 +1,11 @@
 import random
 from collections import defaultdict
 from datetime import timedelta
-
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
-#from django_cron import CronJobBase, Schedule
 
 class Perfil(models.Model):
     class TipoPerfil(models.TextChoices):
@@ -204,10 +203,6 @@ class CicloMenstrual(models.Model):
     class Meta:
         ordering = ['-fecha_inicio']
 
-
-from django.db import models
-from django.core.exceptions import ValidationError
-from django.utils import timezone
 
 
 class RegistroDiario(models.Model):
@@ -438,9 +433,6 @@ class Recordatorio(models.Model):
 
 # Nuevo modelo para estadísticas
 class EstadisticaUsuario(models.Model):
-    class Meta:
-        verbose_name = "Estadísticas de usuario"
-        verbose_name_plural = "Estadísticas de usuarios"
 
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='estadisticas')
     ultima_actualizacion = models.DateTimeField(auto_now=True)
@@ -449,18 +441,9 @@ class EstadisticaUsuario(models.Model):
     duracion_ciclo_promedio = models.FloatField(null=True, blank=True, help_text="Días")
     variabilidad_ciclo = models.FloatField(null=True, blank=True, help_text="Desviación estándar en días")
     dias_ovulacion_probables = models.JSONField(default=list, help_text="Días del ciclo más probables para ovulación")
-
-    # Síntomas (común a ambos)
-    sintomas_frecuentes = models.JSONField(
-        default=list,
-        help_text="Lista de {'sintoma': str, 'frecuencia': int, 'fase_ciclo': str|null}"
-    )
-
-    # Hormonal
-    progreso_tratamiento = models.JSONField(
-        null=True, blank=True,
-        help_text="Para tratamientos activos: {'progreso': %, 'efectividad_estimada': %}"
-    )
+    sintomas_por_fase = models.JSONField(default=dict)
+    tratamiento_progreso_data = models.JSONField(default=list)
+    sintomas_frecuentes = models.JSONField(default=dict)
 
     # Métricas emocionales
     estado_animo_promedio = models.JSONField(
@@ -474,15 +457,6 @@ class EstadisticaUsuario(models.Model):
         help_text="Datos para calendario de ciclo (ej: {'2023-10-01': 'menstrual', ...})"
     )
 
-    tratamiento_progreso_data = models.JSONField(
-        default=list,
-        help_text="Evolución semanal de síntomas hormonales"
-    )
-
-    sintomas_por_fase = models.JSONField(
-        default=dict,
-        help_text="Frecuencia de síntomas por fase (ej: {'folicular': {'dolor_cabeza': 3}})"
-    )
 
     def actualizar_estadisticas(self):
         """Método que centraliza todos los cálculos"""
@@ -599,19 +573,12 @@ class EstadisticaUsuario(models.Model):
         else:
             self.estado_animo_promedio = {}
 
+    class Meta:
+        verbose_name = "Estadísticas de usuario"
+        verbose_name_plural = "Estadísticas de usuarios"
+
     def __str__(self):
         return f"Estadísticas de {self.usuario.username}"
-
-
-
-# class ActualizarEstadisticasCronJob(CronJobBase):
-#    schedule = Schedule(run_every_mins=1440)  # 24h
-#    code = 'app.actualizar_estadisticas'
-
-#    def do(self):
-#        for usuario in User.objects.all():
-#            stats, _ = EstadisticaUsuario.objects.get_or_create(usuario=usuario)
-#            stats.actualizar_estadisticas()
 
 
 # Nuevo modelo para seguimiento de efectos de tratamientos hormonales
@@ -635,7 +602,6 @@ class EfectoTratamiento(models.Model):
         ('aumento_peso', 'Aumento de peso'),
         ('dolor_cabeza', 'Dolor de cabeza'),
         ('sofocos', 'Sofocos'),
-        ('sequedad_vaginal', 'Sequedad vaginal'),
         ('libido_aumentada', 'Libido aumentada'),
         ('libido_disminuida', 'Libido disminuida'),
     ]
@@ -658,9 +624,6 @@ class EfectoTratamiento(models.Model):
     def __str__(self):
         return f"{self.nombre_efecto} - {self.tratamiento.nombre_tratamiento} - {self.usuario.username}"
 
-from django.db import models
-from django.contrib.auth.models import User
-from django.utils import timezone
 
 class Articulo(models.Model):
     ESTADO_CHOICES = [
