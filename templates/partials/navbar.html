@@ -8,6 +8,11 @@
             <ul class="navbar-nav ms-auto">
                 {% if user.is_authenticated %}
                 <li class="nav-item">
+                    <a class="nav-link" href="{% url 'moiraflow:index' %}">
+                        Inicio
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" href="{% url 'moiraflow:mi_perfil' %}">
                         <i class="bi bi-person-circle"></i> Mi Perfil
                     </a>
@@ -24,22 +29,38 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'moiraflow:lista_articulos' %}">Artículos</a>
                 </li>
-                {% if user.is_authenticated and user.perfil.puede_acceder_premium %}
+                {% if user.perfil.puede_acceder_premium %}
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'moiraflow:analisis_premium' %}">
                         <i class="fas fa-crown me-1"></i> Analisis
                     </a>
                 </li>
                 {% endif %}
+
+                <!-- Cambiamos el logout tradicional por el AJAX -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle"></i> {{ user.username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{% url 'moiraflow:mi_perfil' %}">Mi Perfil</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" id="logout-link">
+                            <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+                        </a></li>
+                    </ul>
+                </li>
+
+                {% else %}
+                <!-- Enlaces para usuarios no autenticados (modificados para el modal) -->
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'moiraflow:logout' %}">
-                        <i class="bi bi-box-arrow-right"></i> Salir
+                    <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#loginModal">
+                        <i class="bi bi-box-arrow-in-right"></i> Ingresar
                     </a>
                 </li>
-                {% else %}
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'moiraflow:login' %}">
-                        <i class="bi bi-box-arrow-in-right"></i> Ingresar
+                    <a class="nav-link" href="{% url 'moiraflow:registro' %}">
+                        <i class="bi bi-person-plus"></i> Registrarse
                     </a>
                 </li>
                 {% endif %}
@@ -47,3 +68,44 @@
         </div>
     </div>
 </nav>
+
+<!-- Modal de Login (añadir al final del body) -->
+<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="loginModalLabel">
+                    <i class="bi bi-box-arrow-in-right"></i> Iniciar sesión
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="loginForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Usuario</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Contraseña</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="d-grid gap-2 mb-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-right"></i> Ingresar
+                        </button>
+                    </div>
+                </form>
+                <div class="text-center">
+                    <a href="{% url 'moiraflow:registro' %}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-person-plus"></i> Crear cuenta
+                    </a>
+                    <a href="{% url 'moiraflow:password_reset' %}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-question-circle"></i> ¿Olvidaste tu contraseña?
+                    </a>
+                </div>
+                <div id="loginError" class="alert alert-danger mt-3" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+</div>

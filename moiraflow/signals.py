@@ -3,7 +3,7 @@ from django.dispatch import receiver
 from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from .models import (
+from moiraflow.models import (
     RegistroDiario, 
     CicloMenstrual, 
     TratamientoHormonal,

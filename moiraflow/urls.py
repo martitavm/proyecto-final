@@ -5,8 +5,6 @@ from rest_framework.routers import DefaultRouter
 
 from moiraflow.views import (
     PaginaPrincipalView,
-    LoginUserView,
-    LogoutUserView,
     RegistroUsuarioView,
     EditarPerfilView,
     MiPerfilView,
@@ -30,7 +28,8 @@ from moiraflow.views import (
     alimentar_mascota,
     consejo_mascota,
     MascotaPanelView,
-    finalizar_alimentacion, RegistrosDiaView, AnalisisPremiumView, SintomasViewSet, AnalisisPremiumDataView,
+    finalizar_alimentacion, RegistrosDiaView, AnalisisPremiumView, SintomasViewSet, AnalisisPremiumDataView, ajax_login,
+    ajax_logout,
 )
 
 app_name = 'moiraflow'
@@ -38,9 +37,9 @@ app_name = 'moiraflow'
 urlpatterns = [
     # URLs básicas y de autenticación
     path('', PaginaPrincipalView.as_view(), name='index'),
-    path('accounts/login/', LoginUserView.as_view(), name='login'),
-    path('logout/', LogoutUserView.as_view(), name='logout'),
     path('registro/', RegistroUsuarioView.as_view(), name='registro'),
+    path('ajax/login/', ajax_login, name='ajax_login'),
+    path('ajax/logout/', ajax_logout, name='ajax_logout'),
 
     #URLs de mailpit
     path('password_reset/', PasswordResetView.as_view(), name='password_reset'),

@@ -67,6 +67,77 @@
             });
         });
     </script>
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+// Login AJAX
+const loginForm = document.getElementById('loginForm');
+if (loginForm) {
+    loginForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        fetch("{% url 'moiraflow:ajax_login' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('#loginForm [name=csrfmiddlewaretoken]').value,
+            },
+            body: new FormData(loginForm)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Redirige a la página index usando la URL proporcionada por el servidor
+                window.location.href = data.redirect_url || "{% url 'moiraflow:index' %}";
+            } else {
+                const errorDiv = document.getElementById('loginError');
+                if (errorDiv) {
+                    errorDiv.textContent = data.errors || 'Error al iniciar sesión';
+                    errorDiv.style.display = 'block';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            const errorDiv = document.getElementById('loginError');
+            if (errorDiv) {
+                errorDiv.textContent = 'Error en la conexión';
+                errorDiv.style.display = 'block';
+            }
+        });
+    });
+}
+
+    // Logout AJAX
+const logoutLink = document.getElementById('logout-link');
+if (logoutLink) {
+    logoutLink.addEventListener('click', function(e) {
+        e.preventDefault();
+
+        fetch("{% url 'moiraflow:ajax_logout' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Redirige a la página index usando la URL proporcionada por el servidor
+                window.location.href = data.redirect_url || "{% url 'moiraflow:index' %}";
+            }
+        });
+    });
+}
+
+    // Cerrar modal después de login exitoso
+    const loginModal = document.getElementById('loginModal');
+    if (loginModal) {
+        loginModal.addEventListener('hidden.bs.modal', function () {
+            const errorDiv = document.getElementById('loginError');
+            if (errorDiv) errorDiv.style.display = 'none';
+        });
+    }
+});
+</script>
 
     {% block extra_js %}{% endblock %}
 </body>

@@ -16,28 +16,19 @@ from datetime import datetime, date, timedelta
 from django.urls import reverse_lazy, reverse
 from django.views.generic import View
 from django.utils import timezone
-from rest_framework import viewsets
-from rest_framework.response import Response
-from django.db.models import Avg, Count, Q, F
 from datetime import datetime, timedelta
-from moiraflow.serializers import SintomaSerializer
-from rest_framework.permissions import IsAuthenticated
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 
-class PaginaPrincipalView(LoginRequiredMixin, TemplateView):
+# moiraflow/views.py
+class PaginaPrincipalView(TemplateView):  # Elimina LoginRequiredMixin
     template_name = 'moiraflow/index.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['perfil'] = self.request.user.perfil
+        if self.request.user.is_authenticated:
+            context['perfil'] = self.request.user.perfil
         return context
-
-
-class LoginUserView(LoginView):
-    template_name = 'registration/login.html'
-
-    def get_success_url(self):
-        return reverse_lazy('moiraflow:index')
-
 
 class RegistroUsuarioView(CreateView):
     template_name = 'moiraflow/registro.html'
@@ -62,16 +53,37 @@ class RegistroUsuarioView(CreateView):
         messages.error(self.request, 'Por favor corrige los errores en el formulario')
         return super().form_invalid(form)
 
+@require_POST
+@csrf_exempt
+def ajax_login(request):
+    from django.contrib.auth import authenticate, login
+    username = request.POST.get('username')
+    password = request.POST.get('password')
+    user = authenticate(request, username=username, password=password)
 
-class LogoutUserView(TemplateView):
-    template_name = 'registration/logged_out.html'
+    if user is not None:
+        login(request, user)
+        return JsonResponse({
+            'success': True,
+            'redirect_url': reverse('moiraflow:index')  # Añade esta línea
+        })
+    else:
+        return JsonResponse({
+            'success': False,
+            'errors': 'Usuario o contraseña incorrectos'
+        })
 
-    def dispatch(self, request, *args, **kwargs):
-        if request.user.is_authenticated:
-            logout(request)
-            messages.info(request, 'Sesión cerrada correctamente.')
-        return super().dispatch(request, *args, **kwargs)
-
+@require_POST
+@csrf_exempt
+def ajax_logout(request):
+    from django.contrib.auth import logout
+    if request.user.is_authenticated:
+        logout(request)
+        return JsonResponse({
+            'success': True,
+            'redirect_url': reverse('moiraflow:index')
+        })
+    return JsonResponse({'success': False})
 
 class EditarPerfilView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "moiraflow/editar_perfil.html"
