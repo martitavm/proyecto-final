@@ -36,15 +36,23 @@ class RegistroUsuarioView(CreateView):
     success_url = reverse_lazy('moiraflow:index')
 
     def form_valid(self, form):
-        # Guardamos el usuario primero
-        user = form.save()
+        # 1. Forzar cierre de sesión previa
+        if self.request.user.is_authenticated:
+            from django.contrib.auth import logout
+            logout(self.request)
+            # Limpiar cookies de sesión
+            response = redirect('moiraflow:registro')
+            response.delete_cookie('sessionid')
+            return response
 
-        # Autenticamos al usuario automáticamente
-        login(self.request, user)
-
-        # Mostramos mensaje de éxito
-        messages.success(self.request, '¡Registro completado con éxito! Bienvenid@ a MoiraFlow')
-
+        # 2. Crear usuario y perfil
+        try:
+            user = form.save()  # Llama al save() modificado del formulario
+            login(self.request, user)
+            messages.success(self.request, '¡Registro exitoso!')
+            return redirect(self.success_url)
+        except IntegrityError:
+            messages.error(self.request, 'Error al crear el perfil. Por favor intente nuevamente.')
         # Redirigimos a la página principal
         return redirect(self.success_url)
 
@@ -766,7 +774,8 @@ class SintomasViewSet(viewsets.ViewSet):
 
 # views.py
 from collections import defaultdict
-from django.db import transaction
+from django.db import transaction, IntegrityError
+
 
 class AnalisisPremiumView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
     template_name = 'moiraflow/analisis_premium.html'
