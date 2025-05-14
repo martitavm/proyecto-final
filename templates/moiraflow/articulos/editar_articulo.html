@@ -4,92 +4,233 @@
 {% block title %}Editar {{ form.instance.titulo }} - MoiraFlow{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h1 class="mb-4">Editar Artículo</h1>
+<div class="container mt-5">
+    <!-- Cabecera principal con gradiente -->
+    <div class="card mb-4 border-0 shadow-lg overflow-hidden">
+        <div class="card-header py-4 text-white" style="background: linear-gradient(135deg, #e4899c 0%, #c23c54 100%);">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="mb-0 fw-bold"><i class="bi bi-pencil-square me-2"></i>Editar Artículo</h1>
+            </div>
+        </div>
+
+        <!-- Navegación de migas de pan -->
+        <div class="card-body py-3 bg-light">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'moiraflow:lista_articulos' %}" style="color: #c23c54; text-decoration: none;">
+                            <i class="bi bi-journal-richtext me-1"></i>Artículos
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'moiraflow:detalle_articulo' form.instance.pk %}" style="color: #c23c54; text-decoration: none;">
+                            {{ form.instance.titulo|truncatewords:5 }}
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">Editar</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
 
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
 
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="mb-3">
-                    <label for="{{ form.titulo.id_for_label }}" class="form-label">Título</label>
-                    {{ form.titulo }}
+        <!-- Información principal -->
+        <div class="card mb-4 border-0 shadow-sm hover-card">
+            <div class="card-header py-3" style="background-color: rgba(194, 60, 84, 0.1);">
+                <h5 class="mb-0 fw-bold" style="color: #c23c54;">
+                    <i class="bi bi-info-circle me-2"></i>Información Principal
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="mb-4">
+                    <label for="{{ form.titulo.id_for_label }}" class="form-label fw-bold text-secondary">
+                        <i class="bi bi-type me-1"></i>Título
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text" style="background-color: rgba(194, 60, 84, 0.1); border-color: rgba(194, 60, 84, 0.2);">
+                            <i class="bi bi-fonts" style="color: #c23c54;"></i>
+                        </span>
+                        {{ form.titulo }}
+                    </div>
                     {% if form.titulo.errors %}
-                    <div class="invalid-feedback d-block">
-                        {{ form.titulo.errors.0 }}
+                    <div class="invalid-feedback d-block mt-1">
+                        <i class="bi bi-exclamation-triangle me-1"></i>{{ form.titulo.errors.0 }}
                     </div>
                     {% endif %}
                 </div>
 
-                <div class="mb-3">
-                    <label for="{{ form.contenido.id_for_label }}" class="form-label">Contenido</label>
+                <div class="mb-4">
+                    <label for="{{ form.contenido.id_for_label }}" class="form-label fw-bold text-secondary">
+                        <i class="bi bi-file-text me-1"></i>Contenido
+                    </label>
                     {{ form.contenido }}
                     {% if form.contenido.errors %}
-                    <div class="invalid-feedback d-block">
-                        {{ form.contenido.errors.0 }}
+                    <div class="invalid-feedback d-block mt-1">
+                        <i class="bi bi-exclamation-triangle me-1"></i>{{ form.contenido.errors.0 }}
                     </div>
                     {% endif %}
                 </div>
 
                 <div class="mb-3">
-                    <label for="{{ form.imagen_portada.id_for_label }}" class="form-label">Imagen de portada</label>
+                    <label for="{{ form.imagen_portada.id_for_label }}" class="form-label fw-bold text-secondary">
+                        <i class="bi bi-image me-1"></i>Imagen de portada
+                    </label>
                     {% if form.instance.imagen_portada %}
-                    <div class="mb-2">
-                        <img src="{{ form.instance.imagen_portada.url }}" class="img-thumbnail" style="max-height: 150px;" alt="Imagen actual">
-                        <div class="form-check mt-2">
-                            <input class="form-check-input" type="checkbox" name="imagen_portada-clear" id="imagen_portada-clear">
-                            <label class="form-check-label" for="imagen_portada-clear">Eliminar imagen actual</label>
+                    <div class="mb-3 p-3 border rounded" style="border-color: rgba(194, 60, 84, 0.2) !important; background-color: rgba(194, 60, 84, 0.02);">
+                        <div class="d-flex align-items-center">
+                            <img src="{{ form.instance.imagen_portada.url }}" class="img-thumbnail me-3"
+                                 style="max-height: 120px; border-color: rgba(194, 60, 84, 0.2);" alt="Imagen actual">
+                            <div>
+                                <p class="mb-1 text-muted small">Imagen actual</p>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="imagen_portada-clear" id="imagen_portada-clear">
+                                    <label class="form-check-label small" for="imagen_portada-clear">
+                                        <i class="bi bi-trash me-1 text-danger"></i>Eliminar imagen
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     {% endif %}
-                    {{ form.imagen_portada }}
+                    <div class="input-group">
+                        <span class="input-group-text" style="background-color: rgba(194, 60, 84, 0.1); border-color: rgba(194, 60, 84, 0.2);">
+                            <i class="bi bi-upload" style="color: #c23c54;"></i>
+                        </span>
+                        {{ form.imagen_portada }}
+                    </div>
+                    <div class="form-text">Sube una nueva imagen para reemplazar la actual</div>
                     {% if form.imagen_portada.errors %}
-                    <div class="invalid-feedback d-block">
-                        {{ form.imagen_portada.errors.0 }}
+                    <div class="invalid-feedback d-block mt-1">
+                        <i class="bi bi-exclamation-triangle me-1"></i>{{ form.imagen_portada.errors.0 }}
                     </div>
                     {% endif %}
                 </div>
             </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-body">
+        <!-- Configuración del artículo -->
+        <div class="card mb-4 border-0 shadow-sm hover-card">
+            <div class="card-header py-3" style="background-color: rgba(194, 60, 84, 0.1);">
+                <h5 class="mb-0 fw-bold" style="color: #c23c54;">
+                    <i class="bi bi-gear me-2"></i>Configuración
+                </h5>
+            </div>
+            <div class="card-body p-4">
                 <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="{{ form.categoria.id_for_label }}" class="form-label">Categoría</label>
-                        {{ form.categoria }}
+                    <div class="col-md-6 mb-4">
+                        <label for="{{ form.categoria.id_for_label }}" class="form-label fw-bold text-secondary">
+                            <i class="bi bi-tag me-1"></i>Categoría
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background-color: rgba(194, 60, 84, 0.1); border-color: rgba(194, 60, 84, 0.2);">
+                                <i class="bi bi-bookmark" style="color: #c23c54;"></i>
+                            </span>
+                            {{ form.categoria }}
+                        </div>
                         {% if form.categoria.errors %}
-                        <div class="invalid-feedback d-block">
-                            {{ form.categoria.errors.0 }}
+                        <div class="invalid-feedback d-block mt-1">
+                            <i class="bi bi-exclamation-triangle me-1"></i>{{ form.categoria.errors.0 }}
                         </div>
                         {% endif %}
                     </div>
 
-                    <div class="col-md-6 mb-3">
-                        <label for="{{ form.estado.id_for_label }}" class="form-label">Estado</label>
-                        {{ form.estado }}
+                    <div class="col-md-6 mb-4">
+                        <label for="{{ form.estado.id_for_label }}" class="form-label fw-bold text-secondary">
+                            <i class="bi bi-flag me-1"></i>Estado
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background-color: rgba(194, 60, 84, 0.1); border-color: rgba(194, 60, 84, 0.2);">
+                                <i class="bi bi-toggles" style="color: #c23c54;"></i>
+                            </span>
+                            {{ form.estado }}
+                        </div>
                         {% if form.estado.errors %}
-                        <div class="invalid-feedback d-block">
-                            {{ form.estado.errors.0 }}
+                        <div class="invalid-feedback d-block mt-1">
+                            <i class="bi bi-exclamation-triangle me-1"></i>{{ form.estado.errors.0 }}
                         </div>
                         {% endif %}
                     </div>
                 </div>
 
-                <div class="form-check form-switch mb-3">
+                <div class="form-check form-switch mb-3 p-3 rounded" style="background-color: rgba(194, 60, 84, 0.05);">
                     {{ form.destacado }}
-                    <label class="form-check-label" for="{{ form.destacado.id_for_label }}">Destacado</label>
+                    <label class="form-check-label fw-bold" for="{{ form.destacado.id_for_label }}" style="color: #c23c54;">
+                        <i class="bi bi-star me-1"></i>Artículo destacado
+                    </label>
+                    <div class="form-text">Los artículos destacados aparecen con una etiqueta especial y puede recibir una posición privilegiada</div>
                 </div>
             </div>
         </div>
 
-        <div class="d-flex justify-content-end">
-            <a href="{% url 'moiraflow:detalle_articulo' form.instance.pk %}" class="btn btn-outline-secondary me-2">Cancelar</a>
-            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+        <!-- Botones de acción -->
+        <div class="d-flex justify-content-between">
+            <a href="{% url 'moiraflow:detalle_articulo' form.instance.pk %}" class="btn"
+               style="background-color: rgba(194, 60, 84, 0.1); color: #c23c54;">
+                <i class="bi bi-x-circle me-1"></i> Cancelar
+            </a>
+            <button type="submit" class="btn shadow-sm" style="background-color: #c23c54; color: white;">
+                <i class="bi bi-check-circle me-1"></i> Guardar Cambios
+            </button>
         </div>
     </form>
 </div>
+
+<style>
+    /* Efectos para las tarjetas */
+    .hover-card {
+        transition: all 0.3s ease;
+    }
+
+    .hover-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 15px rgba(194, 60, 84, 0.1) !important;
+    }
+
+    /* Personalizar los inputs del formulario */
+    .form-control, .form-select {
+        border-color: rgba(194, 60, 84, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: rgba(194, 60, 84, 0.5);
+        box-shadow: 0 0 0 0.25rem rgba(194, 60, 84, 0.15);
+    }
+
+    /* Personalizar checkbox y switch */
+    .form-check-input:checked {
+        background-color: #c23c54;
+        border-color: #c23c54;
+    }
+
+    .form-check-input:focus {
+        border-color: rgba(194, 60, 84, 0.5);
+        box-shadow: 0 0 0 0.25rem rgba(194, 60, 84, 0.15);
+    }
+
+    /* Efectos para los botones */
+    .btn {
+        transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Estilos para el editor CKEditor */
+    .cke_chrome {
+        border-color: rgba(194, 60, 84, 0.2) !important;
+        box-shadow: none !important;
+    }
+
+    .cke_top {
+        background: rgba(194, 60, 84, 0.05) !important;
+        border-bottom-color: rgba(194, 60, 84, 0.2) !important;
+    }
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -105,6 +246,15 @@
             { name: 'document', items: ['Source'] }
         ],
         height: 300
+    });
+
+    // Personalizar la apariencia del input de archivo
+    document.addEventListener('DOMContentLoaded', function() {
+        // Personalizar el botón de carga de archivo
+        const fileInput = document.getElementById('{{ form.imagen_portada.id_for_label }}');
+        if (fileInput) {
+            fileInput.classList.add('form-control');
+        }
     });
 </script>
 {% endblock %}

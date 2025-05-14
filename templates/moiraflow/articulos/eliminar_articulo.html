@@ -4,23 +4,134 @@
 {% block title %}Eliminar Artículo - MoiraFlow{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="card border-danger">
-        <div class="card-header bg-danger text-white">
-            <h2 class="mb-0">Eliminar Artículo</h2>
-        </div>
-        <div class="card-body">
-            <p>¿Estás seguro que deseas eliminar el artículo <strong>"{{ object.titulo }}"</strong>?</p>
-            <p class="text-danger">Esta acción no se puede deshacer y se perderá toda la información asociada.</p>
+<div class="container mt-5">
+    <!-- Navegación de migas de pan mejorada -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb p-3 bg-light shadow-sm rounded" style="border-left: 4px solid #c23c54;">
+            <li class="breadcrumb-item">
+                <a href="{% url 'moiraflow:lista_articulos' %}" style="color: #c23c54; text-decoration: none;">
+                    <i class="bi bi-journal-richtext me-1"></i>Artículos
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'moiraflow:detalle_articulo' object.pk %}" style="color: #c23c54; text-decoration: none;">
+                    {{ object.titulo|truncatewords:5 }}
+                </a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Eliminar</li>
+        </ol>
+    </nav>
 
-            <form method="post">
-                {% csrf_token %}
-                <div class="d-flex justify-content-end">
-                    <a href="{% url 'moiraflow:detalle_articulo' object.pk %}" class="btn btn-outline-secondary me-2">Cancelar</a>
-                    <button type="submit" class="btn btn-danger">Confirmar Eliminación</button>
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Tarjeta de confirmación -->
+            <div class="card border-0 shadow-lg overflow-hidden">
+                <div class="card-header py-4 text-white" style="background: linear-gradient(135deg, #e4899c 0%, #c23c54 100%);">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 1.5rem;"></i>
+                        <h2 class="mb-0 fw-bold">Eliminar Artículo</h2>
+                    </div>
                 </div>
-            </form>
+
+                <div class="card-body p-4">
+                    <!-- Información del artículo -->
+                    <div class="p-4 mb-4 rounded" style="background-color: rgba(194, 60, 84, 0.05); border-left: 4px solid #c23c54;">
+                        <h4 class="fw-bold mb-3">{{ object.titulo }}</h4>
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="me-3">
+                                {% if object.autor.perfil.imagen_perfil %}
+                                    <img src="{{ object.autor.perfil.imagen_perfil.url }}" class="rounded-circle"
+                                         style="width: 40px; height: 40px; object-fit: cover; border: 2px solid rgba(228, 137, 156, 0.5);"
+                                         alt="{{ object.autor.username }}">
+                                {% else %}
+                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center"
+                                         style="width: 40px; height: 40px; border: 2px solid rgba(228, 137, 156, 0.5);">
+                                        <i class="bi bi-person" style="color: #c23c54;"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <div class="text-muted small">
+                                    Por <strong>{{ object.autor.username }}</strong>
+                                </div>
+                                <div class="text-muted small">
+                                    <i class="bi bi-calendar3 me-1"></i>{{ object.fecha_publicacion|date:"d M Y" }}
+                                </div>
+                            </div>
+                            <div class="ms-auto">
+                                <span class="badge" style="background-color: #c23c54;">
+                                    {{ object.get_categoria_display }}
+                                </span>
+                            </div>
+                        </div>
+
+                        {% if object.imagen_portada %}
+                        <div class="mb-3">
+                            <img src="{{ object.imagen_portada.url }}" class="img-fluid rounded"
+                                 style="max-height: 150px; object-fit: cover;" alt="{{ object.titulo }}">
+                        </div>
+                        {% endif %}
+
+                        <p class="text-muted mb-0">{{ object.contenido|striptags|truncatewords:30 }}</p>
+                    </div>
+
+                    <!-- Mensaje de advertencia -->
+                    <div class="alert border-0 shadow-sm mb-4"
+                         style="background-color: rgba(228, 137, 156, 0.1); border-left: 4px solid #e4899c;">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <i class="bi bi-exclamation-circle" style="color: #c23c54; font-size: 1.8rem;"></i>
+                            </div>
+                            <div>
+                                <h5 class="fw-bold" style="color: #c23c54;">¿Estás seguro que deseas eliminar este artículo?</h5>
+                                <p>Esta acción <strong>no se puede deshacer</strong> y se perderá toda la información asociada al artículo, incluyendo:</p>
+                                <ul class="mb-0">
+                                    <li>El contenido completo del artículo</li>
+                                    <li>La imagen de portada</li>
+                                    <li>Metadatos y configuraciones</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Formulario de confirmación -->
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'moiraflow:detalle_articulo' object.pk %}" class="btn"
+                               style="background-color: rgba(194, 60, 84, 0.1); color: #c23c54;">
+                                <i class="bi bi-arrow-left me-1"></i> Volver al artículo
+                            </a>
+                            <button type="submit" class="btn shadow-sm" style="background-color: #c23c54; color: white;">
+                                <i class="bi bi-trash me-1"></i> Confirmar Eliminación
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+    /* Efectos para botones */
+    .btn {
+        transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Animación para la alerta de advertencia */
+    .alert {
+        transition: all 0.3s ease;
+    }
+
+    .alert:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(194, 60, 84, 0.15) !important;
+    }
+</style>
 {% endblock %}
