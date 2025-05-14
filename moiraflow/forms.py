@@ -110,8 +110,16 @@ class RegistroCompletoForm(UserCreationForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
+
+        # Verificar si el usuario ya existe (por si acaso)
+        if User.objects.filter(username=user.username).exists():
+            raise forms.ValidationError("Este usuario ya existe")
         if commit:
             user.save()
+
+            # 2. Eliminar perfil existente si hay alguno (protección contra inconsistencias)
+            if hasattr(user, 'perfil'):
+                user.perfil.delete()
 
             perfil_data = {
                 'usuario': user,

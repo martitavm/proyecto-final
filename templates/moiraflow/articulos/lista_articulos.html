@@ -4,101 +4,226 @@
 {% block title %}Artículos - MoiraFlow{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Artículos</h1>
-        {% if request.user.is_authenticated and request.user.perfil and request.user.perfil.tipo_perfil in 'autor,administracion' %}
-        <a href="{% url 'moiraflow:crear_articulo' %}" class="btn btn-success">
-            <i class="bi bi-plus-circle"></i> Crear Artículo
-        </a>
-        {% endif %}
-    </div>
+<div class="container mt-5">
+    <!-- Cabecera principal con gradiente -->
+    <div class="card mb-4 border-0 shadow-lg overflow-hidden">
+        <div class="card-header py-4 text-white" style="background: linear-gradient(135deg, #e4899c 0%, #c23c54 100%);">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="mb-0 fw-bold"><i class="bi bi-journal-richtext me-2"></i>Artículos</h1>
+                {% if request.user.is_authenticated and request.user.perfil and request.user.perfil.tipo_perfil in 'autor,administracion' %}
+                <a href="{% url 'moiraflow:crear_articulo' %}" class="btn btn-light px-4 py-2 shadow-sm">
+                    <i class="bi bi-plus-circle me-1"></i> Crear Artículo
+                </a>
+                {% endif %}
+            </div>
+        </div>
 
-    <!-- Filtros -->
-    <div class="card mb-4">
-        <div class="card-body">
+        <!-- Filtros con estilo mejorado -->
+        <div class="card-body p-4 bg-light">
             <form method="get" class="row g-3">
                 <div class="col-md-5">
-                    <label for="categoria" class="form-label">Categoría</label>
-                    <select name="categoria" id="categoria" class="form-select">
-                        <option value="">Todas las categorías</option>
-                        {% for value, label in categorias %}
-                            <option value="{{ value }}" {% if request.GET.categoria == value %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
+                    <label for="categoria" class="form-label fw-bold text-secondary">
+                        <i class="bi bi-tag me-1"></i> Categoría
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text" style="background-color: rgba(194, 60, 84, 0.1); border-color: rgba(194, 60, 84, 0.2);">
+                            <i class="bi bi-funnel" style="color: #c23c54;"></i>
+                        </span>
+                        <select name="categoria" id="categoria" class="form-select" style="border-color: rgba(194, 60, 84, 0.2);">
+                            <option value="">Todas las categorías</option>
+                            {% for value, label in categorias %}
+                                <option value="{{ value }}" {% if request.GET.categoria == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
                 <div class="col-md-5">
-                    <label for="autor" class="form-label">Autor</label>
-                    <select name="autor" id="autor" class="form-select">
-                        <option value="">Todos los autores</option>
-                        {% for autor in autores_disponibles %}
-                            <option value="{{ autor.username }}"
-                                {% if request.GET.autor == autor.username %}selected{% endif %}>
-                                {{ autor.username }}
-                            </option>
-                        {% endfor %}
-                    </select>
+                    <label for="autor" class="form-label fw-bold text-secondary">
+                        <i class="bi bi-person me-1"></i> Autor
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text" style="background-color: rgba(194, 60, 84, 0.1); border-color: rgba(194, 60, 84, 0.2);">
+                            <i class="bi bi-people" style="color: #c23c54;"></i>
+                        </span>
+                        <select name="autor" id="autor" class="form-select" style="border-color: rgba(194, 60, 84, 0.2);">
+                            <option value="">Todos los autores</option>
+                            {% for autor in autores_disponibles %}
+                                <option value="{{ autor.username }}"
+                                    {% if request.GET.autor == autor.username %}selected{% endif %}>
+                                    {{ autor.username }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                    <button type="submit" class="btn w-100 py-2" style="background-color: #c23c54; color: white;">
+                        <i class="bi bi-search me-1"></i> Filtrar
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Lista de artículos -->
-    <div class="row">
+    <div class="row g-4">
         {% for articulo in articulos %}
         <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                {% if articulo.imagen_portada %}
-                <img src="{{ articulo.imagen_portada.url }}" class="card-img-top" alt="{{ articulo.titulo }}">
-                {% endif %}
-                <div class="card-body">
-                    <h5 class="card-title">{{ articulo.titulo }}</h5>
-                    <p class="text-muted small">
-                        Por {{ articulo.autor.username }} |
-                        {{ articulo.fecha_publicacion|date:"d M Y" }} |
+            <div class="card h-100 border-0 shadow-sm hover-card">
+                <div class="position-relative">
+                    {% if articulo.imagen_portada %}
+                    <img src="{{ articulo.imagen_portada.url }}" class="card-img-top article-image" alt="{{ articulo.titulo }}"
+                        style="height: 220px; object-fit: cover;">
+                    {% else %}
+                    <div class="placeholder-image bg-light d-flex align-items-center justify-content-center"
+                        style="height: 220px;">
+                        <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                    </div>
+                    {% endif %}
+
+                    <!-- Categoría como badge flotante -->
+                    <span class="position-absolute top-0 end-0 m-3 badge px-3 py-2"
+                          style="background-color: rgba(194, 60, 84, 0.85);">
                         {{ articulo.get_categoria_display }}
-                        {% if articulo.destacado %}<span class="badge bg-warning ms-2">Destacado</span>{% endif %}
-                    </p>
-                    <p class="card-text">{{ articulo.contenido|truncatewords:30|striptags }}</p>
-                    <a href="{% url 'moiraflow:detalle_articulo' articulo.pk %}" class="btn btn-outline-primary">Leer más</a>
+                    </span>
+                </div>
+
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title fw-bold" style="color: #333;">{{ articulo.titulo }}</h5>
+                        {% if articulo.destacado %}
+                        <span class="badge bg-warning ms-2">
+                            <i class="bi bi-star-fill me-1"></i> Destacado
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3 text-muted d-flex align-items-center">
+                        <div class="author-avatar me-2 rounded-circle bg-light d-flex align-items-center justify-content-center"
+                             style="width: 30px; height: 30px; border: 2px solid rgba(228, 137, 156, 0.5);">
+                            <i class="bi bi-person" style="color: #c23c54;"></i>
+                        </div>
+                        <small>
+                            {{ articulo.autor.username }} |
+                            <i class="bi bi-calendar3 ms-1 me-1"></i>{{ articulo.fecha_publicacion|date:"d M Y" }}
+                        </small>
+                    </div>
+
+                    <p class="card-text text-muted">{{ articulo.contenido|truncatewords:25|striptags }}</p>
+
+                    <a href="{% url 'moiraflow:detalle_articulo' articulo.pk %}"
+                       class="btn mt-2 position-relative overflow-hidden read-more-btn"
+                       style="border-color: #c23c54; color: #c23c54;">
+                        Leer más <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
                 </div>
             </div>
         </div>
         {% empty %}
         <div class="col-12">
-            <div class="alert alert-info">No se encontraron artículos.</div>
+            <div class="alert p-4 text-center border-0 shadow-sm"
+                 style="background-color: rgba(228, 137, 156, 0.1); border-left: 4px solid #c23c54;">
+                <i class="bi bi-info-circle me-2" style="color: #c23c54; font-size: 1.5rem;"></i>
+                <span style="color: #666;">No se encontraron artículos con los filtros seleccionados.</span>
+                <div class="mt-3">
+                    <a href="{% url 'moiraflow:lista_articulos' %}" class="btn btn-sm"
+                       style="background-color: rgba(194, 60, 84, 0.1); color: #c23c54;">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Limpiar filtros
+                    </a>
+                </div>
+            </div>
         </div>
         {% endfor %}
     </div>
 
-    <!-- Paginación -->
+    <!-- Paginación mejorada -->
     {% if is_paginated %}
-    <nav aria-label="Page navigation">
-        <ul class="pagination justify-content-center mt-4">
+    <nav aria-label="Page navigation" class="my-5">
+        <ul class="pagination justify-content-center">
             {% if page_obj.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.categoria %}&categoria={{ request.GET.categoria }}{% endif %}{% if request.GET.autor %}&autor={{ request.GET.autor }}{% endif %}">Anterior</a>
+                <a class="page-link"
+                   href="?page={{ page_obj.previous_page_number }}{% if request.GET.categoria %}&categoria={{ request.GET.categoria }}{% endif %}{% if request.GET.autor %}&autor={{ request.GET.autor }}{% endif %}"
+                   style="color: #c23c54; border-color: rgba(194, 60, 84, 0.2);">
+                    <i class="bi bi-chevron-left"></i> Anterior
+                </a>
             </li>
             {% endif %}
 
             {% for num in page_obj.paginator.page_range %}
             {% if page_obj.number == num %}
-            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+            <li class="page-item active">
+                <span class="page-link" style="background-color: #c23c54; border-color: #c23c54;">{{ num }}</span>
+            </li>
             {% else %}
-            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.categoria %}&categoria={{ request.GET.categoria }}{% endif %}{% if request.GET.autor %}&autor={{ request.GET.autor }}{% endif %}">{{ num }}</a></li>
+            <li class="page-item">
+                <a class="page-link"
+                   href="?page={{ num }}{% if request.GET.categoria %}&categoria={{ request.GET.categoria }}{% endif %}{% if request.GET.autor %}&autor={{ request.GET.autor }}{% endif %}"
+                   style="color: #c23c54; border-color: rgba(194, 60, 84, 0.2);">{{ num }}</a>
+            </li>
             {% endif %}
             {% endfor %}
 
             {% if page_obj.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.categoria %}&categoria={{ request.GET.categoria }}{% endif %}{% if request.GET.autor %}&autor={{ request.GET.autor }}{% endif %}">Siguiente</a>
+                <a class="page-link"
+                   href="?page={{ page_obj.next_page_number }}{% if request.GET.categoria %}&categoria={{ request.GET.categoria }}{% endif %}{% if request.GET.autor %}&autor={{ request.GET.autor }}{% endif %}"
+                   style="color: #c23c54; border-color: rgba(194, 60, 84, 0.2);">
+                    Siguiente <i class="bi bi-chevron-right"></i>
+                </a>
             </li>
             {% endif %}
         </ul>
     </nav>
     {% endif %}
 </div>
+
+<style>
+    /* Efectos para las tarjetas de artículos */
+    .hover-card {
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(194, 60, 84, 0.15) !important;
+    }
+
+    /* Efecto para el botón de leer más */
+    .read-more-btn {
+        transition: all 0.3s ease;
+        background-color: transparent;
+        z-index: 1;
+    }
+
+    .read-more-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 0%;
+        height: 100%;
+        background-color: #c23c54;
+        transition: all 0.3s ease;
+        z-index: -1;
+    }
+
+    .read-more-btn:hover {
+        color: white !important;
+    }
+
+    .read-more-btn:hover::before {
+        width: 100%;
+    }
+
+    /* Animación para la imagen al hacer hover */
+    .article-image {
+        transition: all 0.5s ease;
+    }
+
+    .hover-card:hover .article-image {
+        transform: scale(1.05);
+    }
+</style>
 {% endblock %}

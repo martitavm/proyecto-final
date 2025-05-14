@@ -1,45 +1,113 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+{% load static %}
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
     <div class="container">
-        <a class="navbar-brand" href="{% url 'moiraflow:index' %}">Moiraflow</a>
+        <!-- Logo redondo y nombre de la marca -->
+        <a class="navbar-brand d-flex align-items-center" href="{% url 'moiraflow:index' %}">
+            <div class="rounded-circle me-2" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                <img src="{% static 'images/moiraflowicon.png' %}" width="50rem">
+            </div>
+            <span class="fw-bold" style="color: #c23c54;">MoiraFlow</span>
+        </a>
+
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
+
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
+            <ul class="navbar-nav ms-auto align-items-lg-center">
                 {% if user.is_authenticated %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'moiraflow:mi_perfil' %}">
-                        <i class="bi bi-person-circle"></i> Mi Perfil
+                <!-- Menú principal reorganizado -->
+                <li class="nav-item mx-1">
+                    <a class="nav-link position-relative px-3 py-2" href="{% url 'moiraflow:index' %}" style="color: #333;">
+                        <i class="far fa-calendar-alt me-1" style="color: #e4899c;"></i> Inicio
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'moiraflow:calendario_circular' %}">Calendario Circular</a>
+                <li class="nav-item mx-1">
+                    <a class="nav-link position-relative px-3 py-2" href="{% url 'moiraflow:calendario_circular' %}" style="color: #333;">
+                        <i class="far fa-calendar-alt me-1" style="color: #e4899c;"></i> Circular
+                    </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'moiraflow:calendario' %}">Calendario Mensual</a>
+                <li class="nav-item mx-1">
+                    <a class="nav-link position-relative px-3 py-2" href="{% url 'moiraflow:calendario' %}" style="color: #333;">
+                        <i class="far fa-calendar-alt me-1" style="color: #e4899c;"></i> Mensual
+                    </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'moiraflow:mascota_panel' %}">Mascota</a>
+                <li class="nav-item mx-1">
+                    <a class="nav-link position-relative px-3 py-2" href="{% url 'moiraflow:mascota_panel' %}" style="color: #333;">
+                        <i class="fas fa-paw me-1" style="color: #e4899c;"></i> Mascota
+                    </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'moiraflow:lista_articulos' %}">Artículos</a>
+                <li class="nav-item mx-1">
+                    <a class="nav-link position-relative px-3 py-2" href="{% url 'moiraflow:lista_articulos' %}" style="color: #333;">
+                        <i class="fas fa-book-open me-1" style="color: #e4899c;"></i> Artículos
+                    </a>
                 </li>
-                {% if user.is_authenticated and user.perfil.puede_acceder_premium %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'moiraflow:analisis_premium' %}">
-                        <i class="fas fa-crown me-1"></i> Analisis
+
+                {% if user.perfil.puede_acceder_premium %}
+                <li class="nav-item mx-1">
+                    <a class="nav-link position-relative px-3 py-2" href="{% url 'moiraflow:analisis_premium' %}" style="color: #333;">
+                        <i class="fas fa-crown me-1" style="color: #ffd700;"></i> Premium
                     </a>
                 </li>
                 {% endif %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'moiraflow:logout' %}">
-                        <i class="bi bi-box-arrow-right"></i> Salir
+
+                <!-- Menú desplegable del usuario con imagen de perfil -->
+                <li class="nav-item dropdown ms-lg-3">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                        <div class="rounded-circle me-2 overflow-hidden" style="width: 36px; height: 36px; border: 2px solid #e4899c;">
+                            {% if user.perfil.foto_perfil %}
+                                <img src="{{ user.perfil.foto_perfil.url }}" alt="Foto de perfil" class="img-fluid h-100 w-100" style="object-fit: cover;">
+                            {% else %}
+                                <div class="h-100 w-100 d-flex align-items-center justify-content-center" style="background-color: #f0f0f0;">
+                                    <i class="fas fa-user" style="color: #c23c54;"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <span class="d-none d-lg-inline" style="color: #333;">{{ user.username }}</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end border-0 shadow" style="min-width: 200px;">
+                        <li>
+                            <div class="d-flex align-items-center px-3 py-2">
+                                <div class="rounded-circle overflow-hidden me-2" style="width: 40px; height: 40px; border: 2px solid #e4899c;">
+                                    {% if user.perfil.foto_perfil %}
+                                        <img src="{{ user.perfil.foto_perfil.url }}" alt="Foto de perfil" class="img-fluid h-100 w-100" style="object-fit: cover;">
+                                    {% else %}
+                                        <div class="h-100 w-100 d-flex align-items-center justify-content-center" style="background-color: #f0f0f0;">
+                                            <i class="fas fa-user" style="color: #c23c54;"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <h6 class="mb-0" style="color: #c23c54;">{{ user.username }}</h6>
+                                    <small class="text-muted">{{ user.email }}</small>
+                                </div>
+                            </div>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <a class="dropdown-item py-2" href="{% url 'moiraflow:mi_perfil' %}">
+                                <i class="fas fa-user-circle me-2" style="color: #e4899c;"></i> Mi Perfil
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <a class="dropdown-item py-2" href="#" id="logout-link">
+                                <i class="fas fa-sign-out-alt me-2" style="color: #e4899c;"></i> Cerrar sesión
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                {% else %}
+                <!-- Enlaces para usuarios no autenticados -->
+                <li class="nav-item ms-lg-2">
+                    <a class="btn btn-outline-primary me-2" href="#" data-bs-toggle="modal" data-bs-target="#loginModal" style="border-color: #c23c54; color: #c23c54;">
+                        <i class="fas fa-sign-in-alt me-1"></i> Ingresar
                     </a>
                 </li>
-                {% else %}
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'moiraflow:login' %}">
-                        <i class="bi bi-box-arrow-in-right"></i> Ingresar
+                    <a class="btn text-white" href="{% url 'moiraflow:registro' %}" style="background-color: #c23c54;">
+                        <i class="fas fa-user-plus me-1"></i> Registrarse
                     </a>
                 </li>
                 {% endif %}
@@ -47,3 +115,86 @@
         </div>
     </div>
 </nav>
+
+<!-- Modal de Login (mejorado) -->
+<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #e4899c 0%, #c23c54 100%); border-bottom: none;">
+                <h5 class="modal-title" id="loginModalLabel">
+                    <i class="fas fa-sign-in-alt me-2"></i> Iniciar sesión
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="loginForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Usuario</label>
+                        <input type="text" class="form-control" id="username" name="username" required style="border-color: #e4899c;">
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Contraseña</label>
+                        <input type="password" class="form-control" id="password" name="password" required style="border-color: #e4899c;">
+                    </div>
+                    <div class="d-grid gap-2 mb-3">
+                        <button type="submit" class="btn text-white py-2" style="background: linear-gradient(135deg, #e4899c 0%, #c23c54 100%);">
+                            <i class="fas fa-sign-in-alt me-1"></i> Ingresar
+                        </button>
+                    </div>
+                </form>
+                <div class="text-center">
+                    <a href="{% url 'moiraflow:registro' %}" class="btn btn-sm text-white mt-2" style="background-color: #c23c54;">
+                        <i class="fas fa-user-plus me-1"></i> Crear cuenta
+                    </a>
+                    <a href="{% url 'moiraflow:password_reset' %}" class="btn btn-sm btn-outline-secondary mt-2">
+                        <i class="fas fa-question-circle me-1"></i> ¿Olvidaste tu contraseña?
+                    </a>
+                </div>
+                <div id="loginError" class="alert alert-danger mt-3" style="display:none; border-left: 4px solid #c23c54;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Efectos hover para los enlaces del navbar */
+    .navbar-nav .nav-link {
+        position: relative;
+        transition: all 0.3s ease;
+        border-radius: 4px;
+    }
+
+    .navbar-nav .nav-link:hover {
+        color: #c23c54 !important;
+    }
+
+    .navbar-nav .nav-link:hover::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 15%;
+        width: 70%;
+        height: 2px;
+        background-color: #e4899c;
+        transition: all 0.3s ease;
+    }
+
+    /* Estilos para el dropdown */
+    .dropdown-item {
+        transition: all 0.2s ease;
+    }
+
+    .dropdown-item:hover {
+        background-color: #f8f9fa;
+        color: #c23c54 !important;
+        padding-left: 1.5rem !important;
+    }
+
+    /* Efecto para el botón de registro */
+    .btn[style*="background-color: #c23c54"]:hover {
+        background-color: #a83248 !important;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(194, 60, 84, 0.3);
+    }
+</style>

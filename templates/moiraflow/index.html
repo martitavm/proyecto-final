@@ -2,37 +2,215 @@
 {% load static %}
 
 {% block content %}
-<div class="container mt-5">
-    {% if user.is_authenticated %}
-        <!-- Contenido para usuarios logueados -->
-        <div class="text-center">
-            <h1>Bienvenid@ a Moiraflow, {{ user.username }}!</h1>
-            <p class="lead">Gestiona tu ciclo menstrual de manera inteligente</p>
-
-            <div class="row mt-5">
-                <div class="col-md-4 mb-4">
-                    <a href="{% url 'moiraflow:mi_perfil' %}" class="btn btn-primary btn-lg w-100">
-                        <i class="bi bi-person-circle"></i> Mi Perfil
+<!-- Hero Section -->
+<section class="hero-section" style="background: linear-gradient(135deg, #e4899c 0%, #c23c54 100%);">
+    <div class="container py-5">
+        <div class="row align-items-center">
+            <div class="col-lg-6 text-white">
+                <h1 class="display-4 fw-bold mb-4">MoiraFlow</h1>
+                <p class="lead mb-4">Tu compañera inteligente para el seguimiento menstrual y hormonal</p>
+                <div class="d-flex gap-3">
+                    <a href="{% url 'moiraflow:calendario' %}" class="btn btn-light btn-lg px-4">
+                        <i class="fas fa-calendar-alt me-2"></i> Mi Calendario
                     </a>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <a href="{% url 'moiraflow:calendario' %}" class="btn btn-success btn-lg w-100">
-                        <i class="bi bi-calendar-check"></i> Mi Calendario
-                    </a>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <a href="#" class="btn btn-info btn-lg w-100">
-                        <i class="bi bi-graph-up"></i> Estadísticas
+                    <a href="#" class="btn btn-outline-light btn-lg px-4">
+                        <i class="fas fa-chart-line me-2"></i> Ver Estadísticas
                     </a>
                 </div>
             </div>
+            <div class="col-lg-6 d-none d-lg-block">
+                <img src="{% static 'images/mujeres_felices.png' %}" alt="Mujer feliz" class="img-fluid">
+            </div>
         </div>
-    {% else %}
-        <!-- Esto no debería verse nunca gracias a la redirección -->
-        <div class="alert alert-warning">
-            Redirigiendo a login...
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5" style="color: #c23c54;">¿Por qué elegir MoiraFlow?</h2>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="icon-circle mb-4 mx-auto" style="background-color: #e4899c;">
+                            <i class="fas fa-bell text-white fs-3"></i>
+                        </div>
+                        <h3 class="h5" style="color: #c23c54;">Recordatorios</h3>
+                        <p>Nunca olvides registrar tus síntomas o tomar tu medicación con nuestras alertas personalizadas.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="icon-circle mb-4 mx-auto" style="background-color: #e4899c;">
+                            <i class="fas fa-chart-pie text-white fs-3"></i>
+                        </div>
+                        <h3 class="h5" style="color: #c23c54;">Análisis Inteligente</h3>
+                        <p>Identifica patrones en tu ciclo y recibe insights personalizados sobre tu salud hormonal.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="icon-circle mb-4 mx-auto" style="background-color: #e4899c;">
+                            <i class="fas fa-lock text-white fs-3"></i>
+                        </div>
+                        <h3 class="h5" style="color: #c23c54;">Privacidad</h3>
+                        <p>Tus datos están seguros con nosotros. Totalmente privado y cifrado.</p>
+                    </div>
+                </div>
+            </div>
         </div>
-        <meta http-equiv="refresh" content="0; url={% url 'moiraflow:login' %}">
-    {% endif %}
-</div>
+    </div>
+</section>
+
+<!-- Carousel Section -->
+<section class="py-5" style="background-color: #f8f9fa;">
+    <div class="container">
+        <h2 class="text-center mb-5" style="color: #c23c54;">Descubre más sobre tu ciclo</h2>
+
+        <div id="infoCarousel" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-indicators">
+                <button type="button" data-bs-target="#infoCarousel" data-bs-slide-to="0" class="active" style="background-color: #c23c54;"></button>
+                <button type="button" data-bs-target="#infoCarousel" data-bs-slide-to="1" style="background-color: #c23c54;"></button>
+                <button type="button" data-bs-target="#infoCarousel" data-bs-slide-to="2" style="background-color: #c23c54;"></button>
+            </div>
+
+            <div class="carousel-inner rounded-3 overflow-hidden shadow">
+                <div class="carousel-item active">
+                    <img src="{% static 'images/fases_ciclo.png' %}" class="d-block w-100" alt="Fases del ciclo">
+                    <div class="carousel-caption d-none d-md-block" style="background-color: rgba(196, 60, 84, 0.7);">
+                        <h5>Conoce tus fases</h5>
+                        <p>Entiende cómo cambia tu cuerpo durante cada fase de tu ciclo menstrual.</p>
+                    </div>
+                </div>
+
+                <div class="carousel-item">
+                    <img src="{% static 'images/sintomas_hormonales.png' %}" class="d-block w-100" alt="Síntomas hormonales">
+                    <div class="carousel-caption d-none d-md-block" style="background-color: rgba(196, 60, 84, 0.7);">
+                        <h5>Síntomas hormonales</h5>
+                        <p>Registra y comprende los cambios físicos y emocionales durante tu ciclo.</p>
+                    </div>
+                </div>
+
+                <div class="carousel-item">
+                    <img src="{% static 'images/salud_hormonal.jpg' %}" class="d-block w-100" alt="Salud femenina">
+                    <div class="carousel-caption d-none d-md-block" style="background-color: rgba(196, 60, 84, 0.7);">
+                        <h5>Empodérate con conocimiento</h5>
+                        <p>Toma el control de tu salud hormonal con información precisa.</p>
+                    </div>
+                </div>
+            </div>
+
+            <button class="carousel-control-prev" type="button" data-bs-target="#infoCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#infoCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- Testimonials Section -->
+<section class="py-5" style="background-color: #e4899c;">
+    <div class="container">
+        <h2 class="text-center text-white mb-5">Lo que dicen nuestras usuarias</h2>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="{% static 'images/icono1.jpg' %}" class="rounded-circle me-3" width="60" height="60" alt="Usuario">
+                            <div>
+                                <h5 class="mb-0" style="color: #c23c54;">Ana M.</h5>
+                                <small class="text-muted">Usuaria desde 2022</small>
+                            </div>
+                        </div>
+                        <p class="mb-0">"MoiraFlow me ha ayudado a entender mejor mi ciclo y a anticipar mis síntomas. ¡Increíble herramienta!"</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="{% static 'images/icono2.jpg' %}" class="rounded-circle me-3" width="60" height="60" alt="Usuario">
+                            <div>
+                                <h5 class="mb-0" style="color: #c23c54;">Lucía G.</h5>
+                                <small class="text-muted">Usuaria desde 2023</small>
+                            </div>
+                        </div>
+                        <p class="mb-0">"Por fin una app que realmente entiende las necesidades de las mujeres. Los recordatorios son mi salvación."</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="{% static 'images/icono3.jpg' %}" class="rounded-circle me-3" width="60" height="60" alt="Usuario">
+                            <div>
+                                <h5 class="mb-0" style="color: #c23c54;">María J.</h5>
+                                <small class="text-muted">Usuaria desde 2021</small>
+                            </div>
+                        </div>
+                        <p class="mb-0">"Como mujer con SOP, esta app ha sido fundamental para llevar un control de mi tratamiento hormonal."</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-5 text-center" style="background-color: #f8f9fa;">
+    <div class="container">
+        <h2 class="mb-4" style="color: #c23c54;">¿Lista para tomar el control de tu salud hormonal?</h2>
+        <p class="lead mb-4">Regístrate ahora y comienza tu viaje hacia un mejor entendimiento de tu cuerpo.</p>
+        <a href="{% url 'moiraflow:registro' %}" class="btn btn-lg text-white px-5" style="background-color: #c23c54;">
+            <i class="fas fa-user-plus me-2"></i> Crear cuenta
+        </a>
+    </div>
+</section>
+
+<style>
+    .hero-section {
+        padding: 5rem 0;
+        color: white;
+    }
+
+    .icon-circle {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .carousel-caption {
+        border-radius: 0.5rem;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80%;
+    }
+
+    .btn-outline-light:hover {
+        color: #c23c54 !important;
+        background-color: white;
+    }
+</style>
 {% endblock %}

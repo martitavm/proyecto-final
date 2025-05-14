@@ -1,0 +1,128 @@
+<!-- moiraflow/resumen_ciclo.html -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-alt"></i> Resumen de Ciclos
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if ciclos %}
+                    <div class="mb-3">
+                        <h6 class="text-muted">Estadísticas</h6>
+                        <p><strong>Ciclos analizados:</strong> {{ ciclos|length }}</p>
+                        <p><strong>Duración promedio:</strong> {{ estadisticas.duracion_ciclo_promedio|floatformat:1 }} días</p>
+                        <p><strong>Variabilidad:</strong> ±{{ estadisticas.variabilidad_ciclo|floatformat:1 }} días</p>
+                        <p><strong>Regularidad:</strong>
+                            {% if estadisticas.variabilidad_ciclo <= 3 %}
+                                <span class="badge badge-success">Regular</span>
+                            {% else %}
+                                <span class="badge badge-warning">Irregular</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        No hay suficientes ciclos completos para analizar.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock"></i> Predicciones
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if predicciones %}
+                    <div class="mb-3">
+                        <h6 class="text-muted">Próximos eventos</h6>
+                        <p><strong>Próximo período:</strong>
+                            <span class="badge badge-danger">
+                                {{ predicciones.proximo_periodo|date:"d/m/Y" }}
+                            </span>
+                        </p>
+                        <p><strong>Ovulación estimada:</strong>
+                            <span class="badge badge-warning">
+                                {{ predicciones.proxima_ovulacion|date:"d/m/Y" }}
+                            </span>
+                        </p>
+                        <p><strong>Ventana fértil:</strong>
+                            <span class="badge badge-success">
+                                {{ predicciones.ventana_fertil_inicio|date:"d/m/Y" }} -
+                                {{ predicciones.ventana_fertil_fin|date:"d/m/Y" }}
+                            </span>
+                        </p>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        No hay predicciones disponibles.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-heartbeat"></i> Síntomas por Fase
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if sintomas_por_fase %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Fase</th>
+                                    <th>Síntoma</th>
+                                    <th>Frecuencia</th>
+                                    <th>Intensidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fase, sintomas in sintomas_por_fase.items %}
+                                    {% for sintoma in sintomas %}
+                                        <tr>
+                                            {% if forloop.first %}
+                                                <td rowspan="{{ sintomas|length }}">
+                                                    <strong>{{ fase|title }}</strong>
+                                                </td>
+                                            {% endif %}
+                                            <td>{{ sintoma.nombre }}</td>
+                                            <td>{{ sintoma.frecuencia }}</td>
+                                            <td>
+                                                <div class="progress">
+                                                    <div class="progress-bar bg-{{ sintoma.intensidad }}"
+                                                         role="progressbar"
+                                                         style="width: {{ sintoma.frecuencia }}"
+                                                         aria-valuenow="{{ sintoma.frecuencia }}"
+                                                         aria-valuemin="0"
+                                                         aria-valuemax="100">
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        No hay datos de síntomas por fase.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
