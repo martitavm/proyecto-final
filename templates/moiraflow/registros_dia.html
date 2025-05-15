@@ -4,6 +4,7 @@
 <div class="container">
     <h2>Registro para {{ fecha|date:"d/m/Y" }}</h2>
 
+    <!-- Sección de información existente... -->
     {% if perfil.tipo_seguimiento == 'ciclo_menstrual' %}
         {% if ciclo %}
             <div class="alert alert-info">
@@ -22,36 +23,96 @@
         {% endif %}
     {% endif %}
 
-    {% if registro %}
-        <div class="registro-info">
-            <!-- Mostrar campos relevantes según el tipo de seguimiento -->
-            {% if perfil.tipo_seguimiento == 'ciclo_menstrual' %}
-                {% if registro.es_dia_periodo %}
-                    <p>Día de período: Sí (Flujo: {{ registro.get_flujo_menstrual_display }})</p>
-                {% endif %}
-                <!-- Más campos menstruales -->
-            {% else %}
-                <p>Medicación tomada: {% if registro.medicacion_tomada %}Sí{% else %}No{% endif %}</p>
-                <!-- Más campos hormonales -->
-            {% endif %}
+    <!-- Sección de botones de acción -->
+    <div class="d-flex justify-content-between mb-4">
+        <a href="{% url 'moiraflow:calendario_mes' year=fecha.year month=fecha.month %}"
+           class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver al calendario
+        </a>
 
-            <div class="actions">
-                <a href="{% url 'moiraflow:editar_registro' pk=registro.pk %}" class="btn btn-primary">Editar</a>
-                <a href="{% url 'moiraflow:eliminar_registro' pk=registro.pk %}" class="btn btn-danger">Eliminar</a>
-            </div>
-        </div>
-    {% else %}
-        <div class="no-registro">
-            <p>No hay registro para este día.</p>
-            <a href="{% url 'moiraflow:crear_registro' year=fecha.year month=fecha.month day=fecha.day %}"
-               class="btn btn-success">
-                Crear registro
+        <div>
+            <a href="{% url 'moiraflow:crear_recordatorio' %}"
+               class="btn btn-primary me-2">
+                <i class="fas fa-bell"></i> Nuevo recordatorio
             </a>
+            {% if not registro %}
+                <a href="{% url 'moiraflow:crear_registro' year=fecha.year month=fecha.month day=fecha.day %}"
+                   class="btn btn-success">
+                    <i class="fas fa-plus"></i> Crear registro
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Sección de registro existente -->
+    {% if registro %}
+        <div class="registro-info card mb-4">
+            <div class="card-body">
+                <!-- Contenido del registro... -->
+                <div class="actions mt-3">
+                    <a href="{% url 'moiraflow:editar_registro' pk=registro.pk %}"
+                       class="btn btn-outline-primary">
+                        <i class="fas fa-edit"></i> Editar
+                    </a>
+                    <a href="{% url 'moiraflow:eliminar_registro' pk=registro.pk %}"
+                       class="btn btn-outline-danger">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </a>
+                </div>
+            </div>
         </div>
     {% endif %}
 
-    <a href="{% url 'moiraflow:calendario' year=fecha.year month=fecha.month %}" class="btn btn-secondary">
-        Volver al calendario
-    </a>
+    <!-- Sección de recordatorios del día -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-bell"></i> Recordatorios para este día
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if recordatorios %}
+                <ul class="list-group">
+                    {% for recordatorio in recordatorios %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ recordatorio.titulo }}</strong>
+                                <small class="d-block text-muted">
+                                    {{ recordatorio.hora|default:"Sin hora específica" }}
+                                </small>
+                            </div>
+                            <div>
+                                <a href="{% url 'moiraflow:editar_recordatorio' pk=recordatorio.pk %}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'moiraflow:eliminar_recordatorio' pk=recordatorio.pk %}"
+                                   class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted">No hay recordatorios para este día.</p>
+            {% endif %}
+        </div>
+    </div>
 </div>
 {% endblock %}
+
+<style>
+    .recordatorio-item {
+    transition: all 0.2s ease;
+}
+
+.recordatorio-item:hover {
+    background-color: #f8f9fa;
+}
+
+.recordatorio-acciones .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+</style>
