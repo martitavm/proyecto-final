@@ -387,7 +387,7 @@ class RegistroDiario(models.Model):
     def __str__(self):
         return f"Registro de {self.usuario.username} ({self.tipo_seguimiento}) - {self.fecha}"
 
-# Mejora al modelo Recordatorio para permitir recordatorios más específicos
+
 class Recordatorio(models.Model):
     """
     Modelo para recordatorios de medicación, citas, etc.
@@ -396,24 +396,7 @@ class Recordatorio(models.Model):
         ('medicacion', 'Medicación'),
         ('medicacion_hormonal', 'Medicación Hormonal'),
         ('cita_medica', 'Cita médica'),
-        ('inicio_periodo', 'Inicio de período esperado'),
-        ('ovulacion', 'Ovulación esperada'),
         ('otro', 'Otro'),
-    ]
-
-    FRECUENCIA_CHOICES = [
-        ('diaria', 'Diaria'),
-        ('cada_x_dias', 'Cada X días'),
-        ('semanal', 'Semanal'),
-        ('mensual', 'Mensual'),
-        ('ciclo', 'Basada en ciclo'),
-        ('unica', 'Única vez'),
-    ]
-
-    METODO_NOTIFICACION_CHOICES = [
-        ('app', 'Notificación en app'),
-        ('email', 'Correo electrónico'),
-        ('ambos', 'App y correo'),
     ]
 
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recordatorios')
@@ -422,14 +405,62 @@ class Recordatorio(models.Model):
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
     fecha_inicio = models.DateField()
     hora = models.TimeField(null=True, blank=True)
-    frecuencia = models.CharField(max_length=15, choices=FRECUENCIA_CHOICES)
-    dias_frecuencia = models.PositiveIntegerField(default=1, help_text="Para frecuencia 'Cada X días'")
-    metodo_notificacion = models.CharField(max_length=10, choices=METODO_NOTIFICACION_CHOICES, default='app')
+    dias_frecuencia = models.PositiveIntegerField(
+        default=1,
+        help_text="Para frecuencia 'Cada X días' (0 para eventos únicos)"
+    )
     activo = models.BooleanField(default=True)
+    notificar = models.BooleanField(
+        default=True,
+        help_text="Enviar notificación al usuario"
+    )
+    dias_antelacion = models.PositiveIntegerField(
+        default=1,
+        help_text="Días de antelación para la notificación"
+    )
+    visto = models.BooleanField(default=False)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.titulo} - {self.usuario.username}"
 
+    @property
+    def es_recurrente(self):
+        return self.dias_frecuencia > 0
+
+    @property
+    def proxima_fecha(self):
+        """Calcula la próxima fecha en la que debe activarse este recordatorio"""
+        if not self.es_recurrente:
+            return self.fecha_inicio
+
+        hoy = timezone.now().date()
+        delta = hoy - self.fecha_inicio
+        dias_transcurridos = delta.days
+        ciclos_completos = dias_transcurridos // self.dias_frecuencia
+        proxima_fecha = self.fecha_inicio + timedelta(days=(ciclos_completos + 1) * self.dias_frecuencia)
+        return proxima_fecha
+
+    @property
+    def fecha_notificacion(self):
+        """Fecha en la que debe mostrarse la notificación"""
+        return self.proxima_fecha - timedelta(days=self.dias_antelacion)
+
+    def esta_pendiente(self):
+        """Determina si el recordatorio está pendiente de notificación"""
+        hoy = timezone.now().date()
+        return (
+                self.activo and
+                self.notificar and
+                not self.visto and
+                hoy >= self.fecha_notificacion and
+                hoy < self.proxima_fecha
+        )
+
+    def marcar_como_visto(self):
+        """Marca el recordatorio como visto"""
+        self.visto = True
+        self.save()
 
 # Nuevo modelo para estadísticas
 class EstadisticaUsuario(models.Model):

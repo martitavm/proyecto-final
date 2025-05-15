@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{% if object %}Editar{% else %}Crear{% endif %} Recordatorio</h2>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="id_titulo" class="form-label">Título*</label>
+                        {{ form.titulo }}
+                        {% if form.titulo.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.titulo.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="id_tipo" class="form-label">Tipo*</label>
+                        {{ form.tipo }}
+                        {% if form.tipo.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.tipo.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="id_fecha_inicio" class="form-label">Fecha*</label>
+                        {{ form.fecha_inicio }}
+                        {% if form.fecha_inicio.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.fecha_inicio.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="id_hora" class="form-label">Hora (opcional)</label>
+                        {{ form.hora }}
+                        {% if form.hora.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.hora.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="id_descripcion" class="form-label">Descripción (opcional)</label>
+                        {{ form.descripcion }}
+                        {% if form.descripcion.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.descripcion.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="id_dias_frecuencia" class="form-label">Frecuencia (días)*</label>
+                        {{ form.dias_frecuencia }}
+                        <small class="form-text text-muted">0 para eventos únicos</small>
+                        {% if form.dias_frecuencia.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.dias_frecuencia.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="id_dias_antelacion" class="form-label">Notificar con (días de antelación)*</label>
+                        {{ form.dias_antelacion }}
+                        {% if form.dias_antelacion.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.dias_antelacion.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check form-switch mt-4 pt-2">
+                            {{ form.notificar }}
+                            <label class="form-check-label" for="id_notificar">Notificar</label>
+                        </div>
+                        <div class="form-check form-switch mt-2">
+                            {{ form.activo }}
+                            <label class="form-check-label" for="id_activo">Activo</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{% url 'moiraflow:lista_recordatorios' %}" class="btn btn-secondary me-md-2">
+                        Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        {% if object %}Actualizar{% else %}Crear{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Inicializar datepicker y timepicker si es necesario
+    $('#id_fecha_inicio').attr('type', 'date');
+    $('#id_hora').attr('type', 'time');
+});
+</script>
+{% endblock %}

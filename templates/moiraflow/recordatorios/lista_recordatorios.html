@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Mis Recordatorios</h2>
+        <a href="{% url 'moiraflow:crear_recordatorio' %}" class="btn btn-primary">
+            <i class="bi bi-plus"></i> Nuevo Recordatorio
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            {% if recordatorios %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Título</th>
+                                <th>Tipo</th>
+                                <th>Próxima Fecha</th>
+                                <th>Hora</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for recordatorio in recordatorios %}
+                            <tr>
+                                <td>{{ recordatorio.titulo }}</td>
+                                <td>{{ recordatorio.get_tipo_display }}</td>
+                                <td>{{ recordatorio.proxima_fecha|date:"d/m/Y" }}</td>
+                                <td>{{ recordatorio.hora|default:"-"|time:"H:i" }}</td>
+                                <td>
+                                    <span class="badge bg-{% if recordatorio.activo %}success{% else %}secondary{% endif %}">
+                                        {% if recordatorio.activo %}Activo{% else %}Inactivo{% endif %}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'moiraflow:editar_recordatorio' pk=recordatorio.pk %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'moiraflow:eliminar_recordatorio' pk=recordatorio.pk %}" 
+                                       class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    No tienes recordatorios programados. 
+                    <a href="{% url 'moiraflow:crear_recordatorio' %}">Crea uno ahora</a>.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
