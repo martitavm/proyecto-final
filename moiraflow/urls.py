@@ -13,7 +13,6 @@ from moiraflow.views import (
     AdminEditarPerfilView,
     AdminEliminarPerfilView,
     CalendarioView,
-    CalendarioInteractivoCirularView,
     RegistroDiarioCreateView,
     RegistroDiarioUpdateView,
     RegistroDiarioDeleteView,
@@ -29,7 +28,8 @@ from moiraflow.views import (
     consejo_mascota,
     MascotaPanelView,
     finalizar_alimentacion, RegistrosDiaView, AnalisisPremiumView, SintomasViewSet, AnalisisPremiumDataView, ajax_login,
-    ajax_logout,
+    ajax_logout, obtener_notificaciones, marcar_notificacion_vista, ListaRecordatoriosView, CrearRecordatorioView,
+    EditarRecordatorioView, EliminarRecordatorioView,
 )
 
 app_name = 'moiraflow'
@@ -59,8 +59,7 @@ urlpatterns = [
 
     # URLs de calendario
     path('calendario/', CalendarioView.as_view(), name='calendario'),
-    path('calendario/<int:year>/<int:month>/', CalendarioView.as_view(), name='calendario'),
-    path('calendario-circular/',CalendarioInteractivoCirularView.as_view(), name='calendario_circular'),
+    path('calendario/<int:year>/<int:month>/', CalendarioView.as_view(), name='calendario_mes'),
 
     # URLs de registros diarios
     # Registros por día
@@ -92,4 +91,12 @@ urlpatterns = [
     path('analisis-premium/', AnalisisPremiumView.as_view(), name='analisis_premium'),
     path('analisis-premium/data/', AnalisisPremiumDataView.as_view(), name='analisis_premium_data'),
 
+    #URLs de notificaciones
+    path('notificaciones/', obtener_notificaciones, name='obtener_notificaciones'),
+    path('notificaciones/<int:recordatorio_id>/marcar-vista/', marcar_notificacion_vista,
+         name='marcar_notificacion_vista'),
+    path('recordatorios/', ListaRecordatoriosView.as_view(), name='lista_recordatorios'),
+    path('recordatorios/crear/', CrearRecordatorioView.as_view(), name='crear_recordatorio'),
+    path('recordatorios/editar/<int:pk>/', EditarRecordatorioView.as_view(), name='editar_recordatorio'),
+    path('recordatorios/eliminar/<int:pk>/', EliminarRecordatorioView.as_view(), name='eliminar_recordatorio'),
 ]

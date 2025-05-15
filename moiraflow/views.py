@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout, login
 from moiraflow.models import Perfil, RegistroDiario, TratamientoHormonal, CicloMenstrual, Articulo, Mascota, \
-    EfectoTratamiento, EstadisticaUsuario
+    EfectoTratamiento, EstadisticaUsuario, Recordatorio
 from moiraflow.forms import RegistroCompletoForm, RegistroDiarioForm, TratamientoHormonalForm, CicloMenstrualForm, \
     ArticuloForm, EditarPerfilForm
 from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView, FormView, View, DetailView, ListView
@@ -19,6 +19,9 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET
+from django.contrib.auth.decorators import login_required
+
 
 # moiraflow/views.py
 class PaginaPrincipalView(TemplateView):  # Elimina LoginRequiredMixin
@@ -29,6 +32,7 @@ class PaginaPrincipalView(TemplateView):  # Elimina LoginRequiredMixin
         if self.request.user.is_authenticated:
             context['perfil'] = self.request.user.perfil
         return context
+
 
 class RegistroUsuarioView(CreateView):
     template_name = 'moiraflow/registro.html'
@@ -61,6 +65,7 @@ class RegistroUsuarioView(CreateView):
         messages.error(self.request, 'Por favor corrige los errores en el formulario')
         return super().form_invalid(form)
 
+
 @require_POST
 @csrf_exempt
 def ajax_login(request):
@@ -81,6 +86,7 @@ def ajax_login(request):
             'errors': 'Usuario o contraseña incorrectos'
         })
 
+
 @require_POST
 @csrf_exempt
 def ajax_logout(request):
@@ -92,6 +98,7 @@ def ajax_logout(request):
             'redirect_url': reverse('moiraflow:index')
         })
     return JsonResponse({'success': False})
+
 
 class EditarPerfilView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "moiraflow/editar_perfil.html"
@@ -164,6 +171,7 @@ class MiPerfilView(LoginRequiredMixin, DetailView):
         context['mostrar_datos_ciclo'] = self.object.genero in ['femenino', 'masculino trans']
         return context
 
+
 class ListaPerfilesView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     template_name = 'moiraflow/lista_perfiles.html'
     model = Perfil
@@ -171,6 +179,7 @@ class ListaPerfilesView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
     def test_func(self):
         return self.request.user.perfil.es_administrador
+
 
 class AdminEditarPerfilView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = 'moiraflow/admin_editar_perfil.html'
@@ -180,6 +189,7 @@ class AdminEditarPerfilView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
 
     def test_func(self):
         return self.request.user.perfil.es_administrador
+
 
 class AdminEliminarPerfilView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     template_name = 'moiraflow/admin_eliminar_perfil.html'
@@ -193,12 +203,42 @@ class AdminEliminarPerfilView(LoginRequiredMixin, UserPassesTestMixin, DeleteVie
 class CalendarioView(LoginRequiredMixin, TemplateView):
     template_name = 'moiraflow/calendario.html'
 
+    def get(self, request, *args, **kwargs):
+        # Si no vienen parámetros, redirigir al mes actual
+        if 'year' not in kwargs or 'month' not in kwargs:
+            today = date.today()
+            return redirect(reverse('moiraflow:calendario_mes', kwargs={
+                'year': today.year,
+                'month': today.month
+            }))
+        return super().get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        year = int(self.kwargs.get('year', date.today().year))
-        month = int(self.kwargs.get('month', date.today().month))
 
-        # Configurar calendario
+        year = int(self.kwargs['year'])
+        month = int(self.kwargs['month'])
+
+        # Validación de mes
+        if month < 1 or month > 12:
+            month = date.today().month
+
+        # Cálculo de meses anterior/siguiente
+        if month == 1:
+            prev_month = 12
+            prev_year = year - 1
+        else:
+            prev_month = month - 1
+            prev_year = year
+
+        if month == 12:
+            next_month = 1
+            next_year = year + 1
+        else:
+            next_month = month + 1
+            next_year = year
+
+        # Resto de tu lógica para el calendario...
         cal = calendar.monthcalendar(year, month)
         first_day = date(year, month, 1)
         last_day = date(year, month, calendar.monthrange(year, month)[1])
@@ -210,10 +250,31 @@ class CalendarioView(LoginRequiredMixin, TemplateView):
             fecha__lte=last_day
         ).order_by('fecha')
 
+        # Obtener todos los recordatorios del usuario
+        recordatorios = Recordatorio.objects.filter(
+            usuario=self.request.user,
+            activo=True
+        )
+
         # Organizar registros por día
         registros_dict = defaultdict(list)
         for registro in registros:
             registros_dict[registro.fecha.day].append(registro)
+
+        # Organizar recordatorios por día
+        recordatorios_dict = defaultdict(list)
+        for recordatorio in recordatorios:
+            if recordatorio.es_recurrente:
+                # Para recordatorios recurrentes
+                current_date = recordatorio.fecha_inicio
+                while current_date <= last_day:
+                    if first_day <= current_date <= last_day:
+                        recordatorios_dict[current_date.day].append(recordatorio)
+                    current_date += timedelta(days=recordatorio.dias_frecuencia)
+            else:
+                # Para recordatorios no recurrentes
+                if first_day <= recordatorio.fecha_inicio <= last_day:
+                    recordatorios_dict[recordatorio.fecha_inicio.day].append(recordatorio)
 
         # Preparar datos para el template
         weeks = []
@@ -226,7 +287,8 @@ class CalendarioView(LoginRequiredMixin, TemplateView):
                     week_data.append({
                         'day': day,
                         'date': date(year, month, day),
-                        'registros': registros_dict.get(day, [])
+                        'registros': registros_dict.get(day, []),
+                        'recordatorios': recordatorios_dict.get(day, [])
                     })
             weeks.append(week_data)
 
@@ -235,11 +297,18 @@ class CalendarioView(LoginRequiredMixin, TemplateView):
             'month_name': first_day.strftime('%B'),
             'year': year,
             'month': month,
-            'prev_month': month - 1 if month > 1 else 12,
-            'prev_year': year if month > 1 else year - 1,
-            'next_month': month + 1 if month < 12 else 1,
-            'next_year': year if month < 12 else year + 1,
-            'today': date.today()
+            'prev_month': prev_month,
+            'prev_year': prev_year,
+            'next_month': next_month,
+            'next_year': next_year,
+            'url_anterior': reverse('moiraflow:calendario_mes', kwargs={
+                'year': prev_year,
+                'month': prev_month
+            }),
+            'url_siguiente': reverse('moiraflow:calendario_mes', kwargs={
+                'year': next_year,
+                'month': next_month
+            }),
         })
 
         return context
@@ -257,6 +326,12 @@ class RegistrosDiaView(LoginRequiredMixin, TemplateView):
             usuario=self.request.user,
             fecha=fecha
         ).first()
+
+        # Obtener recordatorios para esta fecha
+        recordatorios = Recordatorio.objects.filter(
+            usuario=self.request.user,
+            fecha_inicio=fecha
+        )
 
         ciclo = None
         tratamiento_activo = None
@@ -303,6 +378,7 @@ class RegistrosDiaView(LoginRequiredMixin, TemplateView):
         context.update({
             'fecha': fecha,
             'registro': registro,
+            'recordatorios': recordatorios,
             'ciclo': ciclo,
             'tratamiento_activo': tratamiento_activo,
             'perfil': perfil,
@@ -358,10 +434,11 @@ class RegistroDiarioCreateView(LoginRequiredMixin, CreateView):
             return self.form_invalid(form)
 
     def get_success_url(self):
-        return reverse('moiraflow:calendario', kwargs={
+        return reverse('moiraflow:calendario_mes', kwargs={
             'year': self.object.fecha.year,
             'month': self.object.fecha.month
         })
+
 
 class RegistroDiarioUpdateView(LoginRequiredMixin, UpdateView):
     """
@@ -477,83 +554,6 @@ class TratamientoHormonalCreateView(LoginRequiredMixin, CreateView):
         return redirect(self.success_url)
 
 
-class CalendarioInteractivoCirularView(LoginRequiredMixin, TemplateView):
-    template_name = 'moiraflow/calendario_interactivo_circular.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        perfil = self.request.user.perfil
-
-        # Obtener año y mes
-        year = int(self.request.GET.get('year', timezone.now().year))
-        month = int(self.request.GET.get('month', timezone.now().month))
-
-        # Configuración del calendario
-        _, num_days = calendar.monthrange(year, month)
-        today = timezone.now().date()
-
-        # Obtener ciclo actual si aplica
-        ciclo_actual = None
-        if perfil.tipo_seguimiento in ['ciclo_menstrual', 'ambos']:
-            ciclo_actual = CicloMenstrual.objects.filter(
-                usuario=self.request.user,
-                fecha_inicio__lte=today,
-                fecha_fin__gte=today
-            ).first()
-
-        # Obtener todos los registros del mes
-        registros = RegistroDiario.objects.filter(
-            usuario=self.request.user,
-            fecha__year=year,
-            fecha__month=month
-        ).select_related('ciclo', 'tratamiento')
-
-        # Organizar datos por día
-        dias_data = []
-        for day in range(1, num_days + 1):
-            fecha = date(year, month, day)
-            registros_dia = [r for r in registros if r.fecha.day == day]
-
-            # Determinar fase del ciclo si aplica
-            fase = None
-            if ciclo_actual and (ciclo_actual.fecha_inicio <= fecha <= ciclo_actual.fecha_fin):
-                fase = ciclo_actual.determinar_fase(fecha)
-
-            dias_data.append({
-                'dia': day,
-                'fecha': fecha,
-                'es_hoy': fecha == today,
-                'registros': registros_dia,
-                'fase': fase,
-                'es_periodo': any(r.es_dia_periodo for r in registros_dia),
-                'es_hormonal': any(r.medicacion_tomada for r in registros_dia)
-            })
-
-        # Configurar navegación entre meses
-        prev_month = month - 1 if month > 1 else 12
-        prev_year = year if month > 1 else year - 1
-        next_month = month + 1 if month < 12 else 1
-        next_year = year if month < 12 else year + 1
-
-        context.update({
-            'year': year,
-            'month': month,
-            'month_name': calendar.month_name[month],
-            'dias_data': dias_data,
-            'ciclo_actual': ciclo_actual,
-            'prev_year': prev_year,
-            'prev_month': prev_month,
-            'next_year': next_year,
-            'next_month': next_month,
-            'perfil': perfil,
-            'form': RegistroDiarioForm(
-                usuario=self.request.user,
-                tipo_seguimiento=perfil.tipo_seguimiento
-            )
-        })
-        return context
-
-
 class ListaArticulosView(ListView):
     model = Articulo
     template_name = 'moiraflow/articulos/lista_articulos.html'
@@ -596,6 +596,7 @@ class DetalleArticuloView(DetailView):
         context['puede_editar'] = self.object.puede_editar(self.request.user)
         return context
 
+
 class CrearArticuloView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Articulo
     form_class = ArticuloForm
@@ -609,6 +610,7 @@ class CrearArticuloView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         form.instance.autor = self.request.user
         messages.success(self.request, 'Artículo creado exitosamente!')
         return super().form_valid(form)
+
 
 class EditarArticuloView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Articulo
@@ -625,6 +627,7 @@ class EditarArticuloView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, 'Artículo actualizado exitosamente!')
         return super().form_valid(form)
+
 
 class EliminarArticuloView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = Articulo
@@ -653,6 +656,7 @@ class MascotaPanelView(LoginRequiredMixin, TemplateView):
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+
 
 @require_POST
 @csrf_exempt
@@ -718,12 +722,14 @@ def consejo_mascota(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
+
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from datetime import datetime
 from django.db.models import Q
 from .models import RegistroDiario
+
 
 class SintomasViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
@@ -1051,3 +1057,103 @@ class AnalisisPremiumDataView(LoginRequiredMixin, UserPassesTestMixin, View):
             'fin': ciclo.fecha_fin.strftime('%Y-%m-%d'),
             'duracion': ciclo.duracion
         } for ciclo in ciclos]
+
+
+@require_GET
+@login_required
+def obtener_notificaciones(request):
+    """
+    Vista para obtener notificaciones no leídas del usuario
+    """
+    hoy = timezone.now().date()
+
+    # Recordatorios pendientes
+    recordatorios = request.user.recordatorios.filter(
+        activo=True,
+        notificar=True,
+        visto=False,
+        fecha_notificacion__lte=hoy,
+        proxima_fecha__gte=hoy
+    ).order_by('proxima_fecha')[:10]
+
+    notificaciones = []
+    for r in recordatorios:
+        notificaciones.append({
+            'id': r.id,
+            'titulo': r.titulo,
+            'descripcion': r.descripcion,
+            'tipo': r.tipo,
+            'fecha_evento': r.proxima_fecha.strftime('%d/%m/%Y'),
+            'hora_evento': r.hora.strftime('%H:%M') if r.hora else '',
+            'dias_restantes': (r.proxima_fecha - hoy).days,
+            'es_hoy': r.proxima_fecha == hoy,
+            'tipo_icono': 'alarm' if r.tipo == 'medicacion' else 'event'
+        })
+
+    return JsonResponse({'notificaciones': notificaciones})
+
+
+@require_GET
+@login_required
+def marcar_notificacion_vista(request, recordatorio_id):
+    """
+    Marca una notificación como vista
+    """
+    try:
+        recordatorio = request.user.recordatorios.get(id=recordatorio_id)
+        recordatorio.marcar_como_visto()
+        return JsonResponse({'success': True})
+    except Recordatorio.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Recordatorio no encontrado'}, status=404)
+
+
+class ListaRecordatoriosView(LoginRequiredMixin, ListView):
+    model = Recordatorio
+    template_name = 'moiraflow/recordatorios/lista_recordatorios.html'
+    context_object_name = 'recordatorios'
+
+    def get_queryset(self):
+        # Ordenar por fecha_inicio en lugar de proxima_fecha
+        return Recordatorio.objects.filter(
+            usuario=self.request.user
+        ).order_by('fecha_inicio', 'dias_frecuencia')
+
+class CrearRecordatorioView(LoginRequiredMixin, CreateView):
+    model = Recordatorio
+    template_name = 'moiraflow/recordatorios/crear_editar_recordatorio.html'
+    fields = ['titulo', 'descripcion', 'tipo', 'fecha_inicio', 'hora',
+              'dias_frecuencia', 'activo', 'notificar', 'dias_antelacion']
+    success_url = reverse_lazy('moiraflow:lista_recordatorios')
+
+    def form_valid(self, form):
+        form.instance.usuario = self.request.user
+        messages.success(self.request, 'Recordatorio creado exitosamente!')
+        return super().form_valid(form)
+
+
+class EditarRecordatorioView(LoginRequiredMixin, UpdateView):
+    model = Recordatorio
+    template_name = 'moiraflow/recordatorios/crear_editar_recordatorio.html'
+    fields = ['titulo', 'descripcion', 'tipo', 'fecha_inicio', 'hora',
+              'dias_frecuencia', 'activo', 'notificar', 'dias_antelacion']
+    success_url = reverse_lazy('moiraflow:lista_recordatorios')
+
+    def get_queryset(self):
+        return Recordatorio.objects.filter(usuario=self.request.user)
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Recordatorio actualizado exitosamente!')
+        return super().form_valid(form)
+
+
+class EliminarRecordatorioView(LoginRequiredMixin, DeleteView):
+    model = Recordatorio
+    template_name = 'moiraflow/recordatorios/eliminar_recordatorio.html'
+    success_url = reverse_lazy('moiraflow:lista_recordatorios')
+
+    def get_queryset(self):
+        return Recordatorio.objects.filter(usuario=self.request.user)
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Recordatorio eliminado exitosamente!')
+        return super().delete(request, *args, **kwargs)
