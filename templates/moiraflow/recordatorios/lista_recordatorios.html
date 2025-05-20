@@ -1,19 +1,143 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<style>
+  :root {
+    --primary-color: #c23c54;
+    --secondary-color: #e4899c;
+    --light-color: #fff;
+    --hover-color: #aa324a;
+  }
+
+  .recordatorios-header {
+    background-color: var(--primary-color);
+    color: var(--light-color);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 12px rgba(194, 60, 84, 0.15);
+  }
+
+  .btn-moira {
+    background-color: var(--primary-color);
+    color: var(--light-color);
+    border: none;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+  }
+
+  .btn-moira:hover {
+    background-color: var(--hover-color);
+    color: var(--light-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(194, 60, 84, 0.2);
+  }
+
+  .btn-moira-outline {
+    background-color: transparent;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    transition: all 0.3s ease;
+  }
+
+  .btn-moira-outline:hover {
+    background-color: var(--primary-color);
+    color: white;
+  }
+
+  .btn-moira-danger {
+    background-color: transparent;
+    color: #dc3545;
+    border: 1px solid #dc3545;
+    transition: all 0.3s ease;
+  }
+
+  .btn-moira-danger:hover {
+    background-color: #dc3545;
+    color: white;
+  }
+
+  .recordatorios-card {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+  }
+
+  .recordatorios-table thead {
+    background-color: var(--secondary-color);
+    color: var(--light-color);
+  }
+
+  .recordatorios-table th {
+    font-weight: 500;
+    padding: 1rem;
+    border-bottom: none;
+  }
+
+  .recordatorios-table tbody tr {
+    transition: all 0.2s ease;
+  }
+
+  .recordatorios-table tbody tr:hover {
+    background-color: rgba(228, 137, 156, 0.1);
+  }
+
+  .recordatorios-table td {
+    vertical-align: middle;
+    padding: 0.8rem 1rem;
+  }
+
+  .badge-activo {
+    background-color: var(--primary-color);
+    color: var(--light-color);
+    padding: 0.4rem 0.8rem;
+    border-radius: 50px;
+  }
+
+  .badge-inactivo {
+    background-color: #6c757d;
+    color: var(--light-color);
+    padding: 0.4rem 0.8rem;
+    border-radius: 50px;
+  }
+
+  .empty-state {
+    padding: 3rem;
+    text-align: center;
+    background-color: rgba(228, 137, 156, 0.05);
+    border-radius: 8px;
+  }
+
+  .empty-state a {
+    color: var(--primary-color);
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .empty-state a:hover {
+    text-decoration: underline;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+</style>
+
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Mis Recordatorios</h2>
-        <a href="{% url 'moiraflow:crear_recordatorio' %}" class="btn btn-primary">
-            <i class="bi bi-plus"></i> Nuevo Recordatorio
+    <div class="recordatorios-header d-flex justify-content-between align-items-center">
+        <h2 class="m-0"><i class="bi bi-bell me-2"></i>Mis Recordatorios</h2>
+        <a href="{% url 'moiraflow:crear_recordatorio' %}" class="btn btn-moira">
+            <i class="bi bi-plus-circle me-2"></i> Nuevo Recordatorio
         </a>
     </div>
-    
-    <div class="card">
-        <div class="card-body">
+
+    <div class="recordatorios-card card">
+        <div class="card-body p-0">
             {% if recordatorios %}
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table recordatorios-table table-borderless mb-0">
                         <thead>
                             <tr>
                                 <th>Título</th>
@@ -27,24 +151,26 @@
                         <tbody>
                             {% for recordatorio in recordatorios %}
                             <tr>
-                                <td>{{ recordatorio.titulo }}</td>
+                                <td class="fw-medium">{{ recordatorio.titulo }}</td>
                                 <td>{{ recordatorio.get_tipo_display }}</td>
                                 <td>{{ recordatorio.proxima_fecha|date:"d/m/Y" }}</td>
                                 <td>{{ recordatorio.hora|default:"-"|time:"H:i" }}</td>
                                 <td>
-                                    <span class="badge bg-{% if recordatorio.activo %}success{% else %}secondary{% endif %}">
+                                    <span class="badge {% if recordatorio.activo %}badge-activo{% else %}badge-inactivo{% endif %}">
                                         {% if recordatorio.activo %}Activo{% else %}Inactivo{% endif %}
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="{% url 'moiraflow:editar_recordatorio' pk=recordatorio.pk %}" 
-                                       class="btn btn-sm btn-outline-primary">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <a href="{% url 'moiraflow:eliminar_recordatorio' pk=recordatorio.pk %}" 
-                                       class="btn btn-sm btn-outline-danger">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
+                                    <div class="action-buttons">
+                                        <a href="{% url 'moiraflow:editar_recordatorio' pk=recordatorio.pk %}"
+                                            class="btn btn-sm btn-moira-outline">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="{% url 'moiraflow:eliminar_recordatorio' pk=recordatorio.pk %}"
+                                            class="btn btn-sm btn-moira-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -52,9 +178,13 @@
                     </table>
                 </div>
             {% else %}
-                <div class="alert alert-info">
-                    No tienes recordatorios programados. 
-                    <a href="{% url 'moiraflow:crear_recordatorio' %}">Crea uno ahora</a>.
+                <div class="empty-state">
+                    <i class="bi bi-calendar-x fs-1 text-secondary mb-3"></i>
+                    <h4 class="mb-2">No tienes recordatorios programados</h4>
+                    <p class="text-muted mb-3">Crea un nuevo recordatorio para comenzar a organizar tus actividades.</p>
+                    <a href="{% url 'moiraflow:crear_recordatorio' %}" class="btn btn-moira">
+                        <i class="bi bi-plus-circle me-2"></i> Crear recordatorio
+                    </a>
                 </div>
             {% endif %}
         </div>
