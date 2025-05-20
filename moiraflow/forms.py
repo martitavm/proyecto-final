@@ -344,34 +344,36 @@ class RegistroDiarioForm(forms.ModelForm):
             label='Efectos del tratamiento'
         )
 
-        # Otros síntomas hormonales
-        sintomas_hormonales = {
-            'sensibilidad_pezon': 'Sensibilidad en pezones',
-            'cambios_libido': forms.ChoiceField(
-                choices=RegistroDiario.Libido.choices,
-                widget=forms.RadioSelect(),
-                required=False,
-                label='Cambios en la libido'
-            ),
-            'sofocos': forms.BooleanField(
-                required=False,
-                widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-                label='Sofocos'
-            ),
-            'cambios_piel': forms.CharField(
-                required=False,
-                widget=forms.TextInput(attrs={'class': 'form-control'}),
-                label='Cambios en la piel'
-            ),
-            'crecimiento_mamario': forms.BooleanField(
-                required=False,
-                widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-                label='Crecimiento mamario'
-            )
-        }
+        self.fields['sensibilidad_pezon'] = forms.BooleanField(
+            required=False,
+            widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            label='Sensibilidad en pezones'
+        )
 
-        for field_name, field in sintomas_hormonales.items():
-            self.fields[field_name] = field
+        self.fields['cambios_libido'] = forms.ChoiceField(
+            choices=RegistroDiario.Libido.choices,
+            widget=forms.RadioSelect(),
+            required=False,
+            label='Cambios en la libido'
+        )
+
+        self.fields['sofocos'] = forms.BooleanField(
+            required=False,
+            widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            label='Sofocos'
+        )
+
+        self.fields['cambios_piel'] = forms.CharField(
+            required=False,
+            widget=forms.TextInput(attrs={'class': 'form-control'}),
+            label='Cambios en la piel'
+        )
+
+        self.fields['crecimiento_mamario'] = forms.BooleanField(
+            required=False,
+            widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            label='Crecimiento mamario'
+        )
 
     def clean(self):
         cleaned_data = super().clean()

@@ -1,57 +1,257 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container">
-    <h2>Registro para {{ fecha|date:"d/m/Y" }}</h2>
+<div class="container py-4">
+    <div class="page-header mb-4" style="border-bottom: 3px solid #c23c54; padding-bottom: 10px;">
+        <h2 style="color: #c23c54; font-weight: bold;">Registro para {{ fecha|date:"d/m/Y" }}</h2>
+    </div>
 
-    {% if perfil.tipo_seguimiento == 'ciclo_menstrual' %}
-        {% if ciclo %}
-            <div class="alert alert-info">
-                <strong>Ciclo activo:</strong>
-                {{ ciclo.fecha_inicio|date:"d/m/Y" }} al {{ ciclo.fecha_fin|date:"d/m/Y" }}
-                (Fase actual: {{ ciclo.get_fase_actual_display }})
-            </div>
-        {% endif %}
-    {% elif perfil.tipo_seguimiento == 'tratamiento_hormonal' %}
-        {% if tratamiento_activo %}
-            <div class="alert alert-info">
-                <strong>Tratamiento activo:</strong>
-                {{ tratamiento_activo.nombre_tratamiento }}
-                ({{ tratamiento_activo.get_tipo_hormona_display }})
-            </div>
-        {% endif %}
-    {% endif %}
+    <!-- Sección de botones de acción -->
+    <div class="d-flex justify-content-between mb-4">
+        <a href="{% url 'moiraflow:calendario_mes' year=fecha.year month=fecha.month %}"
+           class="btn" style="background-color: #e4899c; color: #fff; border: none;">
+            <i class="fas fa-arrow-left me-1"></i> Volver al calendario
+        </a>
 
-    {% if registro %}
-        <div class="registro-info">
-            <!-- Mostrar campos relevantes según el tipo de seguimiento -->
-            {% if perfil.tipo_seguimiento == 'ciclo_menstrual' %}
-                {% if registro.es_dia_periodo %}
-                    <p>Día de período: Sí (Flujo: {{ registro.get_flujo_menstrual_display }})</p>
-                {% endif %}
-                <!-- Más campos menstruales -->
-            {% else %}
-                <p>Medicación tomada: {% if registro.medicacion_tomada %}Sí{% else %}No{% endif %}</p>
-                <!-- Más campos hormonales -->
+        <div>
+            <a href="{% url 'moiraflow:crear_recordatorio' %}"
+               class="btn me-2" style="background-color: #e4899c; color: #fff; border: none;">
+                <i class="fas fa-bell me-1"></i> Nuevo recordatorio
+            </a>
+            {% if not registro %}
+                <a href="{% url 'moiraflow:crear_registro' year=fecha.year month=fecha.month day=fecha.day %}"
+                   class="btn" style="background-color: #c23c54; color: #fff; border: none; font-weight: bold;">
+                    <i class="fas fa-plus me-1"></i> Crear registro
+                </a>
             {% endif %}
+        </div>
+    </div>
 
-            <div class="actions">
-                <a href="{% url 'moiraflow:editar_registro' pk=registro.pk %}" class="btn btn-primary">Editar</a>
-                <a href="{% url 'moiraflow:eliminar_registro' pk=registro.pk %}" class="btn btn-danger">Eliminar</a>
+    <!-- Sección de registro existente (MEJORADA) -->
+    {% if registro %}
+        <div class="card mb-4" style="border: 2px solid #c23c54; border-radius: 10px; box-shadow: 0 4px 8px rgba(194, 60, 84, 0.2);">
+            <div class="card-header" style="background-color: #c23c54; color: #fff; font-weight: bold; font-size: 1.2rem;">
+                <i class="fas fa-clipboard-list me-2"></i> REGISTRO DEL DÍA
+            </div>
+            <div class="card-body">
+                <!-- NUEVO: Contenido del registro con datos reales -->
+                <div class="row">
+                    <!-- Columna izquierda: Información general -->
+                    <div class="col-md-6">
+                        <h5 class="mb-3" style="color: #c23c54;"><i class="fas fa-heart me-2"></i>Estados de ánimo</h5>
+                        {% if registro.estados_animo %}
+                            <div class="mb-3">
+                                {% for estado in registro.estados_animo %}
+                                    <span class="badge bg-light text-dark me-1 mb-1" style="border: 1px solid #e4899c; padding: 6px 10px;">
+                                        {% if estado == 'FELIZ' %}<i class="far fa-smile me-1"></i>{% endif %}
+                                        {% if estado == 'TRISTE' %}<i class="far fa-frown me-1"></i>{% endif %}
+                                        {% if estado == 'IRRITABLE' %}<i class="far fa-angry me-1"></i>{% endif %}
+                                        {% if estado == 'ANSIOSA' %}<i class="far fa-tired me-1"></i>{% endif %}
+                                        {% if estado == 'NEUTRAL' %}<i class="far fa-meh me-1"></i>{% endif %}
+                                        {{ estado|title }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted"><small>No se registraron estados de ánimo.</small></p>
+                        {% endif %}
+
+                        <h5 class="mb-3 mt-4" style="color: #c23c54;"><i class="fas fa-heartbeat me-2"></i>Síntomas comunes</h5>
+                        {% if registro.sintomas_comunes %}
+                            <div class="mb-3">
+                                {% for sintoma in registro.sintomas_comunes %}
+                                    <span class="badge bg-light text-dark me-1 mb-1" style="border: 1px solid #e4899c; padding: 6px 10px;">
+                                        <i class="fas fa-check-circle me-1" style="color: #e4899c;"></i>{{ sintoma|title }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted"><small>No se registraron síntomas comunes.</small></p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Columna derecha: Información específica según tipo -->
+                    <div class="col-md-6">
+                        {% if registro.ciclo %}
+                            <!-- Datos específicos para seguimiento menstrual -->
+                            <h5 class="mb-3" style="color: #c23c54;"><i class="fas fa-calendar-alt me-2"></i>Ciclo menstrual</h5>
+
+                            <div class="mb-3">
+                                <p><strong>Día de período:</strong>
+                                    {% if registro.es_dia_periodo %}
+                                        <span class="badge bg-danger">Sí</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">No</span>
+                                    {% endif %}
+                                </p>
+
+                                {% if registro.es_dia_periodo %}
+                                    <p><strong>Flujo:</strong> {{ registro.get_flujo_menstrual_display|default:"No especificado" }}</p>
+                                    <p><strong>Color:</strong> {{ registro.get_color_flujo_display|default:"No especificado" }}</p>
+
+                                    <div class="mt-3">
+                                        <p class="mb-2"><strong>Síntomas específicos:</strong></p>
+                                        <div class="ms-3">
+                                            {% if registro.coagulos %}<p class="mb-1"><i class="fas fa-check text-danger me-2"></i>Coágulos</p>{% endif %}
+                                            {% if registro.senos_sensibles %}<p class="mb-1"><i class="fas fa-check text-danger me-2"></i>Sensibilidad en senos</p>{% endif %}
+                                            {% if registro.retencion_liquidos %}<p class="mb-1"><i class="fas fa-check text-danger me-2"></i>Retención de líquidos</p>{% endif %}
+                                            {% if registro.antojos %}<p class="mb-1"><i class="fas fa-check text-danger me-2"></i>Antojos</p>{% endif %}
+                                            {% if registro.acne %}<p class="mb-1"><i class="fas fa-check text-danger me-2"></i>Acné</p>{% endif %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        {% if registro.tratamiento %}
+                            <!-- Datos específicos para tratamiento hormonal -->
+                            <h5 class="mb-3" style="color: #c23c54;"><i class="fas fa-pills me-2"></i>Tratamiento hormonal</h5>
+
+                            <div class="mb-3">
+                                <p><strong>Medicación tomada:</strong>
+                                    {% if registro.medicacion_tomada %}
+                                        <span class="badge bg-success">Sí</span>
+                                        {% if registro.hora_medicacion %}
+                                            <small class="text-muted">a las {{ registro.hora_medicacion|time:"H:i" }}</small>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">No</span>
+                                    {% endif %}
+                                </p>
+
+                                {% if registro.efectos_tratamiento %}
+                                    <p class="mb-2"><strong>Efectos del tratamiento:</strong></p>
+                                    <div class="ms-3">
+                                        {% for efecto in registro.efectos_tratamiento %}
+                                            <p class="mb-1">
+                                                <i class="fas fa-check text-success me-2"></i>{{ efecto }}
+                                            </p>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+
+                                <div class="mt-3">
+                                    <p class="mb-2"><strong>Síntomas específicos:</strong></p>
+                                    <div class="ms-3">
+                                        {% if registro.sensibilidad_pezon %}<p class="mb-1"><i class="fas fa-check text-success me-2"></i>Sensibilidad en pezones</p>{% endif %}
+                                        {% if registro.cambios_libido %}<p class="mb-1"><i class="fas fa-check text-success me-2"></i>Cambios en libido: {{ registro.get_cambios_libido_display }}</p>{% endif %}
+                                        {% if registro.sofocos %}<p class="mb-1"><i class="fas fa-check text-success me-2"></i>Sofocos</p>{% endif %}
+                                        {% if registro.cambios_piel %}<p class="mb-1"><i class="fas fa-check text-success me-2"></i>Cambios en la piel: {{ registro.cambios_piel }}</p>{% endif %}
+                                        {% if registro.crecimiento_mamario %}<p class="mb-1"><i class="fas fa-check text-success me-2"></i>Crecimiento mamario</p>{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Notas de registro -->
+                {% if registro.notas %}
+                <div class="mt-4">
+                    <h5 style="color: #c23c54;"><i class="fas fa-sticky-note me-2"></i>Notas</h5>
+                    <div class="p-3 bg-light" style="border-radius: 8px; border-left: 4px solid #c23c54;">
+                        {{ registro.notas|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Acciones con botones -->
+                <div class="actions mt-4">
+                    <a href="{% url 'moiraflow:editar_registro' pk=registro.pk %}"
+                       class="btn" style="background-color: #fff; color: #c23c54; border: 1px solid #c23c54;">
+                        <i class="fas fa-edit me-1"></i> Editar
+                    </a>
+                    <a href="{% url 'moiraflow:eliminar_registro' pk=registro.pk %}"
+                       class="btn" style="background-color: #fff; color: #c23c54; border: 1px solid #c23c54;">
+                        <i class="fas fa-trash me-1"></i> Eliminar
+                    </a>
+                </div>
             </div>
         </div>
     {% else %}
-        <div class="no-registro">
-            <p>No hay registro para este día.</p>
-            <a href="{% url 'moiraflow:crear_registro' year=fecha.year month=fecha.month day=fecha.day %}"
-               class="btn btn-success">
-                Crear registro
-            </a>
+        <div class="card mb-4" style="border: 2px dashed #e4899c; border-radius: 10px; background-color: rgba(228, 137, 156, 0.05);">
+            <div class="card-body text-center py-4">
+                <h5 style="color: #c23c54;">No hay registro para este día</h5>
+                <p class="text-muted">Crea un nuevo registro para hacer seguimiento de tu día</p>
+                <a href="{% url 'moiraflow:crear_registro' year=fecha.year month=fecha.month day=fecha.day %}"
+                   class="btn btn-lg mt-2" style="background-color: #c23c54; color: #fff; border: none; font-weight: bold;">
+                    <i class="fas fa-plus-circle me-2"></i> Crear nuevo registro
+                </a>
+            </div>
         </div>
     {% endif %}
 
-    <a href="{% url 'moiraflow:calendario' year=fecha.year month=fecha.month %}" class="btn btn-secondary">
-        Volver al calendario
-    </a>
+    <!-- Sección de recordatorios del día -->
+    <div class="card" style="border-radius: 10px; border: 1px solid #e4899c; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+        <div class="card-header" style="background-color: #e4899c; color: #fff; border-radius: 10px 10px 0 0;">
+            <h5 class="mb-0">
+                <i class="fas fa-bell me-2"></i> Recordatorios para este día
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if recordatorios %}
+                <ul class="list-group" style="border-radius: 8px;">
+                    {% for recordatorio in recordatorios %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center recordatorio-item" style="border-left: 4px solid #e4899c; margin-bottom: 8px; border-radius: 4px;">
+                            <div>
+                                <strong style="color: #c23c54;">{{ recordatorio.titulo }}</strong>
+                                <small class="d-block text-muted">
+                                    <i class="far fa-clock me-1"></i>{{ recordatorio.hora|default:"Sin hora específica" }}
+                                </small>
+                            </div>
+                            <div>
+                                <a href="{% url 'moiraflow:editar_recordatorio' pk=recordatorio.pk %}"
+                                   class="btn btn-sm me-1" style="background-color: #fff; color: #c23c54; border: 1px solid #c23c54;">
+                                    <i class="fas fa-edit"></i> Editar
+                                </a>
+                                <a href="{% url 'moiraflow:eliminar_recordatorio' pk=recordatorio.pk %}"
+                                   class="btn btn-sm" style="background-color: #fff; color: #c23c54; border: 1px solid #c23c54;">
+                                    <i class="fas fa-trash"></i> Eliminar
+                                </a>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="text-center py-3">
+                    <p class="text-muted"><i class="far fa-bell-slash me-2"></i>No hay recordatorios para este día.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
+
+<style>
+    .btn {
+        border-radius: 6px;
+        padding: 8px 16px;
+        transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .recordatorio-item {
+        transition: all 0.3s ease;
+    }
+
+    .recordatorio-item:hover {
+        background-color: rgba(228, 137, 156, 0.05);
+    }
+
+    .card {
+        transition: all 0.3s ease;
+    }
+
+    .card:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+
+    /* Animación sutil para los botones */
+    .btn:active {
+        transform: translateY(1px);
+    }
+</style>
 {% endblock %}

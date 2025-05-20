@@ -21,7 +21,8 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 from django.contrib.auth.decorators import login_required
-
+from django.db.models import F, Func, Value, IntegerField
+from django.db.models.functions import Mod
 
 # moiraflow/views.py
 class PaginaPrincipalView(TemplateView):  # Elimina LoginRequiredMixin
@@ -330,8 +331,23 @@ class RegistrosDiaView(LoginRequiredMixin, TemplateView):
         # Obtener recordatorios para esta fecha
         recordatorios = Recordatorio.objects.filter(
             usuario=self.request.user,
-            fecha_inicio=fecha
+            activo=True
+        ).filter(
+            Q(fecha_inicio=fecha) |  # Recordatorios no recurrentes (dias_frecuencia = 0)
+            Q(dias_frecuencia__gt=0,  # Recordatorios recurrentes
+              fecha_inicio__lte=fecha)
         )
+
+        # Filtrar recordatorios recurrentes que caen en esta fecha
+        recordatorios_validos = []
+        for recordatorio in recordatorios:
+            if recordatorio.dias_frecuencia > 0:  # Es recurrente
+                # Calcular si esta fecha está en la secuencia recurrente
+                delta = (fecha - recordatorio.fecha_inicio).days
+                if delta >= 0 and delta % recordatorio.dias_frecuencia == 0:
+                    recordatorios_validos.append(recordatorio)
+            else:  # No es recurrente
+                recordatorios_validos.append(recordatorio)
 
         ciclo = None
         tratamiento_activo = None
@@ -727,7 +743,7 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from datetime import datetime
-from django.db.models import Q
+from django.db.models import Q, Func, F, IntegerField
 from .models import RegistroDiario
 
 

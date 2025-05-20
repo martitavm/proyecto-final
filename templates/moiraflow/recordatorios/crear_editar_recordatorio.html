@@ -1,105 +1,276 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<style>
+  :root {
+    --primary-color: #c23c54;
+    --secondary-color: #e4899c;
+    --light-color: #fff;
+    --hover-color: #aa324a;
+    --form-bg: rgba(228, 137, 156, 0.05);
+  }
+
+  .recordatorio-header {
+    background-color: var(--primary-color);
+    color: var(--light-color);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 12px rgba(194, 60, 84, 0.15);
+  }
+
+  .recordatorio-card {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+  }
+
+  .btn-moira {
+    background-color: var(--primary-color);
+    color: var(--light-color);
+    border: none;
+    padding: 0.5rem 1.2rem;
+    transition: all 0.3s ease;
+  }
+
+  .btn-moira:hover {
+    background-color: var(--hover-color);
+    color: var(--light-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(194, 60, 84, 0.2);
+  }
+
+  .btn-secondary {
+    background-color: #6c757d;
+    border: none;
+    transition: all 0.3s ease;
+  }
+
+  .btn-secondary:hover {
+    background-color: #5a6268;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .form-label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-control:focus,
+  .form-select:focus {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 0.25rem rgba(228, 137, 156, 0.25);
+  }
+
+  .form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+
+  .form-switch .form-check-input:focus {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23c23c54'/%3e%3c/svg%3e");
+    box-shadow: 0 0 0 0.25rem rgba(194, 60, 84, 0.25);
+  }
+
+  .form-control,
+  .form-select {
+    padding: 0.6rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    transition: all 0.15s ease-in-out;
+  }
+
+  .form-control:hover,
+  .form-select:hover {
+    border-color: var(--secondary-color);
+  }
+
+  .invalid-feedback {
+    color: var(--primary-color);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+  }
+
+  .form-fields-section {
+    background-color: var(--form-bg);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-section-title {
+    color: var(--primary-color);
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+  }
+
+  .form-section-title i {
+    margin-right: 0.5rem;
+  }
+
+  .form-text {
+    color: #6c757d;
+  }
+
+  .form-check-label {
+    font-weight: 500;
+  }
+
+  /* Estilos para los switches */
+  .switches-container {
+    background-color: rgba(228, 137, 156, 0.1);
+    border-radius: 8px;
+    padding: 1rem;
+  }
+
+  .switch-label {
+    display: flex;
+    align-items: center;
+  }
+
+  .switch-label i {
+    margin-right: 0.5rem;
+    color: var(--primary-color);
+  }
+</style>
+
 <div class="container mt-4">
-    <h2>{% if object %}Editar{% else %}Crear{% endif %} Recordatorio</h2>
-    
-    <div class="card">
-        <div class="card-body">
+    <div class="recordatorio-header">
+        <h2 class="m-0">
+            <i class="bi bi-{% if object %}pencil-square{% else %}plus-circle{% endif %} me-2"></i>
+            {% if object %}Editar{% else %}Crear{% endif %} Recordatorio
+        </h2>
+    </div>
+
+    <div class="recordatorio-card card">
+        <div class="card-body p-4">
             <form method="post">
                 {% csrf_token %}
-                
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="id_titulo" class="form-label">Título*</label>
-                        {{ form.titulo }}
-                        {% if form.titulo.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ form.titulo.errors.0 }}
-                            </div>
-                        {% endif %}
+
+                <div class="form-fields-section">
+                    <div class="form-section-title">
+                        <i class="bi bi-info-circle"></i> Información Básica
                     </div>
-                    <div class="col-md-6">
-                        <label for="id_tipo" class="form-label">Tipo*</label>
-                        {{ form.tipo }}
-                        {% if form.tipo.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ form.tipo.errors.0 }}
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="id_fecha_inicio" class="form-label">Fecha*</label>
-                        {{ form.fecha_inicio }}
-                        {% if form.fecha_inicio.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ form.fecha_inicio.errors.0 }}
-                            </div>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-6">
-                        <label for="id_hora" class="form-label">Hora (opcional)</label>
-                        {{ form.hora }}
-                        {% if form.hora.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ form.hora.errors.0 }}
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <div class="row mb-3">
-                    <div class="col-md-12">
-                        <label for="id_descripcion" class="form-label">Descripción (opcional)</label>
-                        {{ form.descripcion }}
-                        {% if form.descripcion.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ form.descripcion.errors.0 }}
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label for="id_dias_frecuencia" class="form-label">Frecuencia (días)*</label>
-                        {{ form.dias_frecuencia }}
-                        <small class="form-text text-muted">0 para eventos únicos</small>
-                        {% if form.dias_frecuencia.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ form.dias_frecuencia.errors.0 }}
-                            </div>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-4">
-                        <label for="id_dias_antelacion" class="form-label">Notificar con (días de antelación)*</label>
-                        {{ form.dias_antelacion }}
-                        {% if form.dias_antelacion.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ form.dias_antelacion.errors.0 }}
-                            </div>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-check form-switch mt-4 pt-2">
-                            {{ form.notificar }}
-                            <label class="form-check-label" for="id_notificar">Notificar</label>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="id_titulo" class="form-label">Título*</label>
+                            {{ form.titulo }}
+                            {% if form.titulo.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.titulo.errors.0 }}
+                                </div>
+                            {% endif %}
                         </div>
-                        <div class="form-check form-switch mt-2">
-                            {{ form.activo }}
-                            <label class="form-check-label" for="id_activo">Activo</label>
+                        <div class="col-md-6">
+                            <label for="id_tipo" class="form-label">Tipo*</label>
+                            {{ form.tipo }}
+                            {% if form.tipo.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.tipo.errors.0 }}
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
-                
-                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+
+                <div class="form-fields-section">
+                    <div class="form-section-title">
+                        <i class="bi bi-calendar-event"></i> Programación
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="id_fecha_inicio" class="form-label">Fecha*</label>
+                            {{ form.fecha_inicio }}
+                            {% if form.fecha_inicio.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.fecha_inicio.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_hora" class="form-label">Hora (opcional)</label>
+                            {{ form.hora }}
+                            {% if form.hora.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.hora.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-fields-section">
+                    <div class="form-section-title">
+                        <i class="bi bi-card-text"></i> Detalles
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="id_descripcion" class="form-label">Descripción (opcional)</label>
+                            {{ form.descripcion }}
+                            {% if form.descripcion.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.descripcion.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-fields-section">
+                    <div class="form-section-title">
+                        <i class="bi bi-bell"></i> Frecuencia y Notificaciones
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="id_dias_frecuencia" class="form-label">Frecuencia (días)*</label>
+                            {{ form.dias_frecuencia }}
+                            <small class="form-text text-muted">0 para eventos únicos</small>
+                            {% if form.dias_frecuencia.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.dias_frecuencia.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="id_dias_antelacion" class="form-label">Notificar con (días de antelación)*</label>
+                            {{ form.dias_antelacion }}
+                            {% if form.dias_antelacion.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.dias_antelacion.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <div class="switches-container">
+                                <div class="form-check form-switch mb-3">
+                                    {{ form.notificar }}
+                                    <label class="form-check-label switch-label" for="id_notificar">
+                                        <i class="bi bi-envelope"></i> Notificar
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    {{ form.activo }}
+                                    <label class="form-check-label switch-label" for="id_activo">
+                                        <i class="bi bi-toggle-on"></i> Activo
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
                     <a href="{% url 'moiraflow:lista_recordatorios' %}" class="btn btn-secondary me-md-2">
-                        Cancelar
+                        <i class="bi bi-x-circle me-1"></i> Cancelar
                     </a>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-moira">
+                        <i class="bi bi-{% if object %}save{% else %}check-circle{% endif %} me-1"></i>
                         {% if object %}Actualizar{% else %}Crear{% endif %}
                     </button>
                 </div>
@@ -110,9 +281,23 @@
 
 <script>
 $(document).ready(function() {
-    // Inicializar datepicker y timepicker si es necesario
+    // Inicializar datepicker y timepicker
     $('#id_fecha_inicio').attr('type', 'date');
     $('#id_hora').attr('type', 'time');
+
+    // Añadir clases de Bootstrap a los input generados por Django
+    $('#id_titulo').addClass('form-control');
+    $('#id_tipo').addClass('form-select');
+    $('#id_fecha_inicio').addClass('form-control');
+    $('#id_hora').addClass('form-control');
+    $('#id_descripcion').addClass('form-control');
+    $('#id_dias_frecuencia').addClass('form-control');
+    $('#id_dias_antelacion').addClass('form-control');
+    $('#id_notificar').addClass('form-check-input');
+    $('#id_activo').addClass('form-check-input');
+
+    // Mejorar el aspecto del textarea
+    $('#id_descripcion').attr('rows', '4');
 });
 </script>
 {% endblock %}

@@ -2,61 +2,78 @@
 
 {% block content %}
     <div class="calendar-container">
-        <div class="calendar-header">
-            <a href="{{ url_anterior }}" class="nav-link">← Anterior</a>
-            <h2>{{ month_name }} {{ year }}</h2>
-            <a href="{{ url_siguiente }}" class="nav-link">Siguiente →</a>
+        <div class="calendar-controls">
+            <a href="{{ url_anterior }}" class="calendar-nav-link">← Anterior</a>
+            <h2 class="month-title">{{ month_name }} {{ year }}</h2>
+            <a href="{{ url_siguiente }}" class="calendar-nav-link">Siguiente →</a>
         </div>
 
-        <table class="calendar-table">
-            <thead>
-            <tr>
-                <th>Lun</th>
-                <th>Mar</th>
-                <th>Mié</th>
-                <th>Jue</th>
-                <th>Vie</th>
-                <th>Sáb</th>
-                <th>Dom</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for week in weeks %}
+        <div class="calendar-table-container">
+            <table class="calendar-table">
+                <thead>
                 <tr>
-                    {% for day in week %}
-                        <td class="{% if not day %}empty{% endif %} {% if day.date == today %}today{% endif %}">
-                            {% if day %}
-                                <div class="day-header">
-                                    <a href="{% url 'moiraflow:registros_dia' year=day.date.year month=day.date.month day=day.day %}"
-                                       class="day-number {% if day.registros %}has-records{% endif %}">
-                                        {{ day.day }}
-                                    </a>
-                                </div>
-                                <div class="day-records">
-                                    {% for registro in day.registros %}
-                                        <div class="record-badge {{ registro.css_class }}"
-                                             title="{{ registro.resumen }}">
-                                            {{ registro.get_icono }}
+                    <th>Lun</th>
+                    <th>Mar</th>
+                    <th>Mié</th>
+                    <th>Jue</th>
+                    <th>Vie</th>
+                    <th>Sáb</th>
+                    <th>Dom</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for week in weeks %}
+                    <tr>
+                        {% for day in week %}
+                            <td class="{% if not day %}empty{% endif %} {% if day.date == today %}today{% endif %}">
+                                {% if day %}
+                                    <div class="cell-content">
+                                        <div class="day-header">
+                                            <a href="{% url 'moiraflow:registros_dia' year=day.date.year month=day.date.month day=day.day %}"
+                                               class="day-number {% if day.registros %}has-records{% endif %}">
+                                                {{ day.day }}
+                                            </a>
                                         </div>
-                                    {% endfor %}
-                                </div>
-                                {% if day.recordatorios %}
-                                    <div class="day-reminders">
-                                        {% for recordatorio in day.recordatorios %}
-                                            <div class="reminder-badge" title="{{ recordatorio.titulo }}">
-                                                <i class="bi bi-{% if recordatorio.tipo == 'medicacion' %}capsule{% else %}calendar-event{% endif %}"></i>
+                                        <div class="day-content">
+                                            <div class="day-records">
+                                                {% for registro in day.registros %}
+                                                    <div class="record-badge {{ registro.css_class }}"
+                                                         title="{{ registro.resumen }}">
+                                                        {% if registro.css_class == 'menstrual' %}
+                                                            <i class="bi bi-droplet-fill"></i>
+                                                        {% elif registro.css_class == 'folicular' %}
+                                                            <i class="bi bi-flower1"></i>
+                                                        {% elif registro.css_class == 'ovulacion' %}
+                                                            <i class="bi bi-egg-fill"></i>
+                                                        {% elif registro.css_class == 'lutea' %}
+                                                            <i class="bi bi-moon-stars-fill"></i>
+                                                        {% elif registro.css_class == 'hormonal' %}
+                                                            <i class="bi bi-activity"></i>
+                                                        {% else %}
+                                                            <i class="bi bi-journal-text"></i>
+                                                        {% endif %}
+                                                    </div>
+                                                {% endfor %}
                                             </div>
-                                        {% endfor %}
+                                            {% if day.recordatorios %}
+                                                <div class="day-reminders">
+                                                    {% for recordatorio in day.recordatorios %}
+                                                        <div class="reminder-badge" title="{{ recordatorio.titulo }}">
+                                                            <i class="bi bi-{% if recordatorio.tipo == 'medicacion' %}capsule{% else %}calendar-event{% endif %}"></i>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 {% endif %}
-                            {% endif %}
-                        </td>
-                    {% endfor %}
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
     <div class="symptoms-chart-container">
         <h3>Estadísticas de Síntomas</h3>
@@ -65,22 +82,28 @@
         </div>
     </div>
 
-    <div class="calendar-legend">
-        <div>Menstruación</div>
-        <div>Fase Folicular</div>
-        <div>Ovulación</div>
-        <div>Fase Lútea</div>
-        <div>Tratamiento</div>
-    </div>
+     </div>
 
     <!-- Incluir Chart.js y jQuery para AJAX -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 
     <script>
         $(document).ready(function () {
             const year = {{ year }};
             const month = {{ month }};
+
+            // Función para mantener celdas cuadradas
+            function maintainSquareCells() {
+                const cellWidth = $('.calendar-table td').width();
+                $('.calendar-table td').css('height', cellWidth + 'px');
+            }
+
+            // Llamar inicialmente y en cada redimensión
+            maintainSquareCells();
+            $(window).resize(maintainSquareCells);
 
             // Obtener datos de la API
             $.ajax({
@@ -107,15 +130,16 @@
             function renderChart(data) {
                 const ctx = document.getElementById('symptomsChart').getContext('2d');
 
-                // Colores más atractivos para las barras
+                // Colores para las barras basados en nuestra paleta
+                const primaryColor = '#c23c54';
+                const secondaryColor = '#e4899c';
                 const backgroundColors = data.map((_, i) => {
-                    const hue = (i * 30) % 360; // Variar el tono para cada síntoma
-                    return `hsla(${hue}, 70%, 60%, 0.7)`;
+                    // Alternar entre tonos derivados de nuestra paleta
+                    return i % 2 === 0 ? primaryColor + 'cc' : secondaryColor + 'cc'; // cc = 80% opacidad
                 });
 
                 const borderColors = data.map((_, i) => {
-                    const hue = (i * 30) % 360;
-                    return `hsla(${hue}, 70%, 40%, 1)`;
+                    return i % 2 === 0 ? primaryColor : secondaryColor;
                 });
 
                 // Preparar datos para el gráfico
@@ -132,8 +156,8 @@
                             backgroundColor: backgroundColors,
                             borderColor: borderColors,
                             borderWidth: 2,
-                            borderRadius: 6, // Bordes redondeados en las barras
-                            borderSkipped: false // Aplicar bordes redondeados a todos los lados
+                            borderRadius: 8,
+                            borderSkipped: false
                         }]
                     },
                     options: {
@@ -144,12 +168,21 @@
                                 display: false
                             },
                             tooltip: {
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                backgroundColor: 'rgba(194, 60, 84, 0.9)',
                                 titleColor: '#ffffff',
                                 bodyColor: '#ffffff',
-                                borderColor: 'rgba(255, 255, 255, 0.1)',
+                                borderColor: 'rgba(255, 255, 255, 0.2)',
                                 borderWidth: 1,
                                 padding: 12,
+                                titleFont: {
+                                    family: "'Montserrat', sans-serif",
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                bodyFont: {
+                                    family: "'Montserrat', sans-serif",
+                                    size: 13
+                                },
                                 callbacks: {
                                     label: function (context) {
                                         return ` ${context.raw} día${context.raw !== 1 ? 's' : ''}`;
@@ -162,19 +195,24 @@
                                 beginAtZero: true,
                                 max: 31,
                                 grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)',
+                                    color: 'rgba(194, 60, 84, 0.08)',
                                     drawBorder: false
                                 },
                                 ticks: {
-                                    color: '#666',
+                                    color: '#888',
+                                    font: {
+                                        family: "'Montserrat', sans-serif"
+                                    },
                                     stepSize: 5
                                 },
                                 title: {
                                     display: true,
                                     text: 'Días con síntomas',
-                                    color: '#666',
+                                    color: '#c23c54',
                                     font: {
-                                        weight: 'bold'
+                                        family: "'Montserrat', sans-serif",
+                                        weight: 'bold',
+                                        size: 13
                                     }
                                 }
                             },
@@ -186,21 +224,24 @@
                                 ticks: {
                                     color: '#666',
                                     font: {
+                                        family: "'Montserrat', sans-serif",
                                         size: 12
                                     }
                                 },
                                 title: {
                                     display: true,
                                     text: 'Síntomas',
-                                    color: '#666',
+                                    color: '#c23c54',
                                     font: {
-                                        weight: 'bold'
+                                        family: "'Montserrat', sans-serif",
+                                        weight: 'bold',
+                                        size: 13
                                     }
                                 }
                             }
                         },
                         animation: {
-                            duration: 1000,
+                            duration: 1200,
                             easing: 'easeOutQuart'
                         }
                     }
@@ -210,109 +251,225 @@
     </script>
 
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
         .calendar-container {
             max-width: 900px;
             margin: 2rem auto;
-            padding: 1rem;
+            padding: 1.5rem;
+            background: #fff;
+            border-radius: 16px;
+
+            font-family: 'Montserrat', sans-serif;
         }
 
-        .calendar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        /* Asegura que el contenedor mantenga la altura uniforme de la tabla */
+        .calendar-table-container {
+            overflow: hidden; /* Evita desbordes */
             margin-bottom: 1.5rem;
         }
 
+        .calendar-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.8rem;
+            padding: 1rem 1.5rem;
+            background: #fff;
+            border-radius: 12px;
+
+        }
+
+        .month-title {
+            color: #c23c54;
+            font-weight: 600;
+            font-size: 1.6rem;
+            margin: 0;
+            text-transform: capitalize;
+        }
+
+        .calendar-nav-link {
+            padding: 0.7rem 1.3rem;
+            background: #c23c54;
+            color: white !important;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: 0 3px 8px rgba(194, 60, 84, 0.2);
+        }
+
+        .calendar-nav-link:hover {
+            background: #b02a43;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 12px rgba(194, 60, 84, 0.3);
+        }
+
+        /* Estilo para asegurar tamaño uniforme de celdas */
         .calendar-table {
+            table-layout: fixed; /* Fuerza a que todas las celdas tengan el mismo ancho */
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 4px;
+            margin-top: 1rem;
         }
 
         .calendar-table th {
-            padding: 0.5rem;
+            width: 14.285%; /* Exactamente 1/7 del ancho total */
+            padding: 0.8rem 0.4rem;
             text-align: center;
-            background: #f8f9fa;
+            background: #fdf4f6;
+            color: #c23c54;
+            font-weight: 600;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
         }
 
+        /* Configuración para celdas cuadradas */
         .calendar-table td {
-            height: 100px;
+            width: 14.285%; /* Exactamente 1/7 del ancho total */
+            position: relative; /* Esencial para posicionar el contenido */
+            padding: 0; /* Eliminar padding para que el padding-top del pseudo-elemento sea el que defina el tamaño */
+            border: none;
+            border-radius: 10px;
+            background: #fafafa;
+            transition: all 0.2s ease;
             vertical-align: top;
-            padding: 0.5rem;
-            border: 1px solid #dee2e6;
         }
 
-        .calendar-table td.empty {
-            background: #f8f9fa;
+        .calendar-table td:before {
+            content: "";
+            display: block;
+            padding-top: 100%; /* Esto fuerza la relación de aspecto 1:1 */
         }
 
+        /* Contenido de la celda */
+        .cell-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 0.8rem;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Ajustes para la cabecera del día */
         .day-header {
             text-align: right;
             margin-bottom: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        /* Nuevo contenedor para el contenido del día (registros y recordatorios) */
+        .day-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end; /* Alinea el contenido en la parte inferior */
+            flex-grow: 1; /* Ocupa el espacio restante */
+            margin-top: auto; /* Empuja el contenido hacia abajo */
+        }
+
+        /* Estilos para los registros del día */
+        .day-records {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: center; /* Centrar los registros horizontalmente */
+            margin-bottom: 5px;
+        }
+
+        /* Estilos para los recordatorios */
+        .day-reminders {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: center; /* Centrar los recordatorios horizontalmente */
         }
 
         .day-number {
             display: inline-block;
-            width: 24px;
-            height: 24px;
-            line-height: 24px;
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
             text-align: center;
             border-radius: 50%;
             text-decoration: none;
-            color: #212529;
-        }
-
-        .day-number.has-records {
-            background: #4dabf7;
-            color: white;
+            color: #444;
+            font-weight: 500;
+            transition: all 0.2s ease;
         }
 
         .day-number:hover {
-            background: #339af0;
+            background: #e4899c;
             color: white;
+            transform: scale(1.1);
         }
 
-        .day-records {
-            min-height: 60px;
+        .day-number.has-records {
+            background: #c23c54;
+            color: white;
+            font-weight: 600;
         }
 
-        .record-badge {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            line-height: 24px;
-            text-align: center;
-            border-radius: 50%;
-            margin: 2px;
-            font-size: 12px;
-            cursor: default;
+        .today {
+            background: #fff6f8 !important;
+            border: 2px solid #e4899c;
         }
 
         .today .day-number {
-            background: #ff6b6b;
+            background: #e4899c;
             color: white;
-            font-weight: bold;
+            font-weight: 600;
         }
 
         /* Estilos para los tipos de registros */
-        .menstrual {
-            background: #ff6b6b;
-            color: white;
+        .record-badge {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
+            text-align: center;
+            border-radius: 50%;
+            margin: 2px;
+            font-size: 13px;
+            cursor: default;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+            background-color: #e4899c;
         }
 
-        .folicular {
-            background: #a5d8ff;
+        .record-badge:hover {
+            transform: scale(1.15);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
         }
 
-        .ovulacion {
-            background: #ffd8a8;
+        .reminder-badge {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 26px;
+            height: 26px;
+            line-height: 26px;
+            text-align: center;
+            border-radius: 50%;
+            background: #fde8ec;
+            color: #c23c54;
+            margin: 2px;
+            font-size: 12px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+            transition: all 0.2s ease;
         }
 
-        .lutea {
-            background: #ffdeeb;
-        }
-
-        .hormonal {
-            background: #d8f5a2;
+        .reminder-badge:hover {
+            transform: scale(1.15);
+            background: #fbdce3;
         }
 
         /* Leyenda */
@@ -320,26 +477,61 @@
             display: flex;
             justify-content: center;
             flex-wrap: wrap;
-            gap: 1.5rem;
-            margin-top: 2rem;
+            gap: 1.8rem;
+            margin: 2.5rem auto;
+            padding: 1rem;
+            max-width: 900px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(194, 60, 84, 0.08);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
             font-size: 0.9rem;
             color: #555;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .legend-color {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            margin-right: 8px;
         }
 
         .symptoms-chart-container {
             max-width: 900px;
-            margin: 2rem auto;
-            padding: 1.5rem;
+            margin: 2.5rem auto;
+            padding: 1.8rem;
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(194, 60, 84, 0.1);
+            font-family: 'Montserrat', sans-serif;
         }
 
         .symptoms-chart-container h3 {
             text-align: center;
-            margin-bottom: 1.5rem;
-            color: #444;
+            margin-bottom: 2rem;
+            color: #c23c54;
             font-weight: 600;
+            font-size: 1.4rem;
+            position: relative;
+            padding-bottom: 0.8rem;
+        }
+
+        .symptoms-chart-container h3::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: #e4899c;
+            border-radius: 2px;
         }
 
         .chart-container {
@@ -352,6 +544,45 @@
         .disabled {
             pointer-events: none;
             opacity: 0.5;
+        }
+
+        /* Estilos para el alert de error */
+        .alert-danger {
+            background-color: #fff2f5;
+            color: #c23c54;
+            border: 1px solid #e4899c;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        /* Media query para dispositivos móviles */
+        @media (max-width: 768px) {
+            .cell-content {
+                padding: 0.4rem;
+            }
+
+            .record-badge, .reminder-badge {
+                width: 22px;
+                height: 22px;
+                font-size: 11px;
+            }
+
+            .day-number {
+                width: 24px;
+                height: 24px;
+                line-height: 24px;
+                font-size: 12px;
+            }
+
+            .month-title {
+                font-size: 1.2rem;
+            }
+
+            .calendar-nav-link {
+                padding: 0.5rem 0.8rem;
+                font-size: 0.9rem;
+            }
         }
     </style>
 {% endblock %}

@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>{{ object|yesno:"Editar registro,Crear nuevo registro" }}</h2>
+    <h2 class="mb-4">{{ object|yesno:"Editar registro,Crear nuevo registro" }}</h2>
 
     <form method="post" class="needs-validation" novalidate>
         {% csrf_token %}
@@ -21,12 +21,12 @@
         {% endif %}
 
         <!-- Campos comunes -->
-        <div class="card mb-4">
-            <div class="card-header">Estado de ánimo y síntomas</div>
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-header text-white" style="background-color: #c23c54;">Estado de ánimo y síntomas</div>
             <div class="card-body">
                 <!-- Estados de ánimo -->
-                <div class="mb-3">
-                    <label class="form-label">Estados de ánimo</label>
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Estados de ánimo</label>
                     <div class="form-check-group">
                         {% for choice in form.estados_animo.field.choices %}
                         <div class="form-check">
@@ -44,8 +44,8 @@
                 </div>
 
                 <!-- Síntomas comunes -->
-                <div class="mb-3">
-                    <label class="form-label">Síntomas comunes</label>
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Síntomas comunes</label>
                     <div class="form-check-group">
                         {% for choice in form.sintomas_comunes.field.choices %}
                         <div class="form-check">
@@ -64,32 +64,35 @@
 
                 <!-- Notas -->
                 <div class="mb-3">
-                    <label for="{{ form.notas.id_for_label }}" class="form-label">Notas</label>
+                    <label for="{{ form.notas.id_for_label }}" class="form-label fw-bold">Notas</label>
                     {{ form.notas }}
                 </div>
             </div>
         </div>
 
-        <!-- SECCIÓN DE CICLO MENSTRUAL - Siempre mostraremos esta sección si los campos existen -->
+        <!-- SECCIÓN DE CICLO MENSTRUAL -->
         {% if 'es_dia_periodo' in form.fields or 'senos_sensibles' in form.fields or 'retencion_liquidos' in form.fields or 'antojos' in form.fields or 'acne' in form.fields %}
-        <div class="card mb-4">
-            <div class="card-header">Datos del ciclo menstrual</div>
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-header text-white" style="background-color: #c23c54;">Datos del ciclo menstrual</div>
             <div class="card-body">
                 <!-- Campo principal que controla la visibilidad -->
                 {% if 'es_dia_periodo' in form.fields %}
                 <div class="mb-3 form-check form-switch">
-                    {{ form.es_dia_periodo }}
-                    <label class="form-check-label" for="{{ form.es_dia_periodo.id_for_label }}">
-                        <strong>¿Es día de período?</strong>
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="{{ form.es_dia_periodo.id_for_label }}"
+                           name="{{ form.es_dia_periodo.name }}"
+                           {% if form.es_dia_periodo.value %}checked{% endif %}>
+                    <label class="form-check-label fw-bold" for="{{ form.es_dia_periodo.id_for_label }}">
+                        ¿Es día de período?
                     </label>
                 </div>
 
                 <!-- Campos condicionales - inicialmente ocultos -->
-                <div id="periodo-fields" style="display: {% if form.es_dia_periodo.value %}block{% else %}none{% endif %};">
+                <div id="periodo-fields" class="periodo-fields" style="display: {% if form.es_dia_periodo.value %}block{% else %}none{% endif %};">
                     <!-- Flujo menstrual -->
                     {% if 'flujo_menstrual' in form.fields %}
                     <div class="mb-3">
-                        <label class="form-label">Flujo menstrual</label>
+                        <label class="form-label fw-bold">Flujo menstrual</label>
                         {% for choice in form.flujo_menstrual.field.choices %}
                         <div class="form-check">
                             <input class="form-check-input" type="radio"
@@ -108,7 +111,7 @@
                     <!-- Color del flujo -->
                     {% if 'color_flujo' in form.fields %}
                     <div class="mb-3">
-                        <label class="form-label">Color del flujo</label>
+                        <label class="form-label fw-bold">Color del flujo</label>
                         {% for choice in form.color_flujo.field.choices %}
                         <div class="form-check">
                             <input class="form-check-input" type="radio"
@@ -127,7 +130,10 @@
                     <!-- Síntomas adicionales -->
                     {% if 'coagulos' in form.fields %}
                     <div class="mb-3 form-check form-switch">
-                        {{ form.coagulos }}
+                        <input class="form-check-input" type="checkbox" role="switch"
+                               id="{{ form.coagulos.id_for_label }}"
+                               name="{{ form.coagulos.name }}"
+                               {% if form.coagulos.value %}checked{% endif %}>
                         <label class="form-check-label" for="{{ form.coagulos.id_for_label }}">
                             ¿Coágulos?
                         </label>
@@ -139,7 +145,10 @@
                 <!-- Otros síntomas del ciclo (siempre visibles) -->
                 {% if 'senos_sensibles' in form.fields %}
                 <div class="mb-3 form-check form-switch">
-                    {{ form.senos_sensibles }}
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="{{ form.senos_sensibles.id_for_label }}"
+                           name="{{ form.senos_sensibles.name }}"
+                           {% if form.senos_sensibles.value %}checked{% endif %}>
                     <label class="form-check-label" for="{{ form.senos_sensibles.id_for_label }}">
                         Sensibilidad en senos
                     </label>
@@ -148,7 +157,10 @@
 
                 {% if 'retencion_liquidos' in form.fields %}
                 <div class="mb-3 form-check form-switch">
-                    {{ form.retencion_liquidos }}
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="{{ form.retencion_liquidos.id_for_label }}"
+                           name="{{ form.retencion_liquidos.name }}"
+                           {% if form.retencion_liquidos.value %}checked{% endif %}>
                     <label class="form-check-label" for="{{ form.retencion_liquidos.id_for_label }}">
                         Retención de líquidos
                     </label>
@@ -157,7 +169,10 @@
 
                 {% if 'antojos' in form.fields %}
                 <div class="mb-3 form-check form-switch">
-                    {{ form.antojos }}
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="{{ form.antojos.id_for_label }}"
+                           name="{{ form.antojos.name }}"
+                           {% if form.antojos.value %}checked{% endif %}>
                     <label class="form-check-label" for="{{ form.antojos.id_for_label }}">
                         Antojos
                     </label>
@@ -166,7 +181,10 @@
 
                 {% if 'acne' in form.fields %}
                 <div class="mb-3 form-check form-switch">
-                    {{ form.acne }}
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="{{ form.acne.id_for_label }}"
+                           name="{{ form.acne.name }}"
+                           {% if form.acne.value %}checked{% endif %}>
                     <label class="form-check-label" for="{{ form.acne.id_for_label }}">
                         Acné
                     </label>
@@ -176,32 +194,38 @@
         </div>
         {% endif %}
 
-        <!-- SECCIÓN DE TRATAMIENTO HORMONAL - Siempre mostraremos esta sección si los campos existen -->
+        <!-- SECCIÓN DE TRATAMIENTO HORMONAL -->
         {% if 'medicacion_tomada' in form.fields or 'hora_medicacion' in form.fields or 'efectos_tratamiento' in form.fields %}
-        <div class="card mb-4">
-            <div class="card-header">Datos del tratamiento hormonal</div>
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-header text-white" style="background-color: #c23c54;">Datos del tratamiento hormonal</div>
             <div class="card-body">
                 <!-- Campos específicos de tratamiento hormonal -->
                 {% if 'medicacion_tomada' in form.fields %}
                 <div class="mb-3 form-check form-switch">
-                    {{ form.medicacion_tomada }}
-                    <label class="form-check-label" for="{{ form.medicacion_tomada.id_for_label }}">
-                        <strong>¿Tomaste la medicación hoy?</strong>
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="{{ form.medicacion_tomada.id_for_label }}"
+                           name="{{ form.medicacion_tomada.name }}"
+                           {% if form.medicacion_tomada.value %}checked{% endif %}>
+                    <label class="form-check-label fw-bold" for="{{ form.medicacion_tomada.id_for_label }}">
+                        ¿Tomaste la medicación hoy?
                     </label>
                 </div>
 
-                <div id="tratamiento-fields" style="display: {% if form.medicacion_tomada.value %}block{% else %}none{% endif %};">
+                <div id="tratamiento-fields" class="tratamiento-fields" style="display: {% if form.medicacion_tomada.value %}block{% else %}none{% endif %};">
                     {% if 'hora_medicacion' in form.fields %}
                     <div class="mb-3">
-                        <label for="{{ form.hora_medicacion.id_for_label }}" class="form-label">Hora de la medicación</label>
-                        {{ form.hora_medicacion }}
+                        <label for="{{ form.hora_medicacion.id_for_label }}" class="form-label fw-bold">Hora de la medicación</label>
+                        <input type="time" class="form-control"
+                               id="{{ form.hora_medicacion.id_for_label }}"
+                               name="{{ form.hora_medicacion.name }}"
+                               value="{{ form.hora_medicacion.value|default_if_none:'' }}">
                     </div>
                     {% endif %}
 
                     <!-- Efectos del tratamiento -->
                     {% if 'efectos_tratamiento' in form.fields %}
                     <div class="mb-3">
-                        <label class="form-label">Efectos del tratamiento</label>
+                        <label class="form-label fw-bold">Efectos del tratamiento</label>
                         <div class="form-check-group">
                             {% for choice in form.efectos_tratamiento.field.choices %}
                             <div class="form-check">
@@ -226,20 +250,20 @@
 
         <!-- Botones de acción -->
         <div class="d-flex justify-content-between mt-4">
-            <a href="{% url 'moiraflow:calendario' %}" class="btn btn-secondary">
-                Cancelar
+            <a href="{% url 'moiraflow:calendario' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-x-circle me-2"></i>Cancelar
             </a>
 
             <div>
                 {% if object %}
                 <a href="{% url 'moiraflow:eliminar_registro' object.id %}"
-                   class="btn btn-danger me-2">
-                    Eliminar
+                   class="btn btn-outline-danger me-2">
+                    <i class="bi bi-trash me-2"></i>Eliminar
                 </a>
                 {% endif %}
 
-                <button type="submit" class="btn btn-primary">
-                    {{ object|yesno:"Actualizar,Guardar" }}
+                <button type="submit" class="btn text-white" style="background-color: #c23c54;">
+                    <i class="bi bi-save me-2"></i>{{ object|yesno:"Actualizar,Guardar" }}
                 </button>
             </div>
         </div>
@@ -281,6 +305,11 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
+/* Estilos generales */
+body {
+    background-color: #fff;
+}
+
 .form-check-group {
     display: flex;
     flex-direction: column;
@@ -288,20 +317,21 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .card {
-    border-radius: 0.5rem;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border-radius: 0.75rem;
+    box-shadow: 0 0.25rem 0.5rem rgba(194, 60, 84, 0.1);
     margin-bottom: 1.5rem;
+    border: none;
 }
 
 .card-header {
-    font-weight: 500;
-    background-color: #f8f9fa;
+    font-weight: 600;
     padding: 0.75rem 1.25rem;
-    border-bottom: 1px solid rgba(0,0,0,.125);
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    border-radius: 0.75rem 0.75rem 0 0 !important;
 }
 
 .card-body {
-    padding: 1.25rem;
+    padding: 1.5rem;
 }
 
 .form-check {
@@ -312,18 +342,88 @@ document.addEventListener('DOMContentLoaded', function() {
 .form-switch .form-check-input {
     width: 2.5em;
     margin-left: -2.5em;
+    background-color: #e4899c;
+    border-color: #c23c54;
+}
+
+.form-switch .form-check-input:checked {
+    background-color: #c23c54;
+    border-color: #c23c54;
+}
+
+.form-check-input:checked {
+    background-color: #c23c54;
+    border-color: #c23c54;
 }
 
 .form-check-label {
     margin-left: 0.5em;
 }
 
-#periodo-fields {
+.periodo-fields, .tratamiento-fields {
     margin-top: 1rem;
-    padding: 1rem;
-    background-color: #f8f9fa;
-    border-radius: 0.25rem;
-    border: 1px solid #dee2e6;
+    padding: 1.25rem;
+    background-color: rgba(228, 137, 156, 0.1);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(194, 60, 84, 0.2);
+}
+
+.btn {
+    border-radius: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-control, .form-select {
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e4899c;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #c23c54;
+    box-shadow: 0 0 0 0.25rem rgba(194, 60, 84, 0.25);
+}
+
+h2 {
+    color: #c23c54;
+    font-weight: 600;
+}
+
+.form-label {
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.fw-bold {
+    color: #c23c54;
+}
+
+/* Estilos para los botones */
+.btn-outline-secondary {
+    color: #6c757d;
+    border-color: #6c757d;
+}
+
+.btn-outline-danger {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-outline-danger:hover {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* Estilos para el textarea */
+textarea.form-control {
+    min-height: 100px;
 }
 </style>
 {% endblock %}
