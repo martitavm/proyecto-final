@@ -29,7 +29,7 @@ from moiraflow.views import (
     MascotaPanelView,
     finalizar_alimentacion, RegistrosDiaView, SintomasViewSet, ajax_login,
     ajax_logout, obtener_notificaciones, marcar_notificacion_vista, ListaRecordatoriosView, CrearRecordatorioView,
-    EditarRecordatorioView, EliminarRecordatorioView,
+    EditarRecordatorioView, EliminarRecordatorioView, AdminDashboardView,
 )
 
 app_name = 'moiraflow'
@@ -96,4 +96,8 @@ urlpatterns = [
     path('recordatorios/crear/', CrearRecordatorioView.as_view(), name='crear_recordatorio'),
     path('recordatorios/editar/<int:pk>/', EditarRecordatorioView.as_view(), name='editar_recordatorio'),
     path('recordatorios/eliminar/<int:pk>/', EliminarRecordatorioView.as_view(), name='eliminar_recordatorio'),
+
+    #URLs de Panel estadísticas admin
+    path('admin-dashboard/', AdminDashboardView.as_view(), name='admin_dashboard'),
+
 ]

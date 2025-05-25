@@ -20,8 +20,10 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 from django.contrib.auth.decorators import login_required
-from django.db.models import F, Func, Value, IntegerField
+from django.db.models import F, Func, Value, IntegerField, Count
 from django.db.models.functions import Mod
+from rest_framework.reverse import reverse as drf_reverse
+
 
 class PaginaPrincipalView(TemplateView):
     template_name = 'moiraflow/index.html'
@@ -737,7 +739,7 @@ def consejo_mascota(request):
         return JsonResponse({'success': False, 'error': str(e)})
 
 
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from datetime import datetime
@@ -890,3 +892,203 @@ class EliminarRecordatorioView(LoginRequiredMixin, DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(request, 'Recordatorio eliminado exitosamente!')
         return super().delete(request, *args, **kwargs)
+
+
+class EstadisticasViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        if not request.user.perfil.es_administrador:
+            return Response(
+                {"error": "No tienes permisos para acceder a estas estadísticas"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Obtener datos básicos
+        total_usuarios = User.objects.count()
+        usuarios_activos = User.objects.filter(is_active=True).count()
+        usuarios_nuevos_ultimo_mes = User.objects.filter(
+            date_joined__gte=timezone.now() - timedelta(days=30)
+        ).count()
+
+        # Construir URLs manualmente para evitar problemas con reverse
+        base_url = request.build_absolute_uri('/api/')
+        return Response({
+            "total_usuarios": total_usuarios,
+            "usuarios_activos": usuarios_activos,
+            "usuarios_nuevos_ultimo_mes": usuarios_nuevos_ultimo_mes,
+            "endpoints": {
+                "genero_usuarios": f"{base_url}estadisticas/genero/",
+                "sintomas_frecuentes": f"{base_url}estadisticas/sintomas/",
+                "edades": f"{base_url}estadisticas/edades/",
+                "seguimiento": f"{base_url}estadisticas/seguimiento/"
+            }
+        })
+
+class EstadisticasGeneroViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        if not request.user.perfil.es_administrador:
+            return Response(
+                {"error": "No tienes permisos para acceder a estas estadísticas"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Agrupar por género
+        distribucion_genero = Perfil.objects.values('genero').annotate(
+            total=Count('genero')
+        ).order_by('-total')
+
+        # Formatear para el gráfico
+        labels = []
+        data = []
+        for item in distribucion_genero:
+            labels.append(dict(Perfil.Genero.choices).get(item['genero'], item['genero']))
+            data.append(item['total'])
+
+        return Response({
+            "labels": labels,
+            "data": data,
+            "titulo": "Distribución de usuarios por género"
+        })
+
+
+class EstadisticasSintomasViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        if not request.user.perfil.es_administrador:
+            return Response(
+                {"error": "No tienes permisos para acceder a estas estadísticas"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Obtener los últimos 6 meses
+        fecha_inicio = datetime.now() - timedelta(days=180)
+
+        # Contar síntomas comunes
+        sintomas_comunes = defaultdict(int)
+
+        # Síntomas de la clase RegistroDiario.SintomasComunes
+        sintomas_a_analizar = [
+            RegistroDiario.SintomasComunes.DOLOR_CABEZA,
+            RegistroDiario.SintomasComunes.DOLOR_ESPALDA,
+            RegistroDiario.SintomasComunes.FATIGA,
+            RegistroDiario.SintomasComunes.CAMBIOS_APETITO,
+            RegistroDiario.SintomasComunes.INSOMNIO,
+            # Síntomas específicos de ciclo menstrual
+            'senos_sensibles',
+            'retencion_liquidos',
+            'antojos',
+            'acne',
+            # Síntomas específicos de tratamiento hormonal
+            'sensibilidad_pezon',
+            'sofocos',
+            'crecimiento_mamario'
+        ]
+
+        # Contar síntomas comunes (almacenados en JSONField)
+        registros = RegistroDiario.objects.filter(fecha__gte=fecha_inicio)
+
+        for registro in registros:
+            for sintoma in registro.sintomas_comunes:
+                if sintoma in sintomas_a_analizar:
+                    sintomas_comunes[sintoma] += 1
+
+            # Contar síntomas booleanos
+            for sintoma in sintomas_a_analizar:
+                if hasattr(registro, sintoma) and getattr(registro, sintoma):
+                    sintomas_comunes[sintoma] += 1
+
+        # Ordenar y formatear para el gráfico
+        sintomas_ordenados = sorted(sintomas_comunes.items(), key=lambda x: x[1], reverse=True)[:10]
+
+        labels = []
+        data = []
+        for sintoma, count in sintomas_ordenados:
+            # Obtener nombre legible del síntoma
+            if sintoma in RegistroDiario.SintomasComunes.values:
+                nombre = RegistroDiario.SintomasComunes(sintoma).label
+            else:
+                nombre = sintoma.replace('_', ' ').title()
+            labels.append(nombre)
+            data.append(count)
+
+        return Response({
+            "labels": labels,
+            "data": data,
+            "titulo": "Síntomas más frecuentes (últimos 6 meses)"
+        })
+
+
+class EstadisticasEdadesViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        if not request.user.perfil.es_administrador:
+            return Response({"error": "Acceso no autorizado"}, status=403)
+
+        # Agrupar usuarios por rangos de edad
+        hoy = date.today()
+        perfiles = Perfil.objects.exclude(fecha_nacimiento__isnull=True)
+
+        grupos_edad = {
+            '18-25': 0,
+            '26-35': 0,
+            '36-45': 0,
+            '46+': 0
+        }
+
+        for perfil in perfiles:
+            edad = hoy.year - perfil.fecha_nacimiento.year - (
+                    (hoy.month, hoy.day) < (perfil.fecha_nacimiento.month, perfil.fecha_nacimiento.day)
+            )
+
+            if 18 <= edad <= 25:
+                grupos_edad['18-25'] += 1
+            elif 26 <= edad <= 35:
+                grupos_edad['26-35'] += 1
+            elif 36 <= edad <= 45:
+                grupos_edad['36-45'] += 1
+            else:
+                grupos_edad['46+'] += 1
+
+        return Response({
+            "labels": list(grupos_edad.keys()),
+            "data": list(grupos_edad.values()),
+            "titulo": "Distribución de usuarios por edad"
+        })
+
+
+class EstadisticasSeguimientoViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        if not request.user.perfil.es_administrador:
+            return Response({"error": "Acceso no autorizado"}, status=403)
+
+        # Contar tipos de seguimiento
+        seguimientos = Perfil.objects.values('tipo_seguimiento').annotate(
+            total=Count('tipo_seguimiento')
+        )
+
+        # Formatear para el gráfico
+        labels = []
+        data = []
+        for item in seguimientos:
+            labels.append(dict(Perfil.TipoSeguimiento.choices).get(item['tipo_seguimiento'], item['tipo_seguimiento']))
+            data.append(item['total'])
+
+        return Response({
+            "labels": labels,
+            "data": data,
+            "titulo": "Tipos de seguimiento utilizados"
+        })
+
+
+class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    template_name = 'moiraflow/admin_dashboard.html'
+
+    def test_func(self):
+        return self.request.user.perfil.es_administrador

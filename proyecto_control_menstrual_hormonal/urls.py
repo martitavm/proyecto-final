@@ -22,9 +22,17 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
-from moiraflow.views import SintomasViewSet
+from moiraflow.views import SintomasViewSet, EstadisticasViewSet, EstadisticasGeneroViewSet, \
+    EstadisticasSintomasViewSet, EstadisticasSeguimientoViewSet, EstadisticasEdadesViewSet
+
 router = DefaultRouter()
 router.register(r'sintomas', SintomasViewSet, basename='sintomas')
+router.register(r'estadisticas', EstadisticasViewSet, basename='estadisticas')
+router.register(r'estadisticas/genero', EstadisticasGeneroViewSet, basename='estadisticas-genero')
+router.register(r'estadisticas/sintomas', EstadisticasSintomasViewSet, basename='estadisticas-sintomas')
+router.register(r'estadisticas/edades', EstadisticasEdadesViewSet, basename='estadisticas-edades')
+router.register(r'estadisticas/seguimiento', EstadisticasSeguimientoViewSet, basename='estadisticas-seguimiento')
+
 urlpatterns = [
     path("moiraflow/", include("moiraflow.urls")),
     path("admin/", admin.site.urls),
