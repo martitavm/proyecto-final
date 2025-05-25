@@ -27,7 +27,7 @@ from moiraflow.views import (
     alimentar_mascota,
     consejo_mascota,
     MascotaPanelView,
-    finalizar_alimentacion, RegistrosDiaView, AnalisisPremiumView, SintomasViewSet, AnalisisPremiumDataView, ajax_login,
+    finalizar_alimentacion, RegistrosDiaView, SintomasViewSet, ajax_login,
     ajax_logout, obtener_notificaciones, marcar_notificacion_vista, ListaRecordatoriosView, CrearRecordatorioView,
     EditarRecordatorioView, EliminarRecordatorioView,
 )
@@ -87,9 +87,6 @@ urlpatterns = [
     path('mascota/finalizar-alimentacion/', finalizar_alimentacion, name='finalizar_alimentacion'),
     path('mascota/consejo/', consejo_mascota, name='consejo_mascota'),
 
-    #URLs de analisis
-    path('analisis-premium/', AnalisisPremiumView.as_view(), name='analisis_premium'),
-    path('analisis-premium/data/', AnalisisPremiumDataView.as_view(), name='analisis_premium_data'),
 
     #URLs de notificaciones
     path('notificaciones/', obtener_notificaciones, name='obtener_notificaciones'),
