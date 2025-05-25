@@ -4,49 +4,51 @@
 {% block content %}
 <div class="container mt-5">
     <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">Editar Perfil</h3>
+        <div class="col-md-10 col-lg-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header py-4" style="background-color: #c23c54; background-image: linear-gradient(135deg, #c23c54, #e4899c);">
+                    <h3 class="mb-0 text-white fw-bold" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.2);">Editar Perfil</h3>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-5">
                     <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
                         {{ form.non_field_errors }}
 
-                        <div class="mb-3 text-center">
+                        <div class="mb-4 text-center">
                             {% if form.foto_perfil.value %}
-                                <img src="{{ form.foto_perfil.value.url }}" class="rounded-circle mb-3" width="150" height="150" alt="Foto de perfil">
+                                <img src="{{ form.foto_perfil.value.url }}" class="rounded-circle mb-4 border border-4" style="border-color: #e4899c !important; width: 180px; height: 180px; object-fit: cover;" alt="Foto de perfil">
                             {% else %}
-                                <img src="{% static 'images/default-profile.png' %}" class="rounded-circle mb-3" width="150" height="150" alt="Foto de perfil predeterminada">
+                                <img src="{% static 'images/default-profile.png' %}" class="rounded-circle mb-4 border border-4" style="border-color: #e4899c !important; width: 180px; height: 180px; object-fit: cover;" alt="Foto de perfil predeterminada">
                             {% endif %}
-                            {{ form.foto_perfil }}
+                            <div class="mt-2">
+                                {{ form.foto_perfil }}
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="{{ form.fecha_nacimiento.id_for_label }}" class="form-label">Fecha de Nacimiento</label>
+                        <div class="mb-4">
+                            <label for="{{ form.fecha_nacimiento.id_for_label }}" class="form-label fw-bold" style="color: #c23c54; font-size: 1.1rem;">Fecha de Nacimiento</label>
                             {{ form.fecha_nacimiento }}
                         </div>
 
-                        <div class="mb-3">
-                            <label for="{{ form.genero.id_for_label }}" class="form-label">Género</label>
+                        <div class="mb-4">
+                            <label for="{{ form.genero.id_for_label }}" class="form-label fw-bold" style="color: #c23c54; font-size: 1.1rem;">Género</label>
                             {{ form.genero }}
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.duracion_ciclo_promedio.id_for_label }}" class="form-label">Duración ciclo (días)</label>
+                            <div class="col-md-6 mb-4">
+                                <label for="{{ form.duracion_ciclo_promedio.id_for_label }}" class="form-label fw-bold" style="color: #c23c54; font-size: 1.1rem;">Duración ciclo (días)</label>
                                 {{ form.duracion_ciclo_promedio }}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.duracion_periodo_promedio.id_for_label }}" class="form-label">Duración período (días)</label>
+                            <div class="col-md-6 mb-4">
+                                <label for="{{ form.duracion_periodo_promedio.id_for_label }}" class="form-label fw-bold" style="color: #c23c54; font-size: 1.1rem;">Duración período (días)</label>
                                 {{ form.duracion_periodo_promedio }}
                             </div>
                         </div>
 
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">Actualizar Perfil</button>
-                            <a href="{% url 'moiraflow:mi_perfil' %}" class="btn btn-outline-secondary">Cancelar</a>
+                        <div class="d-grid gap-3 mt-5">
+                            <button type="submit" class="btn btn-lg py-3" style="background-color: #c23c54; color: #fff; border-radius: 50px; font-weight: 500; transition: all 0.3s;">Actualizar Perfil</button>
+                            <a href="{% url 'moiraflow:mi_perfil' %}" class="btn btn-lg py-3" style="background-color: #fff; color: #c23c54; border: 2px solid #e4899c; border-radius: 50px; font-weight: 500; transition: all 0.3s;">Cancelar</a>
                         </div>
                     </form>
                 </div>
@@ -54,4 +56,50 @@
         </div>
     </div>
 </div>
+
+<style>
+    .card {
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+    }
+    .card-header {
+        border-radius: 18px 18px 0 0 !important;
+    }
+    .form-control, .form-select {
+        padding: 0.8rem 1rem;
+        border-radius: 10px;
+        border: 1px solid #e4e4e4;
+        font-size: 1.05rem;
+        transition: all 0.3s;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #e4899c;
+        box-shadow: 0 0 0 0.25rem rgba(228, 137, 156, 0.25);
+    }
+    .btn {
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+    .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    }
+    button[style*="background-color: #c23c54"]:hover {
+        background-color: #a93349 !important;
+    }
+    a[style*="background-color: #fff; color: #c23c54"]:hover {
+        background-color: #f8f0f2 !important;
+    }
+    /* Custom styling for file input */
+    input[type="file"] {
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        border: 1px dashed #e4899c;
+        border-radius: 10px;
+        background-color: #f8f0f2;
+        width: 100%;
+        color: #c23c54;
+    }
+</style>
 {% endblock %}

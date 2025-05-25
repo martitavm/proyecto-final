@@ -2,8 +2,8 @@
 
 {% block content %}
 <div class="container my-5">
-    <div class="card shadow">
-        <div class="card-header bg-primary text-white">
+    <div class="card shadow" style="border-top: 3px solid #c23c54;">
+        <div class="card-header" style="background-color: #c23c54; color: white;">
             <h3><i class="bi bi-pencil-square me-2"></i> Editar Perfil de {{ object.usuario.username }}</h3>
         </div>
         <div class="card-body">
@@ -11,10 +11,10 @@
                 {% csrf_token %}
                 {{ form.as_p }}
                 <div class="mt-4">
-                    <button type="submit" class="btn btn-primary me-2">
+                    <button type="submit" class="btn btn-guardar">
                         <i class="bi bi-save me-1"></i> Guardar cambios
                     </button>
-                    <a href="{% url 'moiraflow:lista_perfiles' %}" class="btn btn-secondary">
+                    <a href="{% url 'moiraflow:lista_perfiles' %}" class="btn btn-cancelar">
                         <i class="bi bi-x-circle me-1"></i> Cancelar
                     </a>
                 </div>
@@ -22,4 +22,73 @@
         </div>
     </div>
 </div>
+
+<!-- Para Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<!-- Estilos personalizados -->
+<style>
+    .btn-guardar {
+        background-color: #c23c54;
+        color: white;
+        border: 1px solid #c23c54;
+        transition: all 0.3s ease;
+        padding: 8px 16px;
+        border-radius: 4px;
+    }
+
+    .btn-guardar:hover {
+        background-color: #a83247;
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 5px rgba(194, 60, 84, 0.3);
+    }
+
+    .btn-cancelar {
+        background-color: white;
+        color: #c23c54;
+        border: 1px solid #c23c54;
+        transition: all 0.3s ease;
+        padding: 8px 16px;
+        border-radius: 4px;
+    }
+
+    .btn-cancelar:hover {
+        background-color: #f8f9fa;
+        color: #a83247;
+        border-color: #a83247;
+        transform: translateY(-1px);
+    }
+
+    /* Estilos para los campos del formulario */
+    .card-body input[type="text"],
+    .card-body input[type="email"],
+    .card-body input[type="file"],
+    .card-body select,
+    .card-body textarea {
+        border: 1px solid #e4899c;
+        border-radius: 4px;
+        padding: 8px 12px;
+    }
+
+    .card-body input[type="text"]:focus,
+    .card-body input[type="email"]:focus,
+    .card-body input[type="file"]:focus,
+    .card-body select:focus,
+    .card-body textarea:focus {
+        border-color: #c23c54;
+        box-shadow: 0 0 0 0.25rem rgba(194, 60, 84, 0.25);
+    }
+
+    .card-body label {
+        color: #c23c54;
+        font-weight: 500;
+        margin-top: 10px;
+    }
+
+    /* Mejora la visualización del formulario as_p */
+    .card-body p {
+        margin-bottom: 1.2rem;
+    }
+</style>
 {% endblock %}

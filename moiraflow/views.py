@@ -1,11 +1,10 @@
 from collections import defaultdict
-
+from django.db import transaction, IntegrityError
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
-from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout, login
 from moiraflow.models import Perfil, RegistroDiario, TratamientoHormonal, CicloMenstrual, Articulo, Mascota, \
-    EfectoTratamiento, EstadisticaUsuario, Recordatorio
+    EfectoTratamiento, Recordatorio
 from moiraflow.forms import RegistroCompletoForm, RegistroDiarioForm, TratamientoHormonalForm, CicloMenstrualForm, \
     ArticuloForm, EditarPerfilForm
 from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView, FormView, View, DetailView, ListView
@@ -21,11 +20,12 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 from django.contrib.auth.decorators import login_required
-from django.db.models import F, Func, Value, IntegerField
+from django.db.models import F, Func, Value, IntegerField, Count
 from django.db.models.functions import Mod
+from rest_framework.reverse import reverse as drf_reverse
 
-# moiraflow/views.py
-class PaginaPrincipalView(TemplateView):  # Elimina LoginRequiredMixin
+
+class PaginaPrincipalView(TemplateView):
     template_name = 'moiraflow/index.html'
 
     def get_context_data(self, **kwargs):
@@ -41,7 +41,7 @@ class RegistroUsuarioView(CreateView):
     success_url = reverse_lazy('moiraflow:index')
 
     def form_valid(self, form):
-        # 1. Forzar cierre de sesión previa
+        # Forzar cierre de sesión previa
         if self.request.user.is_authenticated:
             from django.contrib.auth import logout
             logout(self.request)
@@ -50,7 +50,7 @@ class RegistroUsuarioView(CreateView):
             response.delete_cookie('sessionid')
             return response
 
-        # 2. Crear usuario y perfil
+        # Crear usuario y perfil
         try:
             user = form.save()  # Llama al save() modificado del formulario
             login(self.request, user)
@@ -739,7 +739,7 @@ def consejo_mascota(request):
         return JsonResponse({'success': False, 'error': str(e)})
 
 
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from datetime import datetime
@@ -765,7 +765,6 @@ class SintomasViewSet(viewsets.ViewSet):
                 RegistroDiario.SintomasComunes.DOLOR_CABEZA,
                 RegistroDiario.SintomasComunes.DOLOR_ESPALDA,
                 RegistroDiario.SintomasComunes.FATIGA,
-                # ... añade aquí el resto de los síntomas de SintomasComunes que quieras analizar
             ]
 
             registros_base = RegistroDiario.objects.filter(
@@ -792,287 +791,6 @@ class SintomasViewSet(viewsets.ViewSet):
 
         except Exception as e:
             return Response({'error': str(e)}, status=400)
-
-
-# views.py
-from collections import defaultdict
-from django.db import transaction, IntegrityError
-
-
-class AnalisisPremiumView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
-    template_name = 'moiraflow/analisis_premium.html'
-
-    def test_func(self):
-        """Verifica si el usuario tiene acceso premium"""
-        return self.request.user.perfil.puede_acceder_premium
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        perfil = self.request.user.perfil
-
-        try:
-            with transaction.atomic():
-                estadisticas, created = EstadisticaUsuario.objects.select_for_update().get_or_create(
-                    usuario=self.request.user
-                )
-
-                # Actualizar estadísticas si es necesario
-                if created or self._necesita_actualizacion(estadisticas):
-                    estadisticas.actualizar_estadisticas()
-                    estadisticas.refresh_from_db()
-
-                # Datos según tipo de seguimiento
-                if perfil.tipo_seguimiento == 'ciclo_menstrual':
-                    context.update(self._get_ciclo_context(estadisticas))
-                elif perfil.tipo_seguimiento == 'tratamiento_hormonal':
-                    context.update(self._get_hormonal_context(estadisticas))
-
-                context['estadisticas'] = estadisticas
-
-        except Exception as e:
-            messages.error(self.request, f"Error al cargar análisis: {str(e)}")
-            context['error'] = True
-
-        return context
-
-    def _necesita_actualizacion(self, estadisticas):
-        """Determina si las estadísticas necesitan actualización"""
-        # Actualizar si han pasado más de 24 horas o nunca se han actualizado
-        return (not estadisticas.ultima_actualizacion or
-                (timezone.now() - estadisticas.ultima_actualizacion) > timedelta(hours=24))
-
-    def _get_ciclo_context(self, estadisticas):
-        """Prepara contexto para análisis de ciclo menstrual"""
-        ciclos = CicloMenstrual.objects.filter(
-            usuario=self.request.user,
-            fecha_fin__isnull=False
-        ).order_by('-fecha_inicio')[:6]
-
-        predicciones = self._calcular_predicciones(ciclos, estadisticas)
-        sintomas_por_fase = self._organizar_sintomas(estadisticas)
-
-        return {
-            'tipo_analisis': 'ciclo_menstrual',
-            'ciclos': ciclos,
-            'predicciones': predicciones,
-            'sintomas_por_fase': sintomas_por_fase,
-            'recomendaciones': self._generar_recomendaciones_ciclo(estadisticas),
-            'tiene_datos': bool(ciclos)
-        }
-
-    def _calcular_predicciones(self, ciclos, estadisticas):
-        """Calcula predicciones basadas en ciclos anteriores"""
-        if not ciclos:
-            return {}
-
-        ultimo_ciclo = ciclos[0]
-        dias_ovulacion = self._get_dias_ovulacion(estadisticas)
-
-        return {
-            'proximo_periodo': ultimo_ciclo.fecha_fin + timedelta(days=1),
-            'proxima_ovulacion': ultimo_ciclo.fecha_inicio + timedelta(days=dias_ovulacion),
-            'ventana_fertil_inicio': (ultimo_ciclo.fecha_inicio +
-                                      timedelta(days=max(1, dias_ovulacion - 3))),
-            'ventana_fertil_fin': (ultimo_ciclo.fecha_inicio +
-                                   timedelta(days=dias_ovulacion + 1))
-        }
-
-    def _get_dias_ovulacion(self, estadisticas):
-        """Obtiene días típicos para ovulación"""
-        if (hasattr(estadisticas, 'dias_ovulacion_probables') and
-                estadisticas.dias_ovulacion_probables and
-                isinstance(estadisticas.dias_ovulacion_probables, list)):
-            return estadisticas.dias_ovulacion_probables[0]
-        return 14  # Valor por defecto
-
-    def _organizar_sintomas(self, estadisticas):
-        """Organiza síntomas por fase para visualización"""
-        sintomas_por_fase = defaultdict(list)
-
-        if (hasattr(estadisticas, 'sintomas_por_fase') and
-                estadisticas.sintomas_por_fase and
-                isinstance(estadisticas.sintomas_por_fase, dict)):
-
-            for fase, sintomas in estadisticas.sintomas_por_fase.items():
-                if not isinstance(sintomas, dict):
-                    continue
-
-                for sintoma, frecuencia in sintomas.items():
-                    sintomas_por_fase[fase].append({
-                        'nombre': sintoma,
-                        'frecuencia': frecuencia,
-                        'intensidad': self._calcular_intensidad(frecuencia)
-                    })
-
-        return dict(sintomas_por_fase)
-
-    def _calcular_intensidad(self, frecuencia):
-        """Calcula intensidad basada en frecuencia (para estilos CSS)"""
-        try:
-            freq_num = float(frecuencia.strip('%'))
-            if freq_num > 60:
-                return 'alta'
-            elif freq_num > 30:
-                return 'media'
-            return 'baja'
-        except:
-            return 'baja'
-
-    def _get_hormonal_context(self, estadisticas):
-        """Prepara contexto para análisis hormonal"""
-        tratamiento = TratamientoHormonal.objects.filter(
-            usuario=self.request.user,
-            activo=True
-        ).first()
-
-        evolucion_sintomas = []
-        if (hasattr(estadisticas, 'tratamiento_progreso_data') and
-                estadisticas.tratamiento_progreso_data and
-                isinstance(estadisticas.tratamiento_progreso_data, dict)):
-
-            for semana, datos in estadisticas.tratamiento_progreso_data.items():
-                if not isinstance(datos, dict):
-                    continue
-
-                evolucion_sintomas.append({
-                    'semana': semana,
-                    'datos': datos
-                })
-
-        return {
-            'tipo_analisis': 'tratamiento_hormonal',
-            'tratamiento_activo': tratamiento,
-            'evolucion_sintomas': evolucion_sintomas,
-            'recomendaciones': self._generar_recomendaciones_hormonales(estadisticas),
-            'tiene_datos': bool(tratamiento)
-        }
-
-    def _generar_recomendaciones_ciclo(self, estadisticas):
-        """Genera recomendaciones personalizadas para ciclo menstrual"""
-        recomendaciones = [
-            "Mantén un registro diario para mejorar la precisión del análisis."
-        ]
-
-        # Regularidad del ciclo
-        if (hasattr(estadisticas, 'variabilidad_ciclo') and
-                estadisticas.variabilidad_ciclo):
-
-            if estadisticas.variabilidad_ciclo > 5:
-                recomendaciones.append(
-                    "Tus ciclos muestran variabilidad significativa. Considera "
-                    "llevar un registro más detallado o consultar con un especialista."
-                )
-            else:
-                recomendaciones.append(
-                    "Tus ciclos son bastante regulares. ¡Sigue así!"
-                )
-
-        # Síntoma principal
-        sintoma_principal = self._obtener_sintoma_principal(estadisticas)
-        if sintoma_principal:
-            nombre, frecuencia, fase = sintoma_principal
-            recomendaciones.append(
-                f"Tu síntoma más frecuente es '{nombre}' ({frecuencia}), "
-                f"principalmente en la fase {fase}. Considera llevar un "
-                "diario más detallado de este síntoma."
-            )
-
-        return recomendaciones
-
-    def _obtener_sintoma_principal(self, estadisticas):
-        """Obtiene el síntoma más frecuente"""
-        if not (hasattr(estadisticas, 'sintomas_frecuentes') and
-                estadisticas.sintomas_frecuentes and
-                isinstance(estadisticas.sintomas_frecuentes, dict)):
-            return None
-
-        try:
-            sintoma, datos = max(
-                estadisticas.sintomas_frecuentes.items(),
-                key=lambda x: x[1].get('frecuencia', 0)
-            )
-            return (
-                sintoma,
-                datos.get('frecuencia', ''),
-                datos.get('fase_ciclo', 'varias fases')
-            )
-        except (ValueError, AttributeError):
-            return None
-
-    def _generar_recomendaciones_hormonales(self, estadisticas):
-        """Genera recomendaciones para tratamiento hormonal"""
-        recomendaciones = []
-        tratamiento = TratamientoHormonal.objects.filter(
-            usuario=self.request.user,
-            activo=True
-        ).first()
-
-        if not tratamiento:
-            return ["No tienes tratamientos activos actualmente."]
-
-        # Recomendación base
-        recomendaciones.append(
-            f"Toma tu medicación '{tratamiento.nombre_tratamiento}' "
-            "siempre a la misma hora para mantener niveles estables."
-        )
-
-        # Efectos frecuentes
-        if (hasattr(estadisticas, 'sintomas_frecuentes') and
-                estadisticas.sintomas_frecuentes and
-                isinstance(estadisticas.sintomas_frecuentes, dict)):
-
-            for sintoma, datos in estadisticas.sintomas_frecuentes.items():
-                if not isinstance(datos, dict):
-                    continue
-
-                if datos.get('frecuencia', 0) > 3:
-                    recomendaciones.append(
-                        f"El efecto '{sintoma}' aparece frecuentemente. "
-                        "Considera comentarlo en tu próxima revisión médica."
-                    )
-
-        # Progreso del tratamiento
-        if (hasattr(tratamiento, 'progreso') and
-                tratamiento.progreso is not None):
-
-            if tratamiento.progreso > 80:
-                recomendaciones.append(
-                    "Estás en la fase final de tu tratamiento. Prepara "
-                    "preguntas para tu próxima consulta médica."
-                )
-            elif tratamiento.progreso < 20:
-                recomendaciones.append(
-                    "Estás comenzando tu tratamiento. Presta atención "
-                    "a cualquier efecto inusual."
-                )
-
-        return recomendaciones
-
-
-class AnalisisPremiumDataView(LoginRequiredMixin, UserPassesTestMixin, View):
-    def get(self, request, *args, **kwargs):
-        try:
-            estadisticas = EstadisticaUsuario.objects.get(usuario=request.user)
-            data = {
-                'duraciones': self._get_duraciones_ciclos(request.user),
-                'sintomas_por_fase': estadisticas.sintomas_por_fase,
-                # ... otros datos ...
-            }
-            return JsonResponse(data)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
-
-    def _get_duraciones_ciclos(self, usuario):
-        ciclos = CicloMenstrual.objects.filter(
-            usuario=usuario,
-            fecha_fin__isnull=False
-        ).order_by('-fecha_inicio')[:6]
-
-        return [{
-            'inicio': ciclo.fecha_inicio.strftime('%Y-%m-%d'),
-            'fin': ciclo.fecha_fin.strftime('%Y-%m-%d'),
-            'duracion': ciclo.duracion
-        } for ciclo in ciclos]
 
 
 @require_GET
@@ -1173,3 +891,203 @@ class EliminarRecordatorioView(LoginRequiredMixin, DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(request, 'Recordatorio eliminado exitosamente!')
         return super().delete(request, *args, **kwargs)
+
+
+class EstadisticasViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        if not request.user.perfil.es_administrador:
+            return Response(
+                {"error": "No tienes permisos para acceder a estas estadísticas"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Obtener datos básicos
+        total_usuarios = User.objects.count()
+        usuarios_activos = User.objects.filter(is_active=True).count()
+        usuarios_nuevos_ultimo_mes = User.objects.filter(
+            date_joined__gte=timezone.now() - timedelta(days=30)
+        ).count()
+
+        # Construir URLs manualmente para evitar problemas con reverse
+        base_url = request.build_absolute_uri('/api/')
+        return Response({
+            "total_usuarios": total_usuarios,
+            "usuarios_activos": usuarios_activos,
+            "usuarios_nuevos_ultimo_mes": usuarios_nuevos_ultimo_mes,
+            "endpoints": {
+                "genero_usuarios": f"{base_url}estadisticas/genero/",
+                "sintomas_frecuentes": f"{base_url}estadisticas/sintomas/",
+                "edades": f"{base_url}estadisticas/edades/",
+                "seguimiento": f"{base_url}estadisticas/seguimiento/"
+            }
+        })
+
+class EstadisticasGeneroViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        if not request.user.perfil.es_administrador:
+            return Response(
+                {"error": "No tienes permisos para acceder a estas estadísticas"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Agrupar por género
+        distribucion_genero = Perfil.objects.values('genero').annotate(
+            total=Count('genero')
+        ).order_by('-total')
+
+        # Formatear para el gráfico
+        labels = []
+        data = []
+        for item in distribucion_genero:
+            labels.append(dict(Perfil.Genero.choices).get(item['genero'], item['genero']))
+            data.append(item['total'])
+
+        return Response({
+            "labels": labels,
+            "data": data,
+            "titulo": "Distribución de usuarios por género"
+        })
+
+
+class EstadisticasSintomasViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        if not request.user.perfil.es_administrador:
+            return Response(
+                {"error": "No tienes permisos para acceder a estas estadísticas"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Obtener los últimos 6 meses
+        fecha_inicio = datetime.now() - timedelta(days=180)
+
+        # Contar síntomas comunes
+        sintomas_comunes = defaultdict(int)
+
+        # Síntomas de la clase RegistroDiario.SintomasComunes
+        sintomas_a_analizar = [
+            RegistroDiario.SintomasComunes.DOLOR_CABEZA,
+            RegistroDiario.SintomasComunes.DOLOR_ESPALDA,
+            RegistroDiario.SintomasComunes.FATIGA,
+            RegistroDiario.SintomasComunes.CAMBIOS_APETITO,
+            RegistroDiario.SintomasComunes.INSOMNIO,
+            # Síntomas específicos de ciclo menstrual
+            'senos_sensibles',
+            'retencion_liquidos',
+            'antojos',
+            'acne',
+            # Síntomas específicos de tratamiento hormonal
+            'sensibilidad_pezon',
+            'sofocos',
+            'crecimiento_mamario'
+        ]
+
+        # Contar síntomas comunes (almacenados en JSONField)
+        registros = RegistroDiario.objects.filter(fecha__gte=fecha_inicio)
+
+        for registro in registros:
+            for sintoma in registro.sintomas_comunes:
+                if sintoma in sintomas_a_analizar:
+                    sintomas_comunes[sintoma] += 1
+
+            # Contar síntomas booleanos
+            for sintoma in sintomas_a_analizar:
+                if hasattr(registro, sintoma) and getattr(registro, sintoma):
+                    sintomas_comunes[sintoma] += 1
+
+        # Ordenar y formatear para el gráfico
+        sintomas_ordenados = sorted(sintomas_comunes.items(), key=lambda x: x[1], reverse=True)[:10]
+
+        labels = []
+        data = []
+        for sintoma, count in sintomas_ordenados:
+            # Obtener nombre legible del síntoma
+            if sintoma in RegistroDiario.SintomasComunes.values:
+                nombre = RegistroDiario.SintomasComunes(sintoma).label
+            else:
+                nombre = sintoma.replace('_', ' ').title()
+            labels.append(nombre)
+            data.append(count)
+
+        return Response({
+            "labels": labels,
+            "data": data,
+            "titulo": "Síntomas más frecuentes (últimos 6 meses)"
+        })
+
+
+class EstadisticasEdadesViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        if not request.user.perfil.es_administrador:
+            return Response({"error": "Acceso no autorizado"}, status=403)
+
+        # Agrupar usuarios por rangos de edad
+        hoy = date.today()
+        perfiles = Perfil.objects.exclude(fecha_nacimiento__isnull=True)
+
+        grupos_edad = {
+            '18-25': 0,
+            '26-35': 0,
+            '36-45': 0,
+            '46+': 0
+        }
+
+        for perfil in perfiles:
+            edad = hoy.year - perfil.fecha_nacimiento.year - (
+                    (hoy.month, hoy.day) < (perfil.fecha_nacimiento.month, perfil.fecha_nacimiento.day)
+            )
+
+            if 18 <= edad <= 25:
+                grupos_edad['18-25'] += 1
+            elif 26 <= edad <= 35:
+                grupos_edad['26-35'] += 1
+            elif 36 <= edad <= 45:
+                grupos_edad['36-45'] += 1
+            else:
+                grupos_edad['46+'] += 1
+
+        return Response({
+            "labels": list(grupos_edad.keys()),
+            "data": list(grupos_edad.values()),
+            "titulo": "Distribución de usuarios por edad"
+        })
+
+
+class EstadisticasSeguimientoViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        if not request.user.perfil.es_administrador:
+            return Response({"error": "Acceso no autorizado"}, status=403)
+
+        # Contar tipos de seguimiento
+        seguimientos = Perfil.objects.values('tipo_seguimiento').annotate(
+            total=Count('tipo_seguimiento')
+        )
+
+        # Formatear para el gráfico
+        labels = []
+        data = []
+        for item in seguimientos:
+            labels.append(dict(Perfil.TipoSeguimiento.choices).get(item['tipo_seguimiento'], item['tipo_seguimiento']))
+            data.append(item['total'])
+
+        return Response({
+            "labels": labels,
+            "data": data,
+            "titulo": "Tipos de seguimiento utilizados"
+        })
+
+
+class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    template_name = 'moiraflow/admin_dashboard.html'
+
+    def test_func(self):
+        return self.request.user.perfil.es_administrador

@@ -1,14 +1,127 @@
-<!-- moiraflow/templates/moiraflow/eliminar_perfil.html -->
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="alert alert-danger">
-  <h2>¿Eliminar tu cuenta permanentemente?</h2>
-  <p>¡Esta acción no se puede deshacer! Se borrarán todos tus datos.</p>
-  <form method="post">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-danger">Sí, eliminar mi cuenta</button>
-    <a href="{% url 'moiraflow:mi_perfil' %}" class="btn btn-secondary">Cancelar</a>
-  </form>
+<style>
+  :root {
+    --primary-color: #c23c54;
+    --secondary-color: #e4899c;
+    --light-color: #fff;
+    --hover-color: #aa324a;
+    --danger-color: #dc3545;
+    --danger-hover: #c82333;
+  }
+
+  .eliminar-header {
+    background-color: var(--danger-color);
+    color: var(--light-color);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.15);
+  }
+
+  .eliminar-card {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+  }
+
+  .eliminar-content {
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .eliminar-icon {
+    font-size: 3rem;
+    color: var(--danger-color);
+    margin-bottom: 1rem;
+  }
+
+  .titulo-recordatorio {
+    font-weight: 600;
+    color: var(--primary-color);
+    background-color: rgba(228, 137, 156, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  .eliminar-mensaje {
+    font-size: 1.1rem;
+    margin: 1.5rem 0;
+    color: #495057;
+  }
+
+  .btn-secondary {
+    background-color: #6c757d;
+    border: none;
+    transition: all 0.3s ease;
+    padding: 0.5rem 1.5rem;
+  }
+
+  .btn-secondary:hover {
+    background-color: #5a6268;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .btn-eliminar {
+    background-color: var(--danger-color);
+    color: var(--light-color);
+    border: none;
+    padding: 0.5rem 1.5rem;
+    transition: all 0.3s ease;
+  }
+
+  .btn-eliminar:hover {
+    background-color: var(--danger-hover);
+    color: var(--light-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.2);
+  }
+
+  .buttons-container {
+    margin-top: 2rem;
+  }
+</style>
+
+<div class="container mt-4">
+  <div class="eliminar-header">
+    <h2 class="m-0">
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      Eliminar Cuenta
+    </h2>
+  </div>
+
+  <div class="eliminar-card card">
+    <div class="eliminar-content">
+      <div class="eliminar-icon">
+        <i class="bi bi-person-x-fill"></i>
+      </div>
+
+      <h3 class="mb-4">Confirmar eliminación de cuenta</h3>
+
+      <p class="eliminar-mensaje">
+        ¿Estás seguro de que deseas eliminar tu cuenta permanentemente?
+      </p>
+
+      <p class="text-muted">
+        Esta acción no puede deshacerse y todos tus datos serán eliminados definitivamente.
+      </p>
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="buttons-container d-grid gap-2 d-md-flex justify-content-md-center">
+          <a href="{% url 'moiraflow:mi_perfil' %}" class="btn btn-secondary me-md-2">
+            <i class="bi bi-arrow-left me-1"></i> Cancelar
+          </a>
+          <button type="submit" class="btn btn-eliminar">
+            <i class="bi bi-trash me-1"></i> Eliminar definitivamente
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}

@@ -4,119 +4,122 @@
 {% block content %}
 <div class="container my-5">
     <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card border-0 shadow-lg">
-                <!-- Header con foto y acciones -->
-                <div class="card-header bg-primary text-white py-4">
+        <div class="col-lg-10">
+            <div class="card border-0">
+                <!-- Header with profile photo and actions -->
+                <div class="card-header py-5" style="background-color: #c23c54; background-image: linear-gradient(135deg, #c23c54, #e4899c);">
                     <div class="d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center">
                             <div class="me-4">
                                 {% if object.foto_perfil %}
                                     <img src="{{ object.foto_perfil.url }}"
                                          class="rounded-circle border border-4 border-white"
-                                         width="100" height="100"
+                                         width="130" height="130"
                                          alt="Foto de perfil">
                                 {% else %}
                                     <img src="{% static 'images/default-profile.png' %}"
                                          class="rounded-circle border border-4 border-white"
-                                         width="100" height="100"
+                                         width="130" height="130"
                                          alt="Foto predeterminada">
                                 {% endif %}
                             </div>
                             <div>
-                                <h2 class="mb-1">{{ object.usuario.username }}</h2>
+                                <h2 class="mb-1 text-white" style="font-weight: 600; text-shadow: 1px 1px 3px rgba(0,0,0,0.2); font-size: 2.2rem;">
+                                    {{ object.usuario.username }}
+                                </h2>
                                 <div class="d-flex align-items-center">
                                     {% if object.es_premium %}
-                                        <span class="badge bg-warning text-dark me-2">
+                                        <span class="badge me-2" style="background-color: #fff; color: #c23c54; font-weight: 600; font-size: 0.9rem; padding: 0.4em 0.8em;">
                                             <i class="bi bi-star-fill"></i> Premium
                                         </span>
                                     {% endif %}
-                                    <span class="badge bg-info">
+                                    <span class="badge" style="background-color: rgba(255,255,255,0.25); color: #fff; font-size: 0.9rem; padding: 0.4em 0.8em;">
                                         {{ object.get_tipo_perfil_display }}
                                     </span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Botones de acción -->
+                        <!-- Action buttons -->
                         <div class="btn-group">
                             <a href="{% url 'moiraflow:editar_perfil' object.pk %}"
-                               class="btn btn-light btn-sm rounded-pill px-3">
-                                <i class="bi bi-pencil-square me-1"></i> Editar
+                               class="btn btn-md rounded-pill px-4 py-2" style="background-color: #fff; color: #c23c54; font-weight: 500;">
+                                <i class="bi bi-pencil-square me-2"></i> Editar
                             </a>
 
                             <a href="{% url 'moiraflow:eliminar_perfil' object.pk %}"
-                               class="btn btn-outline-light btn-sm rounded-pill px-3 ms-2">
-                                <i class="bi bi-trash"></i> Eliminar
+                               class="btn btn-md rounded-pill px-4 py-2 ms-2" style="background-color: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.5);">
+                                <i class="bi bi-trash me-2"></i> Eliminar
                             </a>
                         </div>
                     </div>
                 </div>
 
-                <!-- Cuerpo del perfil -->
-                <div class="card-body p-4">
+                <!-- Profile body -->
+                <div class="card-body p-5" style="background-color: #fff;">
                     <div class="row">
-                        <!-- Columna izquierda -->
+                        <!-- Left column -->
                         <div class="col-md-6">
                             <div class="mb-4">
-                                <h5 class="text-primary mb-3">
+                                <h5 class="mb-3" style="color: #c23c54; border-bottom: 2px solid #e4899c; padding-bottom: 0.75rem; font-size: 1.25rem;">
                                     <i class="bi bi-person-lines-fill me-2"></i> Información Personal
                                 </h5>
                                 <div class="ps-4">
-                                    <div class="mb-3">
-                                        <h6 class="text-muted small mb-1">Fecha de Nacimiento</h6>
-                                        <p class="mb-0">{{ object.fecha_nacimiento|date:"d/m/Y"|default:"No especificada" }}</p>
+                                    <div class="mb-4">
+                                        <h6 class="small mb-2" style="color: #e4899c; font-weight: 600; font-size: 1rem;">Fecha de Nacimiento</h6>
+                                        <p class="mb-0" style="font-size: 1.1rem;">{{ object.fecha_nacimiento|date:"d/m/Y"|default:"No especificada" }}</p>
                                     </div>
-                                    <div class="mb-3">
-                                        <h6 class="text-muted small mb-1">Género</h6>
-                                        <p class="mb-0">{{ object.genero|default:"No especificado" }}</p>
+                                    <div class="mb-4">
+                                        <h6 class="small mb-2" style="color: #e4899c; font-weight: 600; font-size: 1rem;">Género</h6>
+                                        <p class="mb-0" style="font-size: 1.1rem;">{{ object.genero|default:"No especificado" }}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Columna derecha -->
+                        <!-- Right column -->
                         <div class="col-md-6">
                             <div class="mb-4">
-                                <h5 class="text-primary mb-3">
+                                <h5 class="mb-3" style="color: #c23c54; border-bottom: 2px solid #e4899c; padding-bottom: 0.75rem; font-size: 1.25rem;">
                                     <i class="bi bi-graph-up me-2"></i> Datos del Ciclo
                                 </h5>
                                 <div class="ps-4">
                                     {% if mostrar_datos_ciclo %}
-                                    <div class="mb-3">
-                                        <h6 class="text-muted small mb-1">Duración ciclo promedio</h6>
-                                        <p class="mb-0">{{ object.duracion_ciclo_promedio }} días</p>
+                                    <div class="mb-4">
+                                        <h6 class="small mb-2" style="color: #e4899c; font-weight: 600; font-size: 1rem;">Duración ciclo promedio</h6>
+                                        <p class="mb-0" style="font-size: 1.1rem;">{{ object.duracion_ciclo_promedio }} días</p>
                                     </div>
-                                    <div class="mb-3">
-                                        <h6 class="text-muted small mb-1">Duración período promedio</h6>
-                                        <p class="mb-0">{{ object.duracion_periodo_promedio }} días</p>
+                                    <div class="mb-4">
+                                        <h6 class="small mb-2" style="color: #e4899c; font-weight: 600; font-size: 1rem;">Duración período promedio</h6>
+                                        <p class="mb-0" style="font-size: 1.1rem;">{{ object.duracion_periodo_promedio }} días</p>
                                     </div>
                                     {% else %}
-                                    <p class="text-muted">No aplica para este género</p>
+                                    <p style="color: #777; font-size: 1.1rem;">No aplica para este género</p>
                                     {% endif %}
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Sección inferior -->
-                    <div class="bg-light p-3 rounded">
+                    <!-- Bottom section -->
+                    <div class="p-4 rounded" style="background-color: #f8f0f2;">
                         <div class="row">
                             <div class="col-md-6">
-                                <h6 class="text-muted small mb-1">Miembro desde</h6>
-                                <p class="mb-0">{{ object.fecha_creacion|date:"d/m/Y" }}</p>
+                                <h6 class="small mb-2" style="color: #e4899c; font-weight: 600; font-size: 1rem;">Miembro desde</h6>
+                                <p class="mb-0" style="font-size: 1.1rem;">{{ object.fecha_creacion|date:"d/m/Y" }}</p>
                             </div>
                             <div class="col-md-6">
-                                <h6 class="text-muted small mb-1">Última actualización</h6>
-                                <p class="mb-0">{{ object.fecha_actualizacion|date:"d/m/Y H:i" }}</p>
+                                <h6 class="small mb-2" style="color: #e4899c; font-weight: 600; font-size: 1rem;">Última actualización</h6>
+                                <p class="mb-0" style="font-size: 1.1rem;">{{ object.fecha_actualizacion|date:"d/m/Y H:i" }}</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Botón para admins -->
+                    <!-- Admin button -->
                     {% if request.user.perfil.es_administrador %}
-                    <div class="mt-4 border-top pt-3 text-center">
-                        <a href="{% url 'moiraflow:lista_perfiles' %}" class="btn btn-outline-primary">
+                    <div class="mt-5 border-top pt-4 text-center" style="border-color: #e4899c !important;">
+                        <a href="{% url 'moiraflow:lista_perfiles' %}"
+                           class="btn btn-lg" style="background-color: #fff; color: #c23c54; border: 1px solid #c23c54; transition: all 0.3s;">
                             <i class="bi bi-people-fill me-2"></i> Gestionar todos los perfiles
                         </a>
                     </div>
@@ -129,22 +132,41 @@
 
 <style>
     .card {
-        border-radius: 15px;
+        border-radius: 18px;
         overflow: hidden;
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
     }
     .card-header {
-        border-radius: 15px 15px 0 0 !important;
+        border-radius: 18px 18px 0 0 !important;
     }
     .badge {
-        font-size: 0.8rem;
-        padding: 0.35em 0.65em;
+        font-size: 0.9rem;
+        padding: 0.4em 0.8em;
+        border-radius: 50px;
     }
-    h5.text-primary {
-        border-bottom: 2px solid #0d6efd;
-        padding-bottom: 0.5rem;
+    .btn {
+        font-weight: 500;
+        border-radius: 50px;
+        padding: 0.6rem 1.8rem;
+        transition: all 0.3s;
+    }
+    .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.15);
     }
     .btn-outline-light:hover {
-        color: #0d6efd !important;
+        color: #c23c54 !important;
+    }
+    a[style*="background-color: #fff; color: #c23c54"]:hover {
+        background-color: #c23c54 !important;
+        color: #fff !important;
+    }
+    a[style*="background-color: rgba(255,255,255,0.15)"]:hover {
+        background-color: rgba(255,255,255,0.3) !important;
+    }
+    a[style*="border: 1px solid #c23c54"]:hover {
+        background-color: #c23c54 !important;
+        color: #fff !important;
     }
 </style>
 {% endblock %}

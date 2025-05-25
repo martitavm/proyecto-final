@@ -1,0 +1,902 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header Section -->
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">
+            <i class="fas fa-chart-line"></i>
+            Panel de Administración
+        </h1>
+        <p class="dashboard-subtitle">Monitoreo y análisis en tiempo real</p>
+    </div>
+
+    <!-- Stats Cards Row -->
+    <div class="stats-grid">
+        <div class="stat-card primary">
+            <div class="stat-content">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 class="stat-number" id="total-users">0</h3>
+                    <p class="stat-label">Usuarios Totales</p>
+                </div>
+            </div>
+            <div class="stat-trend">
+                <i class="fas fa-arrow-up"></i>
+            </div>
+        </div>
+
+        <div class="stat-card success">
+            <div class="stat-content">
+                <div class="stat-icon">
+                    <i class="fas fa-user-check"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 class="stat-number" id="active-users">0</h3>
+                    <p class="stat-label">Usuarios Activos</p>
+                </div>
+            </div>
+            <div class="stat-trend">
+                <i class="fas fa-arrow-up"></i>
+            </div>
+        </div>
+
+        <div class="stat-card info">
+            <div class="stat-content">
+                <div class="stat-icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 class="stat-number" id="new-users">0</h3>
+                    <p class="stat-label">Nuevos (30 días)</p>
+                </div>
+            </div>
+            <div class="stat-trend">
+                <i class="fas fa-arrow-up"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Grid -->
+    <div class="charts-grid">
+        <!-- Gender Distribution Chart -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3 class="chart-title">
+                    <i class="fas fa-venus-mars"></i>
+                    Distribución por Género
+                </h3>
+
+            </div>
+            <div class="chart-body">
+                <canvas id="genderChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Age Distribution Chart -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3 class="chart-title">
+                    <i class="fas fa-birthday-cake"></i>
+                    Distribución por Edad
+                </h3>
+
+            </div>
+            <div class="chart-body">
+                <canvas id="ageChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Tracking Types Chart -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3 class="chart-title">
+                    <i class="fas fa-clipboard-list"></i>
+                    Tipos de Seguimiento
+                </h3>
+
+            </div>
+            <div class="chart-body">
+                <canvas id="trackingChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Symptoms Chart -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3 class="chart-title">
+                    <i class="fas fa-heartbeat"></i>
+                    Síntomas Más Frecuentes
+                </h3>
+
+            </div>
+            <div class="chart-body">
+                <canvas id="symptomsChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Incluye Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Función para cargar los datos del dashboard - VERSIÓN MEJORADA
+function loadDashboardData() {
+    // Mostrar loading en las tarjetas de estadísticas
+    showStatsLoading();
+
+    fetch('/api/estadisticas/')
+        .then(response => {
+            if (!response.ok) throw new Error('Error en respuesta del servidor');
+            return response.json();
+        })
+        .then(data => {
+            console.log('Endpoints recibidos:', data.endpoints);
+
+            // Actualizar métricas con animación
+            animateCounter('total-users', data.total_usuarios);
+            animateCounter('active-users', data.usuarios_activos);
+            animateCounter('new-users', data.usuarios_nuevos_ultimo_mes);
+
+            // Cargar gráficas
+            const loaders = [
+                loadChartData(data.endpoints.genero_usuarios, 'genderChart', 'doughnut'),
+                loadChartData(data.endpoints.edades, 'ageChart', 'bar'),
+                loadChartData(data.endpoints.seguimiento, 'trackingChart', 'doughnut'),
+                loadChartData(data.endpoints.sintomas_frecuentes, 'symptomsChart', 'bar')
+            ];
+
+            return Promise.allSettled(loaders);
+        })
+        .then(results => {
+            console.log('Resultados de carga de gráficas:', results);
+            const failed = results.filter(r => r.status === 'rejected');
+            if (failed.length > 0) {
+                console.error('Algunas gráficas fallaron:', failed);
+            }
+        })
+        .catch(error => {
+            console.error('Error general:', error);
+            showErrorMessage('Error al cargar datos. Ver consola para detalles.');
+        });
+}
+
+// Función para mostrar loading en estadísticas
+function showStatsLoading() {
+    const ids = ['total-users', 'active-users', 'new-users'];
+    ids.forEach(id => {
+        document.getElementById(id).innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    });
+}
+
+// Función para animar contadores
+function animateCounter(elementId, targetValue) {
+    const element = document.getElementById(elementId);
+    const startValue = 0;
+    const duration = 1000;
+    const startTime = performance.now();
+
+    function updateCounter(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const currentValue = Math.floor(startValue + (targetValue - startValue) * progress);
+
+        element.textContent = currentValue.toLocaleString();
+
+        if (progress < 1) {
+            requestAnimationFrame(updateCounter);
+        }
+    }
+
+    requestAnimationFrame(updateCounter);
+}
+
+// Función genérica para cargar datos de gráficas
+function loadChartData(url, canvasId, chartType) {
+    console.log(`Cargando gráfico ${canvasId} desde ${url}`);
+
+    // Mostrar loading en el canvas
+    showChartLoading(canvasId);
+
+    fetch(url)
+        .then(response => {
+            console.log(`Respuesta para ${canvasId}:`, response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(`Datos recibidos para ${canvasId}:`, data);
+            if (!data.labels || !data.data) {
+                throw new Error('Datos incompletos recibidos del servidor');
+            }
+            renderChart(canvasId, data.labels, data.data, chartType, data.titulo || '');
+        })
+        .catch(error => {
+            console.error(`Error al cargar ${canvasId}:`, error);
+            showChartError(canvasId, error.message, url);
+        });
+}
+
+// Función para mostrar loading en gráficas
+function showChartLoading(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    const container = canvas.parentElement;
+    container.style.position = 'relative';
+
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'chart-loading';
+    loadingDiv.innerHTML = `
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p>Cargando datos...</p>
+        </div>
+    `;
+    container.appendChild(loadingDiv);
+}
+
+// Función para mostrar error en gráficas
+function showChartError(canvasId, errorMessage, url) {
+    const canvas = document.getElementById(canvasId);
+    const container = canvas.closest('.chart-card');
+
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'chart-error';
+    errorDiv.innerHTML = `
+        <div class="error-content">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h4>Error al cargar gráfico</h4>
+            <p>${errorMessage}</p>
+            <small>URL: ${url}</small>
+            <button class="retry-btn" onclick="location.reload()">
+                <i class="fas fa-redo"></i> Reintentar
+            </button>
+        </div>
+    `;
+
+    container.querySelector('.chart-body').innerHTML = '';
+    container.querySelector('.chart-body').appendChild(errorDiv);
+}
+
+// Función para renderizar gráficas con diseño mejorado
+function renderChart(canvasId, labels, data, type, title) {
+    const canvas = document.getElementById(canvasId);
+    const loadingElement = canvas.parentElement.querySelector('.chart-loading');
+    if (loadingElement) {
+        loadingElement.remove();
+    }
+
+    const ctx = canvas.getContext('2d');
+
+    // Paleta de colores moderna
+    const colors = {
+        primary: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe'],
+        gradients: [
+            'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+            'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+            'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
+        ]
+    };
+
+    // Configuración común mejorada
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    usePointStyle: true,
+                    padding: 20,
+                    font: {
+                        size: 12,
+                        family: "'Inter', sans-serif"
+                    }
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleColor: '#fff',
+                bodyColor: '#fff',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                borderWidth: 1,
+                cornerRadius: 8,
+                displayColors: true
+            }
+        },
+        animation: {
+            duration: 1000,
+            easing: 'easeOutQuart'
+        }
+    };
+
+    if (type === 'pie' || type === 'doughnut') {
+        new Chart(ctx, {
+            type: type,
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors.primary,
+                    borderColor: '#ffffff',
+                    borderWidth: 2,
+                    hoverBorderWidth: 3,
+                    hoverBorderColor: '#ffffff'
+                }]
+            },
+            options: {
+                ...commonOptions,
+                cutout: type === 'doughnut' ? '60%' : 0,
+                plugins: {
+                    ...commonOptions.plugins,
+                    legend: {
+                        ...commonOptions.plugins.legend,
+                        position: 'right'
+                    }
+                }
+            }
+        });
+    } else if (type === 'bar') {
+        new Chart(ctx, {
+            type: type,
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Cantidad',
+                    data: data,
+                    backgroundColor: colors.primary[0],
+                    borderColor: colors.primary[0],
+                    borderWidth: 0,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                ...commonOptions,
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                family: "'Inter', sans-serif"
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            font: {
+                                family: "'Inter', sans-serif"
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+// Función para mostrar mensajes de error
+function showErrorMessage(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-toast';
+    errorDiv.innerHTML = `
+        <i class="fas fa-exclamation-circle"></i>
+        <span>${message}</span>
+        <button onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    document.body.appendChild(errorDiv);
+
+    setTimeout(() => {
+        if (errorDiv.parentElement) {
+            errorDiv.remove();
+        }
+    }, 5000);
+}
+
+// Cargar los datos cuando la página esté lista
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Verificando elementos del DOM...');
+    const elements = {
+        'genderChart': 'Género',
+        'ageChart': 'Edades',
+        'trackingChart': 'Seguimiento',
+        'symptomsChart': 'Síntomas'
+    };
+
+    for (const [id, name] of Object.entries(elements)) {
+        const element = document.getElementById(id);
+        console.log(`${name}:`, element ? 'Encontrado' : 'NO ENCONTRADO');
+    }
+
+    loadDashboardData();
+});
+
+// Agregar funcionalidad a los botones de actualizar
+document.addEventListener('DOMContentLoaded', () => {
+    const refreshButtons = document.querySelectorAll('.action-btn');
+    refreshButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                loadDashboardData();
+            }, 500);
+        });
+    });
+});
+</script>
+
+<style>
+/* Importar fuente moderna */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Variables CSS */
+:root {
+    --primary-color: #667eea;
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --success-color: #10b981;
+    --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    --info-color: #3b82f6;
+    --info-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --background-color: #f8fafc;
+    --card-background: #ffffff;
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+    --border-color: #e5e7eb;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --border-radius: 12px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reset y base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--background-color);
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+/* Container principal */
+.dashboard-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Header del dashboard */
+.dashboard-header {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.dashboard-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.dashboard-title i {
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.dashboard-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+/* Grid de estadísticas */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Tarjetas de estadísticas */
+.stat-card {
+    background: var(--card-background);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition);
+    border-left: 4px solid transparent;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-card.primary {
+    border-left-color: var(--primary-color);
+}
+
+.stat-card.success {
+    border-left-color: var(--success-color);
+}
+
+.stat-card.info {
+    border-left-color: var(--info-color);
+}
+
+.stat-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.stat-card.primary .stat-icon {
+    background: var(--primary-gradient);
+}
+
+.stat-card.success .stat-icon {
+    background: var(--success-gradient);
+}
+
+.stat-card.info .stat-icon {
+    background: var(--info-gradient);
+}
+
+.stat-info {
+    flex: 1;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-trend {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(16, 185, 129, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--success-color);
+    font-size: 0.875rem;
+}
+
+/* Grid de gráficas */
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Tarjetas de gráficas */
+.chart-card {
+    background: var(--card-background);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.chart-card:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.chart-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: between;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.chart-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    flex: 1;
+}
+
+.chart-title i {
+    color: var(--primary-color);
+}
+
+.chart-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: rgba(102, 126, 234, 0.1);
+    color: var(--primary-color);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    font-size: 0.875rem;
+}
+
+.action-btn:hover {
+    background: rgba(102, 126, 234, 0.2);
+    transform: scale(1.05);
+}
+
+.chart-body {
+    padding: 1.5rem;
+    height: 350px;
+    position: relative;
+}
+
+canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Estados de carga y error */
+.chart-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.loading-spinner {
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.loading-spinner i {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.chart-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+}
+
+.error-content {
+    max-width: 300px;
+    color: var(--text-secondary);
+}
+
+.error-content i {
+    font-size: 3rem;
+    color: var(--danger-color);
+    margin-bottom: 1rem;
+}
+
+.error-content h4 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.error-content p {
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.error-content small {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    word-break: break-all;
+}
+
+.retry-btn {
+    background: var(--danger-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: var(--transition);
+}
+
+.retry-btn:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
+
+/* Toast de error */
+.error-toast {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    background: var(--danger-color);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    z-index: 1000;
+    animation: slideInRight 0.3s ease-out;
+}
+
+.error-toast button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: var(--transition);
+}
+
+.error-toast button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 1rem;
+    }
+
+    .dashboard-title {
+        font-size: 2rem;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .charts-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .chart-body {
+        height: 300px;
+        padding: 1rem;
+    }
+
+    .error-toast {
+        top: 1rem;
+        right: 1rem;
+        left: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .stat-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.75rem;
+    }
+
+    .stat-trend {
+        position: static;
+        margin-top: 0.5rem;
+    }
+
+    .chart-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+}
+
+/* Animaciones adicionales */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stat-card, .chart-card {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.stat-card:nth-child(1) { animation-delay: 0.1s; }
+.stat-card:nth-child(2) { animation-delay: 0.2s; }
+.stat-card:nth-child(3) { animation-delay: 0.3s; }
+
+.chart-card:nth-child(1) { animation-delay: 0.4s; }
+.chart-card:nth-child(2) { animation-delay: 0.5s; }
+.chart-card:nth-child(3) { animation-delay: 0.6s; }
+.chart-card:nth-child(4) { animation-delay: 0.7s; }
+</style>
+
+{% endblock %}
