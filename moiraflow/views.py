@@ -765,7 +765,6 @@ class SintomasViewSet(viewsets.ViewSet):
                 RegistroDiario.SintomasComunes.DOLOR_CABEZA,
                 RegistroDiario.SintomasComunes.DOLOR_ESPALDA,
                 RegistroDiario.SintomasComunes.FATIGA,
-                # ... añade aquí el resto de los síntomas de SintomasComunes que quieras analizar
             ]
 
             registros_base = RegistroDiario.objects.filter(
