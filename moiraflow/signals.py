@@ -11,19 +11,3 @@ from moiraflow.models import (
 )
 
 User = get_user_model()
-
-
-def conectar_signals():
-    """Conexión explícita de todas las signals"""
-    # Las signals ya están conectadas mediante @receiver
-    # Esta función queda como punto central de configuración
-    pass
-
-@receiver(post_save, sender=Recordatorio)
-def crear_notificacion_recordatorio(sender, instance, created, **kwargs):
-    """
-    Crea una notificación cuando se crea o modifica un recordatorio
-    """
-    if created or instance.esta_pendiente():
-
-        pass

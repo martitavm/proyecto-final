@@ -793,54 +793,6 @@ class SintomasViewSet(viewsets.ViewSet):
             return Response({'error': str(e)}, status=400)
 
 
-@require_GET
-@login_required
-def obtener_notificaciones(request):
-    """
-    Vista para obtener notificaciones no leídas del usuario
-    """
-    hoy = timezone.now().date()
-
-    # Recordatorios pendientes
-    recordatorios = request.user.recordatorios.filter(
-        activo=True,
-        notificar=True,
-        visto=False,
-        fecha_notificacion__lte=hoy,
-        proxima_fecha__gte=hoy
-    ).order_by('proxima_fecha')[:10]
-
-    notificaciones = []
-    for r in recordatorios:
-        notificaciones.append({
-            'id': r.id,
-            'titulo': r.titulo,
-            'descripcion': r.descripcion,
-            'tipo': r.tipo,
-            'fecha_evento': r.proxima_fecha.strftime('%d/%m/%Y'),
-            'hora_evento': r.hora.strftime('%H:%M') if r.hora else '',
-            'dias_restantes': (r.proxima_fecha - hoy).days,
-            'es_hoy': r.proxima_fecha == hoy,
-            'tipo_icono': 'alarm' if r.tipo == 'medicacion' else 'event'
-        })
-
-    return JsonResponse({'notificaciones': notificaciones})
-
-
-@require_GET
-@login_required
-def marcar_notificacion_vista(request, recordatorio_id):
-    """
-    Marca una notificación como vista
-    """
-    try:
-        recordatorio = request.user.recordatorios.get(id=recordatorio_id)
-        recordatorio.marcar_como_visto()
-        return JsonResponse({'success': True})
-    except Recordatorio.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Recordatorio no encontrado'}, status=404)
-
-
 class ListaRecordatoriosView(LoginRequiredMixin, ListView):
     model = Recordatorio
     template_name = 'moiraflow/recordatorios/lista_recordatorios.html'
