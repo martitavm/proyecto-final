@@ -608,3 +608,21 @@ class Mascota(models.Model):
         else:
             self.estado = 'normal'
         self.save()
+
+
+class Notificacion(models.Model):
+    """
+    Modelo para almacenar notificaciones de recordatorios para los usuarios
+    """
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notificaciones')
+    recordatorio = models.ForeignKey(Recordatorio, on_delete=models.CASCADE, related_name='notificaciones')
+    mensaje = models.CharField(max_length=255)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    leida = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-fecha_creacion']
+        verbose_name_plural = 'Notificaciones'
+
+    def __str__(self):
+        return f"Notificación para {self.usuario.username}: {self.mensaje}"

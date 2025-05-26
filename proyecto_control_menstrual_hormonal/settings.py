@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
+from datetime import timedelta
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -153,3 +154,10 @@ EMAIL_HOST = 'mailpit'
 EMAIL_PORT = 1025
 EMAIL_USE_TLS = False
 DEFAULT_FROM_EMAIL = 'noreply@planmytrip.com'
+
+CELERY_BEAT_SCHEDULE = {
+    'generar-notificaciones-diarias': {
+        'task': 'moiraflow.tasks.generar_notificaciones_recordatorios',
+        'schedule': timedelta(hours=1),  # Ejecutar cada hora
+    },
+}

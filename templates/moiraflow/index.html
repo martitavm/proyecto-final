@@ -3,66 +3,161 @@
 
 {% block content %}
 <!-- Hero Section -->
-<section class="hero-section" style="background: linear-gradient(135deg, #e4899c 0%, #c23c54 100%);">
-    <div class="container py-5">
-        <div class="row align-items-center">
-            <div class="col-lg-6 text-white">
-                <h1 class="display-4 fw-bold mb-4">MoiraFlow</h1>
-                <p class="lead mb-4">Tu compañera inteligente para el seguimiento menstrual y hormonal</p>
-                <div class="d-flex gap-3">
-                    <a href="{% url 'moiraflow:calendario' %}" class="btn btn-light btn-lg px-4">
+<section class="hero-section">
+    <div class="hero-bg"></div>
+    <div class="container py-5 position-relative">
+        <div class="row align-items-center min-vh-75">
+            <div class="col-lg-6 text-white hero-content">
+                <div class="hero-badge mb-4">
+                    <span class="badge bg-white text-dark px-3 py-2 rounded-pill">
+                        <i class="fas fa-sparkles me-2"></i>Nueva experiencia 2025
+                    </span>
+                </div>
+                <h1 class="hero-title mb-4">
+                    <span class="text-gradient">MoiraFlow</span>
+                </h1>
+                <p class="hero-subtitle mb-4">Tu compañera inteligente para el seguimiento menstrual y hormonal.
+                   Descubre patrones, anticipa cambios y toma control de tu bienestar.</p>
+                <div class="hero-actions d-flex flex-wrap gap-3">
+                    <a href="{% url 'moiraflow:calendario' %}" class="btn btn-primary-custom btn-lg px-4 py-3">
                         <i class="fas fa-calendar-alt me-2"></i> Mi Calendario
+                        <i class="fas fa-arrow-right ms-2"></i>
                     </a>
-                    <a href="#" class="btn btn-outline-light btn-lg px-4">
+                    <a href="#" class="btn btn-outline-white btn-lg px-4 py-3">
                         <i class="fas fa-chart-line me-2"></i> Ver Estadísticas
                     </a>
                 </div>
+                <div class="hero-stats mt-5">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="stat-item">
+                                <div class="stat-number">10K+</div>
+                                <div class="stat-label">Usuarias activas</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-item">
+                                <div class="stat-number">95%</div>
+                                <div class="stat-label">Satisfacción</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-item">
+                                <div class="stat-number">4.8★</div>
+                                <div class="stat-label">Valoración</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="col-lg-6 d-none d-lg-block">
-                <img src="{% static 'images/mujeres_felices.png' %}" alt="Mujer feliz" class="img-fluid">
+                <div class="hero-image-container">
+                    <div class="floating-elements">
+                        <div class="floating-card card-1">
+                            <i class="fas fa-heart text-pink"></i>
+                            <span>Bienestar</span>
+                        </div>
+                        <div class="floating-card card-2">
+                            <i class="fas fa-chart-line text-success"></i>
+                            <span>Análisis</span>
+                        </div>
+                        <div class="floating-card card-3">
+                            <i class="fas fa-bell text-warning"></i>
+                            <span>Recordatorios</span>
+                        </div>
+                    </div>
+                    <img src="{% static 'images/mujeres_felices.png' %}" alt="Mujer feliz" class="hero-image">
+                </div>
             </div>
         </div>
+    </div>
+    <div class="hero-wave">
+        <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
+            <path d="m0,30l50,10c50,10 150,30 250,40c100,10 200,10 300,0c100,-10 200,-30 300,-25c100,5 200,25 250,35l50,10l0,60l-1200,0z" fill="#ffffff"></path>
+        </svg>
     </div>
 </section>
 
 <!-- Features Section -->
-<section class="py-5 bg-light">
+<section class="features-section py-5">
     <div class="container">
-        <h2 class="text-center mb-5" style="color: #c23c54;">¿Por qué elegir MoiraFlow?</h2>
+        <div class="section-header text-center mb-5">
+            <h2 class="section-title">¿Por qué elegir MoiraFlow?</h2>
+            <p class="section-subtitle">Herramientas inteligentes diseñadas para tu bienestar hormonal</p>
+        </div>
 
         <div class="row g-4">
             <div class="col-md-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body text-center p-4">
-                        <div class="icon-circle mb-4 mx-auto" style="background-color: #e4899c;">
-                            <i class="fas fa-bell text-white fs-3"></i>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <div class="feature-content">
+                        <h3 class="feature-title">Recordatorios</h3>
+                        <p class="feature-description">Nunca olvides registrar tus síntomas o tomar tu medicación con nuestras alertas personalizadas e inteligentes.</p>
+                        <div class="feature-highlight">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <span>Alertas personalizadas</span>
                         </div>
-                        <h3 class="h5" style="color: #c23c54;">Recordatorios</h3>
-                        <p>Nunca olvides registrar tus síntomas o tomar tu medicación con nuestras alertas personalizadas.</p>
                     </div>
                 </div>
             </div>
 
             <div class="col-md-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body text-center p-4">
-                        <div class="icon-circle mb-4 mx-auto" style="background-color: #e4899c;">
-                            <i class="fas fa-chart-pie text-white fs-3"></i>
+                <div class="feature-card feature-card-highlighted">
+                    <div class="feature-badge">Más popular</div>
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div class="feature-content">
+                        <h3 class="feature-title">Análisis Inteligente</h3>
+                        <p class="feature-description">Identifica patrones en tu ciclo y recibe insights personalizados sobre tu salud hormonal con IA avanzada.</p>
+                        <div class="feature-highlight">
+                            <i class="fas fa-brain me-2"></i>
+                            <span>Powered by IA</span>
                         </div>
-                        <h3 class="h5" style="color: #c23c54;">Análisis Inteligente</h3>
-                        <p>Identifica patrones en tu ciclo y recibe insights personalizados sobre tu salud hormonal.</p>
                     </div>
                 </div>
             </div>
 
             <div class="col-md-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body text-center p-4">
-                        <div class="icon-circle mb-4 mx-auto" style="background-color: #e4899c;">
-                            <i class="fas fa-lock text-white fs-3"></i>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="feature-content">
+                        <h3 class="feature-title">Privacidad Total</h3>
+                        <p class="feature-description">Tus datos están seguros con cifrado de extremo a extremo. Tu privacidad es nuestra prioridad número uno.</p>
+                        <div class="feature-highlight">
+                            <i class="fas fa-lock me-2"></i>
+                            <span>Cifrado E2E</span>
                         </div>
-                        <h3 class="h5" style="color: #c23c54;">Privacidad</h3>
-                        <p>Tus datos están seguros con nosotros. Totalmente privado y cifrado.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Features Row -->
+        <div class="row g-4 mt-4">
+            <div class="col-lg-6">
+                <div class="mini-feature">
+                    <div class="mini-feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <div class="mini-feature-content">
+                        <h4>App Móvil</h4>
+                        <p>Disponible en iOS y Android</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="mini-feature">
+                    <div class="mini-feature-icon">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <div class="mini-feature-content">
+                        <h4>Sincronización</h4>
+                        <p>Datos siempre actualizados</p>
                     </div>
                 </div>
             </div>
@@ -70,103 +165,151 @@
     </div>
 </section>
 
-<!-- Carousel Section -->
-<section class="py-5" style="background-color: #f8f9fa;">
+<!-- Info Carousel Section -->
+<section class="carousel-section py-5">
     <div class="container">
-        <h2 class="text-center mb-5" style="color: #c23c54;">Descubre más sobre tu ciclo</h2>
+        <div class="section-header text-center mb-5">
+            <h2 class="section-title">Descubre más sobre tu ciclo</h2>
+            <p class="section-subtitle">Información valiosa para entender mejor tu cuerpo</p>
+        </div>
 
-        <div id="infoCarousel" class="carousel slide" data-bs-ride="carousel">
-            <div class="carousel-indicators">
-                <button type="button" data-bs-target="#infoCarousel" data-bs-slide-to="0" class="active" style="background-color: #c23c54;"></button>
-                <button type="button" data-bs-target="#infoCarousel" data-bs-slide-to="1" style="background-color: #c23c54;"></button>
-                <button type="button" data-bs-target="#infoCarousel" data-bs-slide-to="2" style="background-color: #c23c54;"></button>
+        <div class="carousel-container">
+            <div id="infoCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
+                <div class="carousel-indicators custom-indicators">
+                    <button type="button" data-bs-target="#infoCarousel" data-bs-slide-to="0" class="active"></button>
+                    <button type="button" data-bs-target="#infoCarousel" data-bs-slide-to="1"></button>
+                    <button type="button" data-bs-target="#infoCarousel" data-bs-slide-to="2"></button>
+                </div>
+
+                <div class="carousel-inner">
+                    <div class="carousel-item active">
+                        <div class="carousel-content">
+                            <img src="{% static 'images/fases_ciclo.png' %}" class="carousel-image" alt="Fases del ciclo">
+                            <div class="carousel-overlay">
+                                <div class="carousel-text">
+                                    <h3>Conoce tus fases</h3>
+                                    <p>Entiende cómo cambia tu cuerpo durante cada fase de tu ciclo menstrual y aprovecha cada momento.</p>
+                                    <div class="carousel-tags">
+                                        <span class="tag">Fase folicular</span>
+                                        <span class="tag">Ovulación</span>
+                                        <span class="tag">Fase lútea</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="carousel-item">
+                        <div class="carousel-content">
+                            <img src="{% static 'images/sintomas_hormonales.png' %}" class="carousel-image" alt="Síntomas hormonales">
+                            <div class="carousel-overlay">
+                                <div class="carousel-text">
+                                    <h3>Síntomas hormonales</h3>
+                                    <p>Registra y comprende los cambios físicos y emocionales durante tu ciclo para un mejor autocuidado.</p>
+                                    <div class="carousel-tags">
+                                        <span class="tag">Seguimiento</span>
+                                        <span class="tag">Patrones</span>
+                                        <span class="tag">Bienestar</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="carousel-item">
+                        <div class="carousel-content">
+                            <img src="{% static 'images/salud_hormonal.jpg' %}" class="carousel-image" alt="Salud femenina">
+                            <div class="carousel-overlay">
+                                <div class="carousel-text">
+                                    <h3>Empodérate con conocimiento</h3>
+                                    <p>Toma el control de tu salud hormonal con información precisa y recommendations personalizadas.</p>
+                                    <div class="carousel-tags">
+                                        <span class="tag">Empoderamiento</span>
+                                        <span class="tag">Conocimiento</span>
+                                        <span class="tag">Control</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="carousel-control-prev custom-control" type="button" data-bs-target="#infoCarousel" data-bs-slide="prev">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="carousel-control-next custom-control" type="button" data-bs-target="#infoCarousel" data-bs-slide="next">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
             </div>
-
-            <div class="carousel-inner rounded-3 overflow-hidden shadow">
-                <div class="carousel-item active">
-                    <img src="{% static 'images/fases_ciclo.png' %}" class="d-block w-100" alt="Fases del ciclo">
-                    <div class="carousel-caption d-none d-md-block" style="background-color: rgba(196, 60, 84, 0.7);">
-                        <h5>Conoce tus fases</h5>
-                        <p>Entiende cómo cambia tu cuerpo durante cada fase de tu ciclo menstrual.</p>
-                    </div>
-                </div>
-
-                <div class="carousel-item">
-                    <img src="{% static 'images/sintomas_hormonales.png' %}" class="d-block w-100" alt="Síntomas hormonales">
-                    <div class="carousel-caption d-none d-md-block" style="background-color: rgba(196, 60, 84, 0.7);">
-                        <h5>Síntomas hormonales</h5>
-                        <p>Registra y comprende los cambios físicos y emocionales durante tu ciclo.</p>
-                    </div>
-                </div>
-
-                <div class="carousel-item">
-                    <img src="{% static 'images/salud_hormonal.jpg' %}" class="d-block w-100" alt="Salud femenina">
-                    <div class="carousel-caption d-none d-md-block" style="background-color: rgba(196, 60, 84, 0.7);">
-                        <h5>Empodérate con conocimiento</h5>
-                        <p>Toma el control de tu salud hormonal con información precisa.</p>
-                    </div>
-                </div>
-            </div>
-
-            <button class="carousel-control-prev" type="button" data-bs-target="#infoCarousel" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Previous</span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#infoCarousel" data-bs-slide="next">
-                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Next</span>
-            </button>
         </div>
     </div>
 </section>
 
 <!-- Testimonials Section -->
-<section class="py-5" style="background-color: #e4899c;">
+<section class="testimonials-section py-5">
     <div class="container">
-        <h2 class="text-center text-white mb-5">Lo que dicen nuestras usuarias</h2>
+        <div class="section-header text-center mb-5">
+            <h2 class="section-title text-white">Lo que dicen nuestras usuarias</h2>
+            <p class="section-subtitle text-white opacity-75">Historias reales de mujeres empoderadas</p>
+        </div>
 
         <div class="row g-4">
             <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center mb-3">
-                            <img src="{% static 'images/icono1.jpg' %}" class="rounded-circle me-3" width="60" height="60" alt="Usuario">
-                            <div>
-                                <h5 class="mb-0" style="color: #c23c54;">Ana M.</h5>
-                                <small class="text-muted">Usuaria desde 2022</small>
-                            </div>
+                <div class="testimonial-card">
+                    <div class="testimonial-rating">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <p class="testimonial-text">"MoiraFlow me ha ayudado a entender mejor mi ciclo y a anticipar mis síntomas. ¡Increíble herramienta que cambió mi vida!"</p>
+                    <div class="testimonial-author">
+                        <img src="{% static 'images/icono1.jpg' %}" class="author-avatar" alt="Ana M.">
+                        <div class="author-info">
+                            <h5 class="author-name">Ana M.</h5>
+                            <span class="author-role">Usuaria desde 2022</span>
                         </div>
-                        <p class="mb-0">"MoiraFlow me ha ayudado a entender mejor mi ciclo y a anticipar mis síntomas. ¡Increíble herramienta!"</p>
                     </div>
                 </div>
             </div>
 
             <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center mb-3">
-                            <img src="{% static 'images/icono2.jpg' %}" class="rounded-circle me-3" width="60" height="60" alt="Usuario">
-                            <div>
-                                <h5 class="mb-0" style="color: #c23c54;">Lucía G.</h5>
-                                <small class="text-muted">Usuaria desde 2023</small>
-                            </div>
+                <div class="testimonial-card testimonial-featured">
+                    <div class="testimonial-rating">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <p class="testimonial-text">"Por fin una app que realmente entiende las necesidades de las mujeres. Los recordatorios son mi salvación diaria."</p>
+                    <div class="testimonial-author">
+                        <img src="{% static 'images/icono2.jpg' %}" class="author-avatar" alt="Lucía G.">
+                        <div class="author-info">
+                            <h5 class="author-name">Lucía G.</h5>
+                            <span class="author-role">Usuaria desde 2023</span>
                         </div>
-                        <p class="mb-0">"Por fin una app que realmente entiende las necesidades de las mujeres. Los recordatorios son mi salvación."</p>
                     </div>
                 </div>
             </div>
 
             <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center mb-3">
-                            <img src="{% static 'images/icono3.jpg' %}" class="rounded-circle me-3" width="60" height="60" alt="Usuario">
-                            <div>
-                                <h5 class="mb-0" style="color: #c23c54;">María J.</h5>
-                                <small class="text-muted">Usuaria desde 2021</small>
-                            </div>
+                <div class="testimonial-card">
+                    <div class="testimonial-rating">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <p class="testimonial-text">"Como mujer con SOP, esta app ha sido fundamental para llevar un control efectivo de mi tratamiento hormonal."</p>
+                    <div class="testimonial-author">
+                        <img src="{% static 'images/icono3.jpg' %}" class="author-avatar" alt="María J.">
+                        <div class="author-info">
+                            <h5 class="author-name">María J.</h5>
+                            <span class="author-role">Usuaria desde 2021</span>
                         </div>
-                        <p class="mb-0">"Como mujer con SOP, esta app ha sido fundamental para llevar un control de mi tratamiento hormonal."</p>
                     </div>
                 </div>
             </div>
@@ -175,42 +318,904 @@
 </section>
 
 <!-- CTA Section -->
-<section class="py-5 text-center" style="background-color: #f8f9fa;">
-    <div class="container">
-        <h2 class="mb-4" style="color: #c23c54;">¿Lista para tomar el control de tu salud hormonal?</h2>
-        <p class="lead mb-4">Regístrate ahora y comienza tu viaje hacia un mejor entendimiento de tu cuerpo.</p>
-        <a href="{% url 'moiraflow:registro' %}" class="btn btn-lg text-white px-5" style="background-color: #c23c54;">
-            <i class="fas fa-user-plus me-2"></i> Crear cuenta
-        </a>
+<section class="cta-section py-5">
+    <div class="container text-center">
+        <div class="cta-content">
+            <h2 class="cta-title mb-4">¿Lista para tomar el control de tu salud hormonal?</h2>
+            <p class="cta-subtitle mb-5">Únete a miles de mujeres que ya han transformado su relación con su ciclo menstrual.</p>
+
+            <div class="cta-actions mb-5">
+                <a href="{% url 'moiraflow:registro' %}" class="btn btn-cta btn-lg px-5 py-3 me-3">
+                    <i class="fas fa-user-plus me-2"></i> Crear cuenta gratis
+                    <i class="fas fa-arrow-right ms-2"></i>
+                </a>
+                <a href="#" class="btn btn-outline-dark btn-lg px-5 py-3">
+                    <i class="fas fa-play me-2"></i> Ver demo
+                </a>
+            </div>
+
+            <div class="cta-features">
+                <div class="row justify-content-center">
+                    <div class="col-auto">
+                        <div class="cta-feature">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <span>Gratis por 30 días</span>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="cta-feature">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <span>Sin tarjeta de crédito</span>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="cta-feature">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <span>Cancela cuando quieras</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 
 <style>
-    .hero-section {
-        padding: 5rem 0;
-        color: white;
+    :root {
+        --primary-color: #c23c54;
+        --primary-light: #e4899c;
+        --gradient-primary: linear-gradient(135deg, #e4899c 0%, #c23c54 100%);
+        --gradient-secondary: linear-gradient(135deg, #ff6b9d 0%, #c23c54 100%);
+        --text-dark: #2c3e50;
+        --text-light: #6c757d;
+        --white: #ffffff;
+        --light-bg: #f8f9fa;
+        --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+        --shadow-md: 0 4px 16px rgba(0,0,0,0.15);
+        --shadow-lg: 0 8px 32px rgba(0,0,0,0.2);
+        --border-radius: 16px;
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .icon-circle {
-        width: 70px;
-        height: 70px;
+    /* Hero Section */
+    .hero-section {
+        position: relative;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    .hero-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--gradient-primary);
+        z-index: -1;
+    }
+
+    .hero-bg::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><radialGradient id="a" cx="50%" cy="50%"><stop offset="0%" stop-color="rgba(255,255,255,0.1)"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs><circle cx="200" cy="200" r="150" fill="url(%23a)"/><circle cx="800" cy="300" r="100" fill="url(%23a)"/><circle cx="300" cy="700" r="120" fill="url(%23a)"/></svg>');
+        opacity: 0.3;
+    }
+
+    .min-vh-75 {
+        min-height: 75vh;
+    }
+
+    .hero-content {
+        z-index: 2;
+    }
+
+    .hero-badge {
+        animation: fadeInUp 1s ease-out 0.2s both;
+    }
+
+    .hero-title {
+        font-size: 4rem;
+        font-weight: 800;
+        line-height: 1.1;
+        animation: fadeInUp 1s ease-out 0.4s both;
+    }
+
+    .text-gradient {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .hero-subtitle {
+        font-size: 1.25rem;
+        opacity: 0.9;
+        animation: fadeInUp 1s ease-out 0.6s both;
+    }
+
+    .hero-actions {
+        animation: fadeInUp 1s ease-out 0.8s both;
+    }
+
+    .btn-primary-custom {
+        background: var(--white);
+        color: var(--primary-color);
+        border: none;
+        border-radius: var(--border-radius);
+        font-weight: 600;
+        transition: var(--transition);
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-primary-custom:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+        background: var(--white);
+        color: var(--primary-color);
+    }
+
+    .btn-outline-white {
+        border: 2px solid rgba(255,255,255,0.3);
+        color: var(--white);
+        border-radius: var(--border-radius);
+        font-weight: 600;
+        transition: var(--transition);
+        backdrop-filter: blur(10px);
+    }
+
+    .btn-outline-white:hover {
+        background: rgba(255,255,255,0.1);
+        color: var(--white);
+        border-color: var(--white);
+        transform: translateY(-2px);
+    }
+
+    .hero-stats {
+        animation: fadeInUp 1s ease-out 1s both;
+    }
+
+    .stat-item {
+        padding: 1rem;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--white);
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        opacity: 0.8;
+        color: var(--white);
+    }
+
+    .hero-image-container {
+        position: relative;
+        animation: fadeInRight 1s ease-out 0.6s both;
+    }
+
+    .hero-image {
+        width: 100%;
+        height: auto;
+        border-radius: var(--border-radius);
+    }
+
+    .floating-elements {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+    }
+
+    .floating-card {
+        position: absolute;
+        background: var(--white);
+        padding: 1rem 1.5rem;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-md);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        font-size: 0.875rem;
+        animation: float 6s ease-in-out infinite;
+    }
+
+    .card-1 {
+        top: 20%;
+        left: -10%;
+        animation-delay: 0s;
+    }
+
+    .card-2 {
+        top: 60%;
+        right: -10%;
+        animation-delay: 2s;
+    }
+
+    .card-3 {
+        bottom: 20%;
+        left: -5%;
+        animation-delay: 4s;
+    }
+
+    .text-pink {
+        color: var(--primary-color);
+    }
+
+    .hero-wave {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        overflow: hidden;
+        line-height: 0;
+    }
+
+    .hero-wave svg {
+        position: relative;
+        display: block;
+        width: calc(100% + 1.3px);
+        height: 60px;
+    }
+
+    /* Features Section */
+    .features-section {
+        background: var(--white);
+        position: relative;
+    }
+
+    .section-header {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .section-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
+
+    .section-subtitle {
+        font-size: 1.125rem;
+        color: var(--text-light);
+    }
+
+    .feature-card {
+        background: var(--white);
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        height: 100%;
+        border: 1px solid rgba(0,0,0,0.08);
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .feature-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--gradient-primary);
+        transform: scaleX(0);
+        transition: var(--transition);
+    }
+
+    .feature-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .feature-card:hover::before {
+        transform: scaleX(1);
+    }
+
+    .feature-card-highlighted {
+        border: 2px solid var(--primary-light);
+        box-shadow: var(--shadow-md);
+    }
+
+    .feature-badge {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: var(--gradient-primary);
+        color: var(--white);
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .feature-icon {
+        width: 80px;
+        height: 80px;
+        background: var(--gradient-primary);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+        color: var(--white);
     }
 
-    .carousel-caption {
-        border-radius: 0.5rem;
+    .feature-title {
+        font-size: 1.375rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
+
+    .feature-description {
+        color: var(--text-light);
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+
+    .feature-highlight {
+        display: flex;
+        align-items: center;
+        color: var(--primary-color);
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .mini-feature {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.5rem;
+        background: var(--light-bg);
+        border-radius: var(--border-radius);
+        transition: var(--transition);
+    }
+
+    .mini-feature:hover {
+        background: var(--white);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .mini-feature-icon {
+        width: 50px;
+        height: 50px;
+        background: var(--gradient-primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+    }
+
+    .mini-feature-content h4 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 0.25rem;
+    }
+
+    .mini-feature-content p {
+        color: var(--text-light);
+        margin: 0;
+        font-size: 0.875rem;
+    }
+
+    /* Carousel Section */
+    .carousel-section {
+        background: var(--light-bg);
+    }
+
+    .carousel-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .carousel-content {
+        position: relative;
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .carousel-image {
+        width: 100%;
+        height: 400px;
+        object-fit: cover;
+    }
+
+    .carousel-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(transparent, rgba(0,0,0,0.8));
+        padding: 3rem 2rem 2rem;
+        color: var(--white);
+    }
+
+    .carousel-text h3 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .carousel-text p {
+        font-size: 1.125rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.9;
+    }
+
+    .carousel-tags {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .tag {
+        background: rgba(255,255,255,0.2);
+        padding: 0.375rem 1rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .custom-indicators {
         bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 80%;
+        margin-bottom: 0;
     }
 
-    .btn-outline-light:hover {
-        color: #c23c54 !important;
-        background-color: white;
+    .custom-indicators button {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255,255,255,0.5);
+        margin: 0 0.375rem;
+        transition: var(--transition);
+    }
+
+    .custom-indicators button.active {
+        background: var(--white);
+        transform: scale(1.2);
+    }
+
+    .custom-control {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(255,255,255,0.9);
+        border: none;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition);
+        backdrop-filter: blur(10px);
+    }
+
+    .custom-control:hover {
+        background: var(--white);
+        transform: translateY(-50%) scale(1.1);
+    }
+
+    .custom-control i {
+        color: var(--primary-color);
+        font-size: 1.125rem;
+    }
+
+    .carousel-control-prev {
+        left: 20px;
+    }
+
+    .carousel-control-next {
+        right: 20px;
+    }
+
+    /* Testimonials Section */
+    .testimonials-section {
+        background: var(--gradient-primary);
+        position: relative;
+    }
+
+    .testimonials-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><pattern id="testimonial-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100%" height="100%" fill="url(%23testimonial-pattern)"/></svg>');
+        opacity: 0.3;
+    }
+
+    .testimonial-card {
+        background: var(--white);
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        height: 100%;
+        transition: var(--transition);
+        position: relative;
+        z-index: 1;
+    }
+
+    .testimonial-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .testimonial-featured {
+        transform: scale(1.05);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .testimonial-featured:hover {
+        transform: scale(1.05) translateY(-5px);
+    }
+
+    .testimonial-rating {
+        display: flex;
+        gap: 0.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .testimonial-rating i {
+        color: #ffc107;
+        font-size: 1.125rem;
+    }
+
+    .testimonial-text {
+        font-size: 1.125rem;
+        line-height: 1.6;
+        color: var(--text-dark);
+        margin-bottom: 2rem;
+        font-style: italic;
+        position: relative;
+    }
+
+    .testimonial-text::before {
+        content: '"';
+        font-size: 4rem;
+        color: var(--primary-light);
+        position: absolute;
+        top: -1rem;
+        left: -0.5rem;
+        font-family: serif;
+        opacity: 0.3;
+    }
+
+    .testimonial-author {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .author-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        border: 3px solid var(--primary-light);
+        object-fit: cover;
+    }
+
+    .author-name {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 0.25rem;
+    }
+
+    .author-role {
+        color: var(--text-light);
+        font-size: 0.875rem;
+    }
+
+    /* CTA Section */
+    .cta-section {
+        background: var(--white);
+        position: relative;
+    }
+
+    .cta-content {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .cta-title {
+        font-size: 2.75rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        line-height: 1.2;
+    }
+
+    .cta-subtitle {
+        font-size: 1.25rem;
+        color: var(--text-light);
+        line-height: 1.6;
+    }
+
+    .btn-cta {
+        background: var(--gradient-primary);
+        color: var(--white);
+        border: none;
+        border-radius: var(--border-radius);
+        font-weight: 600;
+        transition: var(--transition);
+        box-shadow: var(--shadow-md);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-cta::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: var(--transition);
+    }
+
+    .btn-cta:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-lg);
+        color: var(--white);
+    }
+
+    .btn-cta:hover::before {
+        left: 100%;
+    }
+
+    .cta-features {
+        border-top: 1px solid rgba(0,0,0,0.1);
+        padding-top: 2rem;
+    }
+
+    .cta-feature {
+        display: flex;
+        align-items: center;
+        color: var(--text-light);
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+    }
+
+    .cta-feature i {
+        color: #28a745;
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeInRight {
+        from {
+            opacity: 0;
+            transform: translateX(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes float {
+        0%, 100% {
+            transform: translateY(0px);
+        }
+        50% {
+            transform: translateY(-20px);
+        }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 2.5rem;
+        }
+
+        .section-title {
+            font-size: 2rem;
+        }
+
+        .cta-title {
+            font-size: 2rem;
+        }
+
+        .hero-stats {
+            margin-top: 3rem;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+        }
+
+        .feature-card {
+            padding: 1.5rem;
+        }
+
+        .carousel-overlay {
+            padding: 2rem 1.5rem 1.5rem;
+        }
+
+        .carousel-text h3 {
+            font-size: 1.375rem;
+        }
+
+        .carousel-text p {
+            font-size: 1rem;
+        }
+
+        .testimonial-card {
+            padding: 1.5rem;
+        }
+
+        .floating-card {
+            display: none;
+        }
+
+        .hero-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .btn-lg {
+            padding: 1rem 2rem;
+        }
+
+        .cta-actions {
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .cta-actions .btn {
+            margin: 0;
+            width: 100%;
+            max-width: 300px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .hero-title {
+            font-size: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.75rem;
+        }
+
+        .carousel-image {
+            height: 250px;
+        }
+
+        .testimonial-text {
+            font-size: 1rem;
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            font-size: 1.25rem;
+        }
+    }
+
+    /* Smooth scrolling */
+    html {
+        scroll-behavior: smooth;
+    }
+
+    /* Loading animation for images */
+    img {
+        transition: opacity 0.3s ease;
+    }
+
+    img:not([src]) {
+        opacity: 0;
+    }
+
+    /* Focus states for accessibility */
+    .btn:focus,
+    .carousel-control-prev:focus,
+    .carousel-control-next:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+    }
+
+    /* Print styles */
+    @media print {
+        .hero-section,
+        .carousel-section,
+        .testimonials-section,
+        .cta-section {
+            break-inside: avoid;
+        }
     }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate elements on scroll
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('animate-in');
+            }
+        });
+    }, observerOptions);
+
+    // Observe all feature cards and testimonial cards
+    document.querySelectorAll('.feature-card, .testimonial-card, .mini-feature').forEach(card => {
+        observer.observe(card);
+    });
+
+    // Add smooth scrolling for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+
+    // Add loading states for images
+    document.querySelectorAll('img').forEach(img => {
+        if (img.complete) {
+            img.style.opacity = '1';
+        } else {
+            img.addEventListener('load', function() {
+                this.style.opacity = '1';
+            });
+        }
+    });
+
+    // Enhanced carousel controls
+    const carousel = document.getElementById('infoCarousel');
+    if (carousel) {
+        carousel.addEventListener('slide.bs.carousel', function(e) {
+            // Add slide transition effects
+            const activeItem = e.relatedTarget;
+            if (activeItem) {
+                activeItem.style.transform = 'scale(1.02)';
+                setTimeout(() => {
+                    activeItem.style.transform = 'scale(1)';
+                }, 300);
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

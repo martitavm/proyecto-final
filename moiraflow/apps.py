@@ -5,3 +5,5 @@ class MoiraflowConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'moiraflow'
 
+    def ready(self):
+        import moiraflow.signals 

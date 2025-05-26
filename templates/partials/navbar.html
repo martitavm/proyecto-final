@@ -60,8 +60,8 @@
                             <span id="contador-notificaciones"
                                   class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
                                   style="font-size: 0.6rem; display: none;">
-                            0
-                        </span>
+            0
+        </span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end border-0 shadow"
                             aria-labelledby="notificacionesDropdown" id="lista-notificaciones"
@@ -207,6 +207,64 @@
     </div>
 </div>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    const contadorNotificaciones = document.getElementById('contador-notificaciones');
+    const listaNotificaciones = document.getElementById('lista-notificaciones');
+    const sinNotificaciones = document.getElementById('sin-notificaciones');
+
+    function actualizarNotificaciones() {
+        fetch('/moiraflow/api/notificaciones/')  // Asegúrate que esta ruta es correcta
+            .then(response => {
+                if (!response.ok) throw new Error('Error en la respuesta');
+                return response.json();
+            })
+            .then(data => {
+                console.log('Notificaciones recibidas:', data);  // Para depuración
+
+                // Actualizar contador
+                contadorNotificaciones.textContent = data.count;
+                contadorNotificaciones.style.display = data.count > 0 ? 'block' : 'none';
+
+                // Limpiar lista
+                const itemsFijos = Array.from(listaNotificaciones.querySelectorAll('li:not(.notificacion-item)'));
+                listaNotificaciones.innerHTML = '';
+                itemsFijos.forEach(item => listaNotificaciones.appendChild(item));
+
+                // Mostrar notificaciones o mensaje vacío
+                if (data.count > 0) {
+                    sinNotificaciones.style.display = 'none';
+
+                    data.notificaciones.forEach(notif => {
+                        const li = document.createElement('li');
+                        li.className = 'notificacion-item';
+                        li.innerHTML = `
+                            <a class="dropdown-item" href="/moiraflow/recordatorios/${notif.recordatorio_id}/">
+                                <strong>${notif.mensaje}</strong>
+                                <small class="text-muted d-block">${notif.fecha}</small>
+                            </a>
+                        `;
+                        listaNotificaciones.insertBefore(li, listaNotificaciones.querySelector('li:last-child'));
+                    });
+                } else {
+                    sinNotificaciones.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error al obtener notificaciones:', error);
+                contadorNotificaciones.style.display = 'none';
+            });
+    }
+
+    // Actualizar al cargar y cada 30 segundos
+    actualizarNotificaciones();
+    setInterval(actualizarNotificaciones, 30000);
+
+    // Actualizar al hacer clic en el dropdown
+    document.getElementById('notificacionesDropdown').addEventListener('shown.bs.dropdown', actualizarNotificaciones);
+});
+</script>
+
 <style>
     /* Efectos hover para los enlaces del navbar */
     .navbar-nav .nav-link {
@@ -249,30 +307,30 @@
     }
 
     /* Estilos para las notificaciones */
-#contador-notificaciones {
-    font-size: 0.6rem;
-    padding: 0.25rem 0.4rem;
-}
+    #contador-notificaciones {
+        font-size: 0.6rem;
+        padding: 0.25rem 0.4rem;
+    }
 
-.notificacion-item {
-    white-space: normal;
-    padding: 0.5rem 1rem;
-    transition: all 0.2s ease;
-}
+    .notificacion-item {
+        white-space: normal;
+        padding: 0.5rem 1rem;
+        transition: all 0.2s ease;
+    }
 
-.notificacion-item:hover {
-    background-color: #f8f9fa;
-    padding-left: 1.5rem !important;
-    color: #c23c54 !important;
-}
+    .notificacion-item:hover {
+        background-color: #f8f9fa;
+        padding-left: 1.5rem !important;
+        color: #c23c54 !important;
+    }
 
-.notificacion-item strong {
-    display: block;
-    margin-bottom: 0.2rem;
-}
+    .notificacion-item strong {
+        display: block;
+        margin-bottom: 0.2rem;
+    }
 
-#lista-notificaciones {
-    max-height: 60vh;
-    overflow-y: auto;
-}
+    #lista-notificaciones {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
 </style>
