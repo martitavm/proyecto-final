@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.contrib.auth import logout, login
 from moiraflow.models import Perfil, RegistroDiario, TratamientoHormonal, CicloMenstrual, Articulo, Mascota, \
-    EfectoTratamiento, Recordatorio
+    EfectoTratamiento, Recordatorio, Notificacion
 from moiraflow.forms import RegistroCompletoForm, RegistroDiarioForm, TratamientoHormonalForm, CicloMenstrualForm, \
     ArticuloForm, EditarPerfilForm
 from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView, FormView, View, DetailView, ListView
@@ -23,6 +23,9 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import F, Func, Value, IntegerField, Count
 from django.db.models.functions import Mod
 from rest_framework.reverse import reverse as drf_reverse
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 
 class PaginaPrincipalView(TemplateView):
@@ -793,54 +796,6 @@ class SintomasViewSet(viewsets.ViewSet):
             return Response({'error': str(e)}, status=400)
 
 
-@require_GET
-@login_required
-def obtener_notificaciones(request):
-    """
-    Vista para obtener notificaciones no leídas del usuario
-    """
-    hoy = timezone.now().date()
-
-    # Recordatorios pendientes
-    recordatorios = request.user.recordatorios.filter(
-        activo=True,
-        notificar=True,
-        visto=False,
-        fecha_notificacion__lte=hoy,
-        proxima_fecha__gte=hoy
-    ).order_by('proxima_fecha')[:10]
-
-    notificaciones = []
-    for r in recordatorios:
-        notificaciones.append({
-            'id': r.id,
-            'titulo': r.titulo,
-            'descripcion': r.descripcion,
-            'tipo': r.tipo,
-            'fecha_evento': r.proxima_fecha.strftime('%d/%m/%Y'),
-            'hora_evento': r.hora.strftime('%H:%M') if r.hora else '',
-            'dias_restantes': (r.proxima_fecha - hoy).days,
-            'es_hoy': r.proxima_fecha == hoy,
-            'tipo_icono': 'alarm' if r.tipo == 'medicacion' else 'event'
-        })
-
-    return JsonResponse({'notificaciones': notificaciones})
-
-
-@require_GET
-@login_required
-def marcar_notificacion_vista(request, recordatorio_id):
-    """
-    Marca una notificación como vista
-    """
-    try:
-        recordatorio = request.user.recordatorios.get(id=recordatorio_id)
-        recordatorio.marcar_como_visto()
-        return JsonResponse({'success': True})
-    except Recordatorio.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Recordatorio no encontrado'}, status=404)
-
-
 class ListaRecordatoriosView(LoginRequiredMixin, ListView):
     model = Recordatorio
     template_name = 'moiraflow/recordatorios/lista_recordatorios.html'
@@ -1091,3 +1046,40 @@ class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
     def test_func(self):
         return self.request.user.perfil.es_administrador
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def obtener_notificaciones(request):
+    # Obtener notificaciones no leídas del usuario
+    notificaciones = Notificacion.objects.filter(
+        usuario=request.user,
+        leida=False
+    ).order_by('-fecha_creacion')[:10]  # Limitar a las 10 más recientes
+
+    data = [{
+        'id': n.id,
+        'mensaje': n.mensaje,
+        'fecha': n.fecha_creacion.strftime('%d/%m/%Y %H:%M'),
+        'recordatorio_id': n.recordatorio.id
+    } for n in notificaciones]
+
+    return Response({
+        'count': notificaciones.count(),
+        'notificaciones': data
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def marcar_notificacion_leida(request, notificacion_id):
+    try:
+        notificacion = Notificacion.objects.get(
+            id=notificacion_id,
+            usuario=request.user
+        )
+        notificacion.leida = True
+        notificacion.save()
+        return Response({'success': True})
+    except Notificacion.DoesNotExist:
+        return Response({'success': False}, status=404)

@@ -6,8 +6,4 @@ class MoiraflowConfig(AppConfig):
     name = 'moiraflow'
 
     def ready(self):
-        """
-        Se ejecuta cuando la aplicación está lista
-        """
-        from moiraflow import signals
-        signals.conectar_signals()
+        import moiraflow.signals 

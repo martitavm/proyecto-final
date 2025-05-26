@@ -89,20 +89,6 @@
             </div>
         </div>
 
-        <!-- Tracking Types Chart -->
-        <div class="chart-card">
-            <div class="chart-header">
-                <h3 class="chart-title">
-                    <i class="fas fa-clipboard-list"></i>
-                    Tipos de Seguimiento
-                </h3>
-
-            </div>
-            <div class="chart-body">
-                <canvas id="trackingChart"></canvas>
-            </div>
-        </div>
-
         <!-- Symptoms Chart -->
         <div class="chart-card">
             <div class="chart-header">
@@ -114,6 +100,20 @@
             </div>
             <div class="chart-body">
                 <canvas id="symptomsChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Tracking Types Chart -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3 class="chart-title">
+                    <i class="fas fa-clipboard-list"></i>
+                    Tipos de Seguimiento
+                </h3>
+
+            </div>
+            <div class="chart-body">
+                <canvas id="trackingChart"></canvas>
             </div>
         </div>
     </div>
@@ -274,16 +274,16 @@ function renderChart(canvasId, labels, data, type, title) {
 
     const ctx = canvas.getContext('2d');
 
-    // Paleta de colores moderna
+    // Paleta de colores actualizada
     const colors = {
-        primary: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe'],
+        primary: ['#c23c54', '#e4899c', '#f5b2c1', '#a8324a', '#d66e86', '#c85472'],
         gradients: [
-            'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-            'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-            'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-            'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-            'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
+            'linear-gradient(135deg, #c23c54 0%, #e4899c 100%)',
+            'linear-gradient(135deg, #e4899c 0%, #f5b2c1 100%)',
+            'linear-gradient(135deg, #a8324a 0%, #c23c54 100%)',
+            'linear-gradient(135deg, #d66e86 0%, #e4899c 100%)',
+            'linear-gradient(135deg, #c85472 0%, #d66e86 100%)',
+            'linear-gradient(135deg, #f5b2c1 0%, #ffffff 100%)'
         ]
     };
 
@@ -304,7 +304,7 @@ function renderChart(canvasId, labels, data, type, title) {
                 }
             },
             tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                backgroundColor: 'rgba(194, 60, 84, 0.9)',
                 titleColor: '#fff',
                 bodyColor: '#fff',
                 borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -376,7 +376,7 @@ function renderChart(canvasId, labels, data, type, title) {
                     y: {
                         beginAtZero: true,
                         grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
+                            color: 'rgba(194, 60, 84, 0.1)'
                         },
                         ticks: {
                             font: {
@@ -447,24 +447,28 @@ document.addEventListener('DOMContentLoaded', () => {
 /* Importar fuente moderna */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* Variables CSS */
+/* Variables CSS actualizadas con nueva paleta */
 :root {
-    --primary-color: #667eea;
-    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --success-color: #10b981;
-    --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    --info-color: #3b82f6;
-    --info-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    --warning-color: #f59e0b;
-    --danger-color: #ef4444;
-    --background-color: #f8fafc;
+    --primary-color: #c23c54;
+    --primary-gradient: linear-gradient(135deg, #c23c54 0%, #e4899c 100%);
+    --secondary-color: #e4899c;
+    --secondary-gradient: linear-gradient(135deg, #e4899c 0%, #f5b2c1 100%);
+    --accent-color: #a8324a;
+    --accent-gradient: linear-gradient(135deg, #a8324a 0%, #c23c54 100%);
+    --success-color: #e4899c;
+    --success-gradient: linear-gradient(135deg, #e4899c 0%, #f5b2c1 100%);
+    --info-color: #c85472;
+    --info-gradient: linear-gradient(135deg, #c85472 0%, #e4899c 100%);
+    --warning-color: #d66e86;
+    --danger-color: #c23c54;
+    --background-color: #fdfcfc;
     --card-background: #ffffff;
-    --text-primary: #1f2937;
-    --text-secondary: #6b7280;
-    --border-color: #e5e7eb;
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --text-primary: #2d1b1f;
+    --text-secondary: #8a6b72;
+    --border-color: #f0e6e8;
+    --shadow-sm: 0 1px 2px 0 rgba(194, 60, 84, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(194, 60, 84, 0.1), 0 2px 4px -1px rgba(194, 60, 84, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(194, 60, 84, 0.1), 0 4px 6px -2px rgba(194, 60, 84, 0.05);
     --border-radius: 12px;
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -613,7 +617,7 @@ body {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: rgba(16, 185, 129, 0.1);
+    background: rgba(228, 137, 156, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -635,6 +639,7 @@ body {
     box-shadow: var(--shadow-md);
     overflow: hidden;
     transition: var(--transition);
+    border-top: 3px solid var(--primary-color);
 }
 
 .chart-card:hover {
@@ -646,8 +651,8 @@ body {
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
-    justify-content: between;
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    justify-content: space-between;
+    background: linear-gradient(135deg, #fefefe 0%, #fdf8f9 100%);
 }
 
 .chart-title {
@@ -674,7 +679,7 @@ body {
     width: 36px;
     height: 36px;
     border: none;
-    background: rgba(102, 126, 234, 0.1);
+    background: rgba(194, 60, 84, 0.1);
     color: var(--primary-color);
     border-radius: 8px;
     cursor: pointer;
@@ -686,7 +691,7 @@ body {
 }
 
 .action-btn:hover {
-    background: rgba(102, 126, 234, 0.2);
+    background: rgba(194, 60, 84, 0.2);
     transform: scale(1.05);
 }
 
@@ -774,7 +779,7 @@ canvas {
 }
 
 .retry-btn:hover {
-    background: #dc2626;
+    background: var(--accent-color);
     transform: translateY(-1px);
 }
 

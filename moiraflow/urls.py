@@ -28,8 +28,9 @@ from moiraflow.views import (
     consejo_mascota,
     MascotaPanelView,
     finalizar_alimentacion, RegistrosDiaView, SintomasViewSet, ajax_login,
-    ajax_logout, obtener_notificaciones, marcar_notificacion_vista, ListaRecordatoriosView, CrearRecordatorioView,
-    EditarRecordatorioView, EliminarRecordatorioView, AdminDashboardView,
+    ajax_logout, ListaRecordatoriosView, CrearRecordatorioView,
+    EditarRecordatorioView, EliminarRecordatorioView, AdminDashboardView, marcar_notificacion_leida,
+    obtener_notificaciones,
 )
 
 app_name = 'moiraflow'
@@ -89,9 +90,9 @@ urlpatterns = [
 
 
     #URLs de notificaciones
-    path('notificaciones/', obtener_notificaciones, name='obtener_notificaciones'),
-    path('notificaciones/<int:recordatorio_id>/marcar-vista/', marcar_notificacion_vista,
-         name='marcar_notificacion_vista'),
+path('api/notificaciones/', obtener_notificaciones, name='obtener_notificaciones'),
+    path('api/notificaciones/<int:notificacion_id>/leida/', marcar_notificacion_leida, name='marcar_notificacion_leida'),
+
     path('recordatorios/', ListaRecordatoriosView.as_view(), name='lista_recordatorios'),
     path('recordatorios/crear/', CrearRecordatorioView.as_view(), name='crear_recordatorio'),
     path('recordatorios/editar/<int:pk>/', EditarRecordatorioView.as_view(), name='editar_recordatorio'),
