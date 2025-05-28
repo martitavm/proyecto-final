@@ -53,6 +53,7 @@
                         </li>
                     {% endif %}
 
+                    <!-- Reemplaza el dropdown de notificaciones con este código mejorado -->
                     <li class="nav-item dropdown mx-1">
                         <a class="nav-link dropdown-toggle position-relative" href="#" id="notificacionesDropdown"
                            role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: #333;">
@@ -63,20 +64,27 @@
             0
         </span>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow"
+                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow p-0"
                             aria-labelledby="notificacionesDropdown" id="lista-notificaciones"
-                            style="min-width: 300px; max-height: 400px; overflow-y: auto;">
-                            <li><h6 class="dropdown-header">Notificaciones</h6></li>
+                            style="min-width: 320px; max-height: 400px; overflow-y: auto;">
+                            <li class="dropdown-header d-flex justify-content-between align-items-center bg-light py-2 px-3">
+                                <h6 class="mb-0">Notificaciones</h6>
+                                <button class="btn btn-sm btn-link p-0" id="marcar-todas-leidas">
+                                    <small>Marcar todas como leídas</small>
+                                </button>
+                            </li>
                             <li>
-                                <div class="dropdown-item text-center py-3" id="sin-notificaciones">No hay
-                                    notificaciones
+                                <div class="dropdown-item text-center py-3 text-muted" id="sin-notificaciones">
+                                    No hay notificaciones nuevas
                                 </div>
                             </li>
+                            <li class="dropdown-divider my-0"></li>
                             <li>
-                                <hr class="dropdown-divider my-1">
+                                <a class="dropdown-item text-center py-2 small fw-bold"
+                                   href="{% url 'moiraflow:lista_recordatorios' %}" style="color: #c23c54;">
+                                    Ver todas las notificaciones
+                                </a>
                             </li>
-                            <li><a class="dropdown-item text-center small"
-                                   href="{% url 'moiraflow:lista_recordatorios' %}">Ver todas</a></li>
                         </ul>
                     </li>
 
@@ -143,7 +151,7 @@
                     <li class="nav-item ms-lg-2">
                         <a class="btn btn-outline-primary me-2" href="#" data-bs-toggle="modal"
                            data-bs-target="#loginModal" style="border-color: #c23c54; color: #c23c54;">
-                            <i class="fas fa-sign-in-alt me-1"></i> Ingresar
+                            <i class="fas fa-sign-in-alt me-1"></i> Iniciar Sesión
                         </a>
                     </li>
                     <li class="nav-item">
@@ -208,61 +216,133 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-    const contadorNotificaciones = document.getElementById('contador-notificaciones');
-    const listaNotificaciones = document.getElementById('lista-notificaciones');
-    const sinNotificaciones = document.getElementById('sin-notificaciones');
+    document.addEventListener('DOMContentLoaded', function () {
+        const contadorNotificaciones = document.getElementById('contador-notificaciones');
+        const listaNotificaciones = document.getElementById('lista-notificaciones');
+        const sinNotificaciones = document.getElementById('sin-notificaciones');
+        const marcarTodasLeidas = document.getElementById('marcar-todas-leidas');
 
-    function actualizarNotificaciones() {
-        fetch('/moiraflow/api/notificaciones/')  // Asegúrate que esta ruta es correcta
-            .then(response => {
-                if (!response.ok) throw new Error('Error en la respuesta');
-                return response.json();
-            })
-            .then(data => {
-                console.log('Notificaciones recibidas:', data);  // Para depuración
+        function actualizarNotificaciones() {
+            fetch('/moiraflow/api/notificaciones/')
+                .then(response => {
+                    if (!response.ok) throw new Error('Error en la respuesta');
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Notificaciones recibidas:', data);
 
-                // Actualizar contador
-                contadorNotificaciones.textContent = data.count;
-                contadorNotificaciones.style.display = data.count > 0 ? 'block' : 'none';
+                    // Actualizar contador
+                    contadorNotificaciones.textContent = data.count;
+                    contadorNotificaciones.style.display = data.count > 0 ? 'block' : 'none';
 
-                // Limpiar lista
-                const itemsFijos = Array.from(listaNotificaciones.querySelectorAll('li:not(.notificacion-item)'));
-                listaNotificaciones.innerHTML = '';
-                itemsFijos.forEach(item => listaNotificaciones.appendChild(item));
+                    // Limpiar lista
+                    const itemsFijos = Array.from(listaNotificaciones.querySelectorAll('li:not(.notificacion-item)'));
+                    listaNotificaciones.innerHTML = '';
+                    itemsFijos.forEach(item => listaNotificaciones.appendChild(item));
 
-                // Mostrar notificaciones o mensaje vacío
-                if (data.count > 0) {
-                    sinNotificaciones.style.display = 'none';
+                    // Mostrar notificaciones o mensaje vacío
+                    if (data.count > 0) {
+                        sinNotificaciones.style.display = 'none';
 
-                    data.notificaciones.forEach(notif => {
-                        const li = document.createElement('li');
-                        li.className = 'notificacion-item';
-                        li.innerHTML = `
-                            <a class="dropdown-item" href="/moiraflow/recordatorios/${notif.recordatorio_id}/">
-                                <strong>${notif.mensaje}</strong>
-                                <small class="text-muted d-block">${notif.fecha}</small>
+                        data.notificaciones.forEach(notif => {
+                            const li = document.createElement('li');
+                            li.className = 'notificacion-item d-flex justify-content-between align-items-center';
+                            li.innerHTML = `
+                            <a class="dropdown-item py-2 flex-grow-1" href="/moiraflow/recordatorios/${notif.recordatorio_id}/"
+                               onclick="marcarNotificacionLeida(${notif.id}, event)">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-bell-fill me-2" style="color: #e4899c;"></i>
+                                    <div>
+                                        <div class="fw-bold">${notif.mensaje}</div>
+                                        <small class="text-muted">${notif.fecha}</small>
+                                    </div>
+                                </div>
                             </a>
+                            <button class="btn btn-sm btn-link text-muted me-2"
+                                    onclick="marcarNotificacionLeida(${notif.id})"
+                                    title="Marcar como leída">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
                         `;
-                        listaNotificaciones.insertBefore(li, listaNotificaciones.querySelector('li:last-child'));
-                    });
-                } else {
-                    sinNotificaciones.style.display = 'block';
-                }
+                            listaNotificaciones.insertBefore(li, listaNotificaciones.querySelector('li:nth-last-child(2)'));
+                        });
+                    } else {
+                        sinNotificaciones.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al obtener notificaciones:', error);
+                    contadorNotificaciones.style.display = 'none';
+                });
+        }
+
+        // Función para marcar notificación como leída
+        window.marcarNotificacionLeida = function (notificacionId, event) {
+            if (event) {
+                event.preventDefault();
+            }
+
+            fetch(`/moiraflow/api/notificaciones/${notificacionId}/marcar-leida/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
             })
-            .catch(error => {
-                console.error('Error al obtener notificaciones:', error);
-                contadorNotificaciones.style.display = 'none';
-            });
-    }
+                .then(response => {
+                    if (response.ok) {
+                        // Si se marcó correctamente, actualizar la lista
+                        actualizarNotificaciones();
+                        if (event) {
+                            // Si fue un clic en el enlace, redirigir después de marcar
+                            window.location.href = event.target.closest('a').href;
+                        }
+                    }
+                });
+        };
 
-    // Actualizar al cargar y cada 30 segundos
-    actualizarNotificaciones();
-    setInterval(actualizarNotificaciones, 30000);
+        // Función para marcar todas como leídas
+        marcarTodasLeidas.addEventListener('click', function (e) {
+            e.preventDefault();
+            fetch('/moiraflow/api/notificaciones/marcar-todas-leidas/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+                .then(response => {
+                    if (response.ok) {
+                        actualizarNotificaciones();
+                    }
+                });
+        });
 
-    // Actualizar al hacer clic en el dropdown
-    document.getElementById('notificacionesDropdown').addEventListener('shown.bs.dropdown', actualizarNotificaciones);
-});
+        // Función auxiliar para obtener cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Actualizar al cargar y cada 30 segundos
+        actualizarNotificaciones();
+        setInterval(actualizarNotificaciones, 30000);
+
+        // Actualizar al hacer clic en el dropdown
+        document.getElementById('notificacionesDropdown').addEventListener('shown.bs.dropdown', actualizarNotificaciones);
+    });
 </script>
 
 <style>
@@ -332,5 +412,44 @@
     #lista-notificaciones {
         max-height: 60vh;
         overflow-y: auto;
+    }
+
+    /* Añade estos estilos a tu CSS existente */
+    .notificacion-item {
+        border-left: 3px solid transparent;
+        transition: all 0.2s ease;
+    }
+
+    .notificacion-item:hover {
+        border-left-color: #c23c54;
+        background-color: #f8f9fa;
+    }
+
+    .notificacion-item .dropdown-item {
+        white-space: normal;
+        padding-right: 0;
+    }
+
+    .notificacion-item .btn-link {
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    .notificacion-item:hover .btn-link {
+        opacity: 1;
+    }
+
+    #marcar-todas-leidas {
+        color: #6c757d;
+        text-decoration: none;
+    }
+
+    #marcar-todas-leidas:hover {
+        color: #c23c54;
+    }
+
+    .dropdown-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
     }
 </style>

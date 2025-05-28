@@ -1083,3 +1083,29 @@ def marcar_notificacion_leida(request, notificacion_id):
         return Response({'success': True})
     except Notificacion.DoesNotExist:
         return Response({'success': False}, status=404)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def marcar_notificacion_leida(request, notificacion_id):
+    try:
+        notificacion = Notificacion.objects.get(
+            id=notificacion_id,
+            usuario=request.user
+        )
+        notificacion.leida = True
+        notificacion.save()
+        return Response({'success': True})
+    except Notificacion.DoesNotExist:
+        return Response({'success': False}, status=404)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def marcar_todas_leidas(request):
+    try:
+        Notificacion.objects.filter(
+            usuario=request.user,
+            leida=False
+        ).update(leida=True)
+        return Response({'success': True, 'message': 'Todas las notificaciones marcadas como leídas'})
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
