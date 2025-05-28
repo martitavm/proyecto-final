@@ -13,6 +13,8 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from celery.schedules import crontab
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -112,7 +114,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'es-es'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Madrid'
 
 USE_I18N = True
 
@@ -155,9 +157,13 @@ EMAIL_PORT = 1025
 EMAIL_USE_TLS = False
 DEFAULT_FROM_EMAIL = 'noreply@planmytrip.com'
 
+
+CELERY_TIMEZONE = 'Europe/Madrid'
+CELERY_BROKER_URL = 'redis://redis:6379/0'
 CELERY_BEAT_SCHEDULE = {
     'generar-notificaciones-diarias': {
         'task': 'moiraflow.tasks.generar_notificaciones_recordatorios',
-        'schedule': timedelta(hours=1),  # Ejecutar cada hora
+        'schedule': crontab(hour=23, minute=54),
     },
 }
+
