@@ -1109,3 +1109,23 @@ def marcar_todas_leidas(request):
         return Response({'success': True, 'message': 'Todas las notificaciones marcadas como leídas'})
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
+
+class ListaNotificacionesView(LoginRequiredMixin, ListView):
+    template_name = 'moiraflow/lista_notificaciones.html'
+    model = Notificacion
+    context_object_name = 'notificaciones'
+    paginate_by = 20
+
+    def get_queryset(self):
+        # Ordenamos por fecha descendente (las más recientes primero)
+        return Notificacion.objects.filter(
+            usuario=self.request.user
+        ).order_by('-fecha_creacion')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['total_no_leidas'] = Notificacion.objects.filter(
+            usuario=self.request.user,
+            leida=False
+        ).count()
+        return context

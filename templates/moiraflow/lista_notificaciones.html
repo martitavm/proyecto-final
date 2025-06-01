@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+  :root {
+    --primary-color: #c23c54;
+    --secondary-color: #e4899c;
+    --light-color: #fff;
+    --hover-color: #aa324a;
+  }
+
+  .notificaciones-header {
+    background-color: var(--primary-color);
+    color: var(--light-color);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 12px rgba(194, 60, 84, 0.15);
+  }
+
+  .notificaciones-card {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+  }
+
+  .notification-item {
+    border: none;
+    border-radius: 0;
+    border-bottom: 1px solid rgba(228, 137, 156, 0.2);
+    transition: all 0.2s ease;
+    background-color: var(--light-color);
+  }
+
+  .notification-item:hover {
+    background-color: rgba(228, 137, 156, 0.05);
+    transform: translateX(4px);
+  }
+
+  .notification-item.unread {
+    background-color: rgba(194, 60, 84, 0.08);
+    border-left: 4px solid var(--primary-color);
+  }
+
+  .notification-item:last-child {
+    border-bottom: none;
+  }
+
+  .notification-content {
+    padding: 1.2rem;
+  }
+
+  .notification-title {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+  }
+
+  .notification-meta {
+    color: #6c757d;
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .notification-time {
+    color: var(--primary-color);
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  .notification-recordatorio {
+    background-color: rgba(228, 137, 156, 0.1);
+    padding: 0.5rem 0.8rem;
+    border-radius: 6px;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--hover-color);
+  }
+
+  .notification-icon {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    margin-right: 0.8rem;
+    margin-top: 0.2rem;
+  }
+
+  .empty-state {
+    padding: 3rem;
+    text-align: center;
+    background-color: rgba(228, 137, 156, 0.05);
+    border-radius: 8px;
+  }
+
+  .empty-state i {
+    color: var(--secondary-color);
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+
+  .empty-state h4 {
+    color: var(--hover-color);
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-state p {
+    color: #6c757d;
+  }
+
+  .pagination {
+    --bs-pagination-color: var(--primary-color);
+    --bs-pagination-hover-color: var(--light-color);
+    --bs-pagination-hover-bg: var(--primary-color);
+    --bs-pagination-focus-color: var(--light-color);
+    --bs-pagination-focus-bg: var(--primary-color);
+    --bs-pagination-active-color: var(--light-color);
+    --bs-pagination-active-bg: var(--primary-color);
+    --bs-pagination-active-border-color: var(--primary-color);
+    --bs-pagination-border-color: rgba(194, 60, 84, 0.3);
+  }
+
+  .pagination .page-link {
+    border-radius: 6px;
+    margin: 0 2px;
+    transition: all 0.2s ease;
+  }
+
+  .pagination .page-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(194, 60, 84, 0.2);
+  }
+
+  .notification-badge {
+    background-color: var(--primary-color);
+    color: var(--light-color);
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 10px;
+    margin-left: 0.5rem;
+  }
+</style>
+
+<div class="container mt-4">
+    <div class="notificaciones-header d-flex justify-content-between align-items-center">
+        <h2 class="m-0"><i class="bi bi-bell-fill me-2"></i>Todas mis notificaciones</h2>
+        {% if notificaciones %}
+            <span class="notification-badge">{{ notificaciones|length }} notificación{{ notificaciones|length|pluralize:"es" }}</span>
+        {% endif %}
+    </div>
+
+    <div class="notificaciones-card card">
+        <div class="card-body p-0">
+            {% if notificaciones %}
+                <div class="list-group list-group-flush">
+                    {% for notificacion in notificaciones %}
+                        <div class="list-group-item notification-item {% if not notificacion.leida %}unread{% endif %}">
+                            <div class="notification-content">
+                                <div class="d-flex align-items-start">
+                                    <i class="bi {% if not notificacion.leida %}bi-bell-fill{% else %}bi-bell{% endif %} notification-icon"></i>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <h5 class="notification-title">{{ notificacion.mensaje }}</h5>
+                                            <small class="notification-time">{{ notificacion.fecha_creacion|timesince }} atrás</small>
+                                        </div>
+                                        {% if notificacion.recordatorio %}
+                                            <div class="notification-recordatorio">
+                                                <i class="bi bi-calendar-event me-1"></i>
+                                                <strong>Recordatorio:</strong> {{ notificacion.recordatorio.titulo }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Paginación -->
+                {% if is_paginated %}
+                    <div class="p-3 border-top">
+                        <nav>
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                                            <i class="bi bi-chevron-left me-1"></i>Anterior
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <li class="page-item active">
+                                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                        </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                                            Siguiente<i class="bi bi-chevron-right ms-1"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-bell-slash"></i>
+                    <h4 class="mb-2">No tienes notificaciones</h4>
+                    <p class="text-muted">Cuando tengas nuevas notificaciones aparecerán aquí.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
