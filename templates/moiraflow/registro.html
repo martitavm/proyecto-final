@@ -2,146 +2,415 @@
 {% load static %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card border-0 shadow-lg">
-                <div class="card-header bg-primary text-white text-center py-4">
-                    <h2><i class="bi bi-person-plus me-2"></i> Crear Cuenta</h2>
-                    <p class="mb-0">Completa tus datos para registrarte</p>
-                </div>
+<style>
+    :root {
+        --primary-color: #c23c54;
+        --secondary-color: #e4899c;
+        --light-color: #fff;
+        --hover-color: #aa324a;
+        --accent-light: rgba(194, 60, 84, 0.1);
+        --accent-border: rgba(194, 60, 84, 0.3);
+    }
 
-                <div class="card-body p-4 p-md-5">
-                    <!-- Mensajes -->
-                    {% if messages %}
-                    <div class="mb-4">
-                        {% for message in messages %}
-                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                        {% endfor %}
+    .registro-container {
+        background: linear-gradient(135deg, rgba(194, 60, 84, 0.05) 0%, rgba(228, 137, 156, 0.05) 100%);
+        min-height: 100vh;
+        padding: 2rem 0;
+    }
+
+    .registro-card {
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 10px 30px rgba(194, 60, 84, 0.15);
+        overflow: hidden;
+        background: var(--light-color);
+    }
+
+    .registro-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--hover-color) 100%);
+        color: var(--light-color);
+        padding: 2rem;
+        text-align: center;
+        position: relative;
+    }
+
+    .registro-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+        opacity: 0.1;
+    }
+
+    .registro-header h2 {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .registro-header p {
+        opacity: 0.9;
+        position: relative;
+        z-index: 1;
+    }
+
+    .form-control, .form-select {
+        border-radius: 12px;
+        padding: 12px 16px;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+        font-size: 0.95rem;
+        background: rgba(255, 255, 255, 0.8);
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(194, 60, 84, 0.1);
+        background: var(--light-color);
+        transform: translateY(-1px);
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: var(--hover-color);
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .btn-moira {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--hover-color) 100%);
+        color: var(--light-color);
+        border: none;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(194, 60, 84, 0.3);
+    }
+
+    .btn-moira:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(194, 60, 84, 0.4);
+        color: var(--light-color);
+    }
+
+    .btn-moira:active {
+        transform: translateY(0);
+    }
+
+    .btn-camera {
+        background: var(--secondary-color);
+        color: var(--light-color);
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(194, 60, 84, 0.2);
+    }
+
+    .btn-camera:hover {
+        background: var(--primary-color);
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(194, 60, 84, 0.3);
+    }
+
+    .profile-preview {
+        position: relative;
+        display: inline-block;
+        margin-bottom: 1.5rem;
+    }
+
+    .profile-img {
+        border: 4px solid var(--secondary-color);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(194, 60, 84, 0.2);
+    }
+
+    .profile-img:hover {
+        transform: scale(1.05);
+        border-color: var(--primary-color);
+        box-shadow: 0 6px 20px rgba(194, 60, 84, 0.3);
+    }
+
+    .alert-moira {
+        background-color: var(--accent-light);
+        border: 1px solid var(--accent-border);
+        color: var(--hover-color);
+        border-radius: 12px;
+        padding: 1rem;
+    }
+
+    .alert-danger {
+        background-color: rgba(220, 53, 69, 0.1);
+        border: 1px solid rgba(220, 53, 69, 0.3);
+        color: #dc3545;
+    }
+
+    .periodo-container {
+        transition: all 0.4s ease;
+        overflow: hidden;
+    }
+
+    .periodo-container.show {
+        animation: slideIn 0.4s ease-out;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+            max-height: 0;
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+            max-height: 200px;
+        }
+    }
+
+    .info-message {
+        background: linear-gradient(135deg, var(--accent-light) 0%, rgba(228, 137, 156, 0.05) 100%);
+        border-left: 4px solid var(--secondary-color);
+        border-radius: 8px;
+        padding: 1rem;
+        color: var(--hover-color);
+    }
+
+    .form-text {
+        color: var(--secondary-color);
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .login-link {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .login-link:hover {
+        color: var(--hover-color);
+        text-decoration: underline;
+    }
+
+    .invalid-feedback {
+        color: #dc3545;
+        font-weight: 500;
+    }
+
+    .form-control.is-invalid, .form-select.is-invalid {
+        border-color: #dc3545;
+    }
+
+    .registro-body {
+        padding: 2rem 2.5rem;
+    }
+
+    @media (max-width: 768px) {
+        .registro-body {
+            padding: 1.5rem;
+        }
+
+        .registro-header {
+            padding: 1.5rem;
+        }
+    }
+
+    /* Animación para los campos que aparecen */
+    .form-group {
+        transition: all 0.3s ease;
+    }
+
+    .form-group:hover {
+        transform: translateY(-1px);
+    }
+
+    /* Efecto focus en los inputs */
+    .form-floating {
+        position: relative;
+    }
+
+    .form-floating .form-control:focus ~ label,
+    .form-floating .form-control:not(:placeholder-shown) ~ label {
+        transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+        color: var(--primary-color);
+    }
+</style>
+
+<div class="registro-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card registro-card">
+                    <div class="registro-header">
+                        <h2><i class="bi bi-person-plus me-2"></i> Crear Cuenta</h2>
+                        <p class="mb-0">Completa tus datos para registrarte en Moira</p>
                     </div>
-                    {% endif %}
 
-                    <!-- Formulario -->
-                    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
-                        {% csrf_token %}
-
-                        <div class="row g-3">
-                            <!-- Sección Foto de perfil -->
-                            <div class="col-12 text-center mb-3">
-                                <div class="position-relative d-inline-block">
-                                    <img id="previewFoto" src="{% static 'images/default-profile.png' %}"
-                                         class="rounded-circle border border-4 border-light shadow-sm"
-                                         width="120" height="120"
-                                         alt="Previsualización foto de perfil"
-                                         style="object-fit: cover;">
-                                    <label for="id_foto_perfil" class="btn btn-sm btn-secondary position-absolute bottom-0 end-0 rounded-circle">
-                                        <i class="bi bi-camera-fill"></i>
-                                    </label>
-                                    {{ form.foto_perfil }}
-                                </div>
+                    <div class="registro-body">
+                        <!-- Mensajes -->
+                        {% if messages %}
+                        <div class="mb-4">
+                            {% for message in messages %}
+                            <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-moira{% endif %} alert-dismissible fade show" role="alert">
+                                <i class="bi bi-{% if message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
-
-                            <!-- Datos básicos -->
-                            <div class="col-md-6">
-                                <label for="id_username" class="form-label">Nombre de usuario*</label>
-                                {{ form.username }}
-                                <div class="invalid-feedback">
-                                    Por favor ingresa un nombre de usuario válido.
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label for="id_email" class="form-label">Correo electrónico*</label>
-                                {{ form.email }}
-                                <div class="invalid-feedback">
-                                    Por favor ingresa un email válido.
-                                </div>
-                            </div>
-
-                            <!-- Contraseñas -->
-                            <div class="col-md-6">
-                                <label for="id_password1" class="form-label">Contraseña*</label>
-                                {{ form.password1 }}
-                                <div class="invalid-feedback">
-                                    {{ form.password1.errors }}
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label for="id_password2" class="form-label">Confirmar contraseña*</label>
-                                {{ form.password2 }}
-                                <div class="invalid-feedback">
-                                    {{ form.password2.errors }}
-                                </div>
-                            </div>
-
-                            <!-- Tipo de cuenta -->
-                            <div class="col-md-6">
-                                <label for="id_tipo_perfil" class="form-label">Tipo de cuenta*</label>
-                                {{ form.tipo_perfil }}
-                            </div>
-
-                            <!-- Fecha nacimiento -->
-                            <div class="col-md-6">
-                                <label for="id_fecha_nacimiento" class="form-label">Fecha de nacimiento</label>
-                                {{ form.fecha_nacimiento }}
-                            </div>
-
-                            <!-- Género -->
-                            <div class="col-md-6">
-                                <label for="id_genero" class="form-label">Género</label>
-                                {{ form.genero }}
-                            </div>
-
-                            <!-- Mensaje para géneros sin ciclo menstrual -->
-                            <div id="mensaje-no-periodo" class="col-12 text-muted mb-3" style="display: none;">
-                                <i class="bi bi-info-circle"></i> Los campos de ciclo menstrual no son requeridos para tu género.
-                            </div>
-
-                            <!-- Datos del ciclo menstrual -->
-<div class="col-md-6 periodo-container" style="display: none;">
-    <label for="id_duracion_ciclo_promedio" class="form-label">Duración ciclo (días)</label>
-    <input type="number"
-           name="duracion_ciclo_promedio"
-           id="id_duracion_ciclo_promedio"
-           class="form-control periodo-field"
-           min="21"
-           max="45"
-           value="28"
-           {% if form.duracion_ciclo_promedio.field.required %}required{% endif %}>
-    <small class="form-text text-muted">Normalmente entre 21 y 30 días</small>
-</div>
-
-<div class="col-md-6 periodo-container" style="display: none;">
-    <label for="id_duracion_periodo_promedio" class="form-label">Duración período (días)</label>
-    <input type="number"
-           name="duracion_periodo_promedio"
-           id="id_duracion_periodo_promedio"
-           class="form-control periodo-field"
-           min="2"
-           max="10"
-           value="5"
-           {% if form.duracion_periodo_promedio.field.required %}required{% endif %}>
-    <small class="form-text text-muted">Normalmente entre 2 y 10 días</small>
-</div>
-
-                            <!-- Botón de envío -->
-                            <div class="col-12 mt-4">
-                                <button type="submit" class="btn btn-primary w-100 py-2">
-                                    <i class="bi bi-person-check me-2"></i> Registrarse
-                                </button>
-                            </div>
-
-                            <!-- Enlace a login -->
-                            <div class="col-12 text-center mt-3">
-<p class="mb-0">¿Ya tienes cuenta?
-    <a href="#" class="text-primary" data-bs-toggle="modal" data-bs-target="#loginModal">Inicia sesión</a>
-</p>                            </div>
+                            {% endfor %}
                         </div>
-                    </form>
+                        {% endif %}
+
+                        <!-- Formulario -->
+                        <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                            {% csrf_token %}
+
+                            <div class="row g-3">
+                                <!-- Sección Foto de perfil -->
+                                <div class="col-12 text-center">
+                                    <div class="profile-preview">
+                                        <img id="previewFoto" src="{% static 'images/default-profile.png' %}"
+                                             class="rounded-circle profile-img"
+                                             width="120" height="120"
+                                             alt="Previsualización foto de perfil"
+                                             style="object-fit: cover;">
+                                        <label for="id_foto_perfil" class="btn btn-camera position-absolute bottom-0 end-0">
+                                            <i class="bi bi-camera-fill"></i>
+                                        </label>
+                                        {{ form.foto_perfil }}
+                                    </div>
+                                </div>
+
+                                <!-- Datos básicos -->
+                                <div class="col-md-6 form-group">
+                                    <label for="id_username" class="form-label">
+                                        <i class="bi bi-person me-1"></i>Nombre de usuario*
+                                    </label>
+                                    {{ form.username }}
+                                    <div class="invalid-feedback">
+                                        Por favor ingresa un nombre de usuario válido.
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 form-group">
+                                    <label for="id_email" class="form-label">
+                                        <i class="bi bi-envelope me-1"></i>Correo electrónico*
+                                    </label>
+                                    {{ form.email }}
+                                    <div class="invalid-feedback">
+                                        Por favor ingresa un email válido.
+                                    </div>
+                                </div>
+
+                                <!-- Contraseñas -->
+                                <div class="col-md-6 form-group">
+                                    <label for="id_password1" class="form-label">
+                                        <i class="bi bi-lock me-1"></i>Contraseña*
+                                    </label>
+                                    {{ form.password1 }}
+                                    <div class="invalid-feedback">
+                                        {{ form.password1.errors }}
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 form-group">
+                                    <label for="id_password2" class="form-label">
+                                        <i class="bi bi-lock-fill me-1"></i>Confirmar contraseña*
+                                    </label>
+                                    {{ form.password2 }}
+                                    <div class="invalid-feedback">
+                                        {{ form.password2.errors }}
+                                    </div>
+                                </div>
+
+                                <!-- Tipo de cuenta -->
+                                <div class="col-md-6 form-group">
+                                    <label for="id_tipo_perfil" class="form-label">
+                                        <i class="bi bi-person-badge me-1"></i>Tipo de cuenta*
+                                    </label>
+                                    {{ form.tipo_perfil }}
+                                </div>
+
+                                <!-- Fecha nacimiento -->
+                                <div class="col-md-6 form-group">
+                                    <label for="id_fecha_nacimiento" class="form-label">
+                                        <i class="bi bi-calendar-date me-1"></i>Fecha de nacimiento
+                                    </label>
+                                    {{ form.fecha_nacimiento }}
+                                </div>
+
+                                <!-- Género -->
+                                <div class="col-md-6 form-group">
+                                    <label for="id_genero" class="form-label">
+                                        <i class="bi bi-gender-ambiguous me-1"></i>Género
+                                    </label>
+                                    {{ form.genero }}
+                                </div>
+
+                                <!-- Mensaje para géneros sin ciclo menstrual -->
+                                <div id="mensaje-no-periodo" class="col-12 info-message" style="display: none;">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    Los campos de ciclo menstrual no son requeridos para tu género.
+                                </div>
+
+                                <!-- Datos del ciclo menstrual -->
+                                <div class="col-md-6 periodo-container form-group" style="display: none;">
+                                    <label for="id_duracion_ciclo_promedio" class="form-label">
+                                        <i class="bi bi-calendar-week me-1"></i>Duración ciclo (días)
+                                    </label>
+                                    <input type="number"
+                                           name="duracion_ciclo_promedio"
+                                           id="id_duracion_ciclo_promedio"
+                                           class="form-control periodo-field"
+                                           min="21"
+                                           max="45"
+                                           value="28"
+                                           {% if form.duracion_ciclo_promedio.field.required %}required{% endif %}>
+                                    <small class="form-text">Normalmente entre 21 y 30 días</small>
+                                </div>
+
+                                <div class="col-md-6 periodo-container form-group" style="display: none;">
+                                    <label for="id_duracion_periodo_promedio" class="form-label">
+                                        <i class="bi bi-droplet me-1"></i>Duración período (días)
+                                    </label>
+                                    <input type="number"
+                                           name="duracion_periodo_promedio"
+                                           id="id_duracion_periodo_promedio"
+                                           class="form-control periodo-field"
+                                           min="2"
+                                           max="10"
+                                           value="5"
+                                           {% if form.duracion_periodo_promedio.field.required %}required{% endif %}>
+                                    <small class="form-text">Normalmente entre 2 y 10 días</small>
+                                </div>
+
+                                <!-- Botón de envío -->
+                                <div class="col-12 mt-4">
+                                    <button type="submit" class="btn btn-moira w-100 py-3">
+                                        <i class="bi bi-person-check me-2"></i>Crear mi cuenta
+                                    </button>
+                                </div>
+
+                                <!-- Enlace a login -->
+                                <div class="col-12 text-center mt-3">
+                                    <p class="mb-0 text-muted">¿Ya tienes cuenta?
+                                        <a href="#" class="login-link" data-bs-toggle="modal" data-bs-target="#loginModal">
+                                            Inicia sesión aquí
+                                        </a>
+                                    </p>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -170,7 +439,13 @@ function togglePeriodoFields(generoSeleccionado) {
     const mostrar = ['femenino', 'masculino trans'].includes(generoSeleccionado);
 
     periodoContainers.forEach(container => {
-        container.style.display = mostrar ? 'block' : 'none';
+        if (mostrar) {
+            container.style.display = 'block';
+            container.classList.add('show');
+        } else {
+            container.style.display = 'none';
+            container.classList.remove('show');
+        }
     });
 
     if (mensajeNoPeriodo) {
@@ -205,56 +480,20 @@ document.addEventListener('DOMContentLoaded', function() {
             togglePeriodoFields(this.value);
         });
     }
+
+    // Efecto hover en los form groups
+    const formGroups = document.querySelectorAll('.form-group');
+    formGroups.forEach(group => {
+        const input = group.querySelector('.form-control, .form-select');
+        if (input) {
+            input.addEventListener('focus', () => {
+                group.style.transform = 'translateY(-2px)';
+            });
+            input.addEventListener('blur', () => {
+                group.style.transform = 'translateY(0)';
+            });
+        }
+    });
 });
 </script>
-
-<style>
-    .card {
-        border-radius: 15px;
-        overflow: hidden;
-        transition: all 0.3s ease;
-    }
-    .form-control, .form-select {
-        border-radius: 8px;
-        padding: 10px 15px;
-        transition: all 0.3s ease;
-    }
-    .form-control:focus, .form-select:focus {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-    }
-    #previewFoto {
-        transition: all 0.3s ease;
-    }
-    #previewFoto:hover {
-        transform: scale(1.05);
-    }
-    .btn-secondary {
-        width: 35px;
-        height: 35px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .form-text {
-        font-size: 0.85rem;
-    }
-    .periodo-container {
-        transition: all 0.3s ease;
-        overflow: hidden;
-    }
-    @keyframes fadeIn {
-        from { opacity: 0; max-height: 0; }
-        to { opacity: 1; max-height: 200px; }
-    }
-    .periodo-container[style*="block"] {
-        animation: fadeIn 0.4s ease-out;
-    }
-    #mensaje-no-periodo {
-        background-color: #f8f9fa;
-        padding: 10px;
-        border-radius: 8px;
-        border-left: 4px solid #6c757d;
-    }
-</style>
 {% endblock %}

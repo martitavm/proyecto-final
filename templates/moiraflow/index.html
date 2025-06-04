@@ -23,8 +23,8 @@
                         <i class="fas fa-calendar-alt me-2"></i> Mi Calendario
                         <i class="fas fa-arrow-right ms-2"></i>
                     </a>
-                    <a href="#" class="btn btn-outline-white btn-lg px-4 py-3">
-                        <i class="fas fa-chart-line me-2"></i> Ver Estadísticas
+                    <a href="{% url 'moiraflow:lista_articulos' %}" class="btn btn-outline-white btn-lg px-4 py-3">
+                        <i class="fas fa-book-open me-2"></i> Ver Artículos
                     </a>
                 </div>
                 <div class="hero-stats mt-5">
@@ -83,7 +83,7 @@
     <div class="container">
         <div class="section-header text-center mb-5">
             <h2 class="section-title">¿Por qué elegir MoiraFlow?</h2>
-            <p class="section-subtitle">Herramientas inteligentes diseñadas para tu bienestar hormonal</p>
+            <p class="section-subtitle">Herramientas inteligentes diseñadas para tu bienestar menstrual/hormonal</p>
         </div>
 
         <div class="row g-4">
@@ -94,10 +94,10 @@
                     </div>
                     <div class="feature-content">
                         <h3 class="feature-title">Recordatorios</h3>
-                        <p class="feature-description">Nunca olvides registrar tus síntomas o tomar tu medicación con nuestras alertas personalizadas e inteligentes.</p>
+                        <p class="feature-description">Nunca olvides registrar tus síntomas o tomar tu medicación con nuestras notificaciones personalizadas e inteligentes.</p>
                         <div class="feature-highlight">
                             <i class="fas fa-check-circle me-2"></i>
-                            <span>Alertas personalizadas</span>
+                            <span>Notificaciones personalizadas</span>
                         </div>
                     </div>
                 </div>
@@ -110,11 +110,11 @@
                         <i class="fas fa-chart-pie"></i>
                     </div>
                     <div class="feature-content">
-                        <h3 class="feature-title">Análisis Inteligente</h3>
-                        <p class="feature-description">Identifica patrones en tu ciclo y recibe insights personalizados sobre tu salud hormonal con IA avanzada.</p>
+                        <h3 class="feature-title">Registro Diario</h3>
+                        <p class="feature-description">Identifica patrones en tu ciclo gracias a la creación de registros diarios personalizados sobre tu salud menstrual/hormonal.</p>
                         <div class="feature-highlight">
-                            <i class="fas fa-brain me-2"></i>
-                            <span>Powered by IA</span>
+                            <i class="fas fa-calendar-alt  me-2"></i>
+                            <span>Calendario Interactivo</span>
                         </div>
                     </div>
                 </div>
@@ -123,14 +123,14 @@
             <div class="col-md-4">
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="fas fa-shield-alt"></i>
+                        <i class="fas fa-heart"></i>
                     </div>
                     <div class="feature-content">
-                        <h3 class="feature-title">Privacidad Total</h3>
-                        <p class="feature-description">Tus datos están seguros con cifrado de extremo a extremo. Tu privacidad es nuestra prioridad número uno.</p>
+                        <h3 class="feature-title">Mascota Interactiva</h3>
+                        <p class="feature-description">Mantén feliz a tu mascota completando registros y recibe consejos personalizados, recordatorios cariñosos y apoyo en tu bienestar hormonal.</p>
                         <div class="feature-highlight">
-                            <i class="fas fa-lock me-2"></i>
-                            <span>Cifrado E2E</span>
+                            <i class="fas fa-heart me-2"></i>
+                            <span>Compañera personalizada</span>
                         </div>
                     </div>
                 </div>
@@ -267,7 +267,7 @@
                     <div class="testimonial-author">
                         <img src="{% static 'images/icono1.jpg' %}" class="author-avatar" alt="Ana M.">
                         <div class="author-info">
-                            <h5 class="author-name">Ana M.</h5>
+                            <h5 class="author-name">Daenerys T.</h5>
                             <span class="author-role">Usuaria desde 2022</span>
                         </div>
                     </div>
@@ -285,9 +285,9 @@
                     </div>
                     <p class="testimonial-text">"Por fin una app que realmente entiende las necesidades de las mujeres. Los recordatorios son mi salvación diaria."</p>
                     <div class="testimonial-author">
-                        <img src="{% static 'images/icono2.jpg' %}" class="author-avatar" alt="Lucía G.">
+                        <img src="{% static 'images/icono3.jpg' %}" class="author-avatar" alt="Lucía G.">
                         <div class="author-info">
-                            <h5 class="author-name">Lucía G.</h5>
+                            <h5 class="author-name">Marina Y.</h5>
                             <span class="author-role">Usuaria desde 2023</span>
                         </div>
                     </div>
@@ -303,11 +303,11 @@
                         <i class="fas fa-star"></i>
                         <i class="fas fa-star"></i>
                     </div>
-                    <p class="testimonial-text">"Como mujer con SOP, esta app ha sido fundamental para llevar un control efectivo de mi tratamiento hormonal."</p>
+                    <p class="testimonial-text">"Como mujer trans, MoiraFlow me ha ayudado enormemente a llevar un seguimiento detallado de mi terapia hormonal y sus efectos en mi cuerpo."</p>
                     <div class="testimonial-author">
-                        <img src="{% static 'images/icono3.jpg' %}" class="author-avatar" alt="María J.">
+                        <img src="{% static 'images/icono2.jpg' %}" class="author-avatar" alt="María J.">
                         <div class="author-info">
-                            <h5 class="author-name">María J.</h5>
+                            <h5 class="author-name">Selena M.</h5>
                             <span class="author-role">Usuaria desde 2021</span>
                         </div>
                     </div>
