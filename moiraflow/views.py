@@ -776,8 +776,8 @@ def consejo_mascota(request):
                 'estado_display': mascota.get_estado_display(),
                 'nivel_hambre': mascota.nivel_hambre,
                 'imagen_estado': mascota.imagen_estado,
-                'nuevo_estado': mascota.estado,  # Añadido para claridad
-                'nueva_imagen': mascota.imagen_estado  # Añadido para claridad
+                'nuevo_estado': mascota.estado,
+                'nueva_imagen': mascota.imagen_estado
             })
         else:
             return JsonResponse({
@@ -1161,7 +1161,6 @@ class ListaNotificacionesView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        # Ordenamos por fecha descendente (las más recientes primero)
         return Notificacion.objects.filter(
             usuario=self.request.user
         ).order_by('-fecha_creacion')

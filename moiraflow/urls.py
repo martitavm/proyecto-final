@@ -1,7 +1,6 @@
 from django.contrib.auth.views import PasswordResetView, PasswordResetDoneView, PasswordResetConfirmView, \
     PasswordResetCompleteView
 from django.urls import path
-from rest_framework.routers import DefaultRouter
 
 from moiraflow.views import (
     PaginaPrincipalView,
