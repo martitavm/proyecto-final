@@ -61,13 +61,16 @@ services:
     #  - "8000:8000"
     volumes:
       - .:/app
-      - ./static:/static
+      - static_volume:/static
+      - ./static:/app/static
+
     env_file:
       - .env
     depends_on:
       - db
       - mailpit
-    command: gunicorn proyecto_control_menstrual_hormonal.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2
+    command: >
+      sh -c "python manage.py collectstatic --noinput --clear && gunicorn proyecto_control_menstrual_hormonal.wsgi:application --bind 0.0.0.0:8000" --workers 4 --threads 2
     restart: unless-stopped  # Asegura que el contenedor se reinicie si falla
     labels:
       - "traefik.enable=true"
@@ -75,6 +78,9 @@ services:
       - "traefik.http.routers.web.entrypoints=websecure"
       - "traefik.http.routers.web.tls.certresolver=myresolver"
       - "traefik.http.services.web.loadbalancer.server.port=8000"
+      - "traefik.http.routers.web.middlewares=static@docker"
+      - "traefik.http.middlewares.static.stripprefix.prefixes=/static"
+      - "traefik.http.middlewares.static.stripprefix.forceslash=true"
 
   db:
     image: postgres:16
