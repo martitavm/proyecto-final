@@ -61,7 +61,7 @@ services:
     #  - "8000:8000"
     volumes:
       - .:/app
-      - static_volume:/static
+      - static_files:/static
       - ./static:/app/static
 
     env_file:
