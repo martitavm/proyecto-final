@@ -134,13 +134,13 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'web/static'),  # Aquí van imágenes como logotipos, fondos, etc.
+    os.path.join(BASE_DIR, 'static'),  # Aquí van imágenes como logotipos, fondos, etc.
 ]
 
 # Media files
 MEDIA_URL = '/media/'
 
-MEDIA_ROOT = os.path.join(BASE_DIR, 'web/media')  # Los archivos subidos se guardarán en "media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Los archivos subidos se guardarán en "media/"
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
