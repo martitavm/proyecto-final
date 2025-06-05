@@ -117,7 +117,7 @@ services:
 
   celery:
     image: ${IMAGE}
-    command: celery -A ArenaGG worker --loglevel=info
+    command: celery -A proyecto_control_menstrual_hormonal worker --loglevel=info
     volumes:
       - .:/app
     depends_on:
@@ -128,7 +128,7 @@ services:
 
   celery-beat:
     image: ${IMAGE}
-    command: celery -A ArenaGG beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    command: celery -A proyecto_control_menstrual_hormonal beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     volumes:
       - .:/app
     depends_on:
