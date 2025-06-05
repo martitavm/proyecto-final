@@ -61,14 +61,16 @@ services:
     #  - "8000:8000"
     volumes:
       - .:/app
-      - ./static:/static
+      - static_volume:/static
+      - media_volume:/media
 
     env_file:
       - .env
     depends_on:
       - db
       - mailpit
-    command: gunicorn proyecto_control_menstrual_hormonal.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2
+    command: >
+      sh -c "python manage.py collectstatic --noinput && gunicorn proyecto_control_menstrual_hormonal.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2" --workers 4 --threads 2
     restart: unless-stopped  # Asegura que el contenedor se reinicie si falla
     labels:
       - "traefik.enable=true"
@@ -138,5 +140,20 @@ services:
     env_file:
       - .env
 
+  static:
+    image: nginx:alpine
+    container_name: static_files
+    volumes:
+      - static_volume:/usr/share/nginx/html/static
+      - media_volume:/usr/share/nginx/html/media
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.static.rule=Host(`moiraflow.martavm.tech`) && PathPrefix(`/static/`, `/media/`)"
+      - "traefik.http.routers.static.entrypoints=websecure"
+      - "traefik.http.routers.static.tls.certresolver=myresolver"
+      - "traefik.http.services.static.loadbalancer.server.port=80"
+
 volumes:
   postgres_data:
+  static_volume:
+  media_volume:
