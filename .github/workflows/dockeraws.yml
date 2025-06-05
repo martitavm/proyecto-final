@@ -12,7 +12,7 @@ on:
       - 'docker-compose.yml'
       - 'manage.py'
       - 'requirements.txt'
-      - 'static'
+      - 'static/**'
   pull_request:
     branches: [ main ]
     paths:
@@ -24,7 +24,7 @@ on:
       - 'docker-compose.yml'
       - 'manage.py'
       - 'requirements.txt'
-      - 'static'
+      - 'static/**'
 
 env:
   IMAGE_NAME: proyecto-final
