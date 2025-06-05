@@ -27,7 +27,7 @@ on:
       - 'static'
 
 env:
-  IMAGE_NAME: martavm/proyecto-final
+  IMAGE_NAME: proyecto-final
   IMAGE_TAG: latest
   COMPOSE: docker-compose.yml
 
