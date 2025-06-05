@@ -145,3 +145,4 @@ services:
 
 volumes:
   postgres_data:
+  static_files:
