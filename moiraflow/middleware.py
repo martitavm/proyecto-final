@@ -9,6 +9,6 @@ class MascotaMiddleware:
                 if mascota:
                     mascota.actualizar_hambre()
             except:
-                # Ignora errores relacionados con mascota
+
                 pass
         return self.get_response(request)

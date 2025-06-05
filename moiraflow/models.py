@@ -21,7 +21,6 @@ class Perfil(models.Model):
         FEMENINO = 'femenino', 'Femenino'
         MASCULINO_TRANS = 'masculino trans', 'Masculino Trans'
         FEMENINO_TRANS = 'femenino trans', 'Femenino Trans'
-        OTRO = 'otro', 'Otro'
 
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil')
     foto_perfil = models.ImageField(upload_to="perfiles/", null=True, blank=True)
