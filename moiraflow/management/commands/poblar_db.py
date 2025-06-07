@@ -478,7 +478,7 @@ def crear_articulos(usuarios):
 
         # Asignamos imagen de portada aleatoria
         imagen_elegida = random.choice(imagenes_portada)
-        ruta_imagen = os.path.join('/proyecto-final/static/images', imagen_elegida)
+        ruta_imagen = os.path.join('/app/static/images', imagen_elegida)
 
         with open(ruta_imagen, 'rb') as f:
             imagen = File(f)
