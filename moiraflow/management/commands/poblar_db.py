@@ -45,7 +45,7 @@ def crear_usuarios_y_perfiles():
     usuarios = []
     imagen_usuario = 'default-profile.PNG'
     # Ruta a la imagen por defecto
-    ruta_imagen_perfil = os.path.join('/proyecto-final/static/images', imagen_usuario)
+    ruta_imagen_perfil = os.path.join('/app/static/images', imagen_usuario)
 
     for i in range(NUM_USUARIOS):
         # Generar datos aleatorios
