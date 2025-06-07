@@ -43,9 +43,9 @@ def random_date(start, end):
 def crear_usuarios_y_perfiles():
     print("Creando usuarios y perfiles...")
     usuarios = []
-
+    imagen_usuario = 'default-profile.PNG'
     # Ruta a la imagen por defecto
-    ruta_imagen_perfil = os.path.join(settings.BASE_DIR, 'static', 'images', 'default-profile.PNG')
+    ruta_imagen_perfil = os.path.join('/proyecto-final/static/images', imagen_usuario)
 
     for i in range(NUM_USUARIOS):
         # Generar datos aleatorios
