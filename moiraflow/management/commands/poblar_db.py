@@ -44,6 +44,9 @@ def crear_usuarios_y_perfiles():
     print("Creando usuarios y perfiles...")
     usuarios = []
 
+    # Ruta a la imagen por defecto
+    ruta_imagen_perfil = os.path.join(settings.BASE_DIR, 'static', 'images', 'default-profile.PNG')
+
     for i in range(NUM_USUARIOS):
         # Generar datos aleatorios
         nombre = random.choice(NOMBRES)
@@ -71,33 +74,40 @@ def crear_usuarios_y_perfiles():
             password=make_password('password123')
         )
 
-        # Crear perfil
-        perfil = Perfil.objects.create(
-            usuario=user,
-            fecha_nacimiento=fecha_nacimiento,
-            genero=genero,
-            es_premium=random.choice([True, False]),
-            tipo_perfil=random.choice([
-                Perfil.TipoPerfil.USUARIO,
-                Perfil.TipoPerfil.AUTOR,
-                Perfil.TipoPerfil.ADMIN
-            ]),
-            tipo_seguimiento=Perfil.TipoSeguimiento.MENSTRUAL if genero in [
-                Perfil.Genero.FEMENINO, Perfil.Genero.MASCULINO_TRANS
-            ] else Perfil.TipoSeguimiento.HORMONAL,
-            duracion_ciclo_promedio=random.randint(25, 35) if genero in [
-                Perfil.Genero.FEMENINO, Perfil.Genero.MASCULINO_TRANS
-            ] else None,
-            duracion_periodo_promedio=random.randint(3, 7) if genero in [
-                Perfil.Genero.FEMENINO, Perfil.Genero.MASCULINO_TRANS
-            ] else None
-        )
+        # Crear perfil con imagen por defecto
+        with open(ruta_imagen_perfil, 'rb') as f:
+            perfil = Perfil(
+                usuario=user,
+                fecha_nacimiento=fecha_nacimiento,
+                genero=genero,
+                es_premium=random.choice([True, False]),
+                tipo_perfil=random.choice([
+                    Perfil.TipoPerfil.USUARIO,
+                    Perfil.TipoPerfil.AUTOR,
+                    Perfil.TipoPerfil.ADMIN
+                ]),
+                tipo_seguimiento=Perfil.TipoSeguimiento.MENSTRUAL if genero in [
+                    Perfil.Genero.FEMENINO, Perfil.Genero.MASCULINO_TRANS
+                ] else Perfil.TipoSeguimiento.HORMONAL,
+                duracion_ciclo_promedio=random.randint(25, 35) if genero in [
+                    Perfil.Genero.FEMENINO, Perfil.Genero.MASCULINO_TRANS
+                ] else None,
+                duracion_periodo_promedio=random.randint(3, 7) if genero in [
+                    Perfil.Genero.FEMENINO, Perfil.Genero.MASCULINO_TRANS
+                ] else None
+            )
+
+            # Asignar la imagen de perfil
+            perfil.foto_perfil.save(
+                f'profile_{username}.png',  # Nombre único para el archivo
+                File(f),
+                save=True
+            )
 
         usuarios.append(user)
         print(f"Creado usuario: {username}")
 
     return usuarios
-
 
 def crear_ciclos_menstruales(usuarios):
     print("Creando ciclos menstruales...")
@@ -468,7 +478,7 @@ def crear_articulos(usuarios):
 
         # Asignamos imagen de portada aleatoria
         imagen_elegida = random.choice(imagenes_portada)
-        ruta_imagen = os.path.join(settings.BASE_DIR, 'static', 'images', imagen_elegida)
+        ruta_imagen = os.path.join('/proyecto-final/static/images', imagen_elegida)
 
         with open(ruta_imagen, 'rb') as f:
             imagen = File(f)
