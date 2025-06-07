@@ -16,7 +16,7 @@ from moiraflow.models import (
 )
 
 # Configuración inicial
-NUM_USUARIOS = 10
+NUM_USUARIOS = 50
 NUM_ARTICULOS = 30
 FECHA_INICIO = (timezone.now() - timedelta(days=365)).date()
 FECHA_FIN = timezone.now().date()
@@ -411,150 +411,71 @@ def crear_recordatorios(usuarios):
     return recordatorios
 
 
+# Crear artículos
+import os
+from django.core.files import File
+from django.conf import settings
+import random
+from datetime import datetime, timedelta
+
 def crear_articulos(usuarios):
     print("Creando artículos...")
     articulos = []
     autores = [user for user in usuarios if user.perfil.tipo_perfil in ['autor', 'administracion']]
 
-    imagenes_base = [
-        'articulo1.jpg',
-        'articulo2.jpg',
-        'articulo3.jpg',
-        'articulo4.jpg',
-        'articulo5.jpg'
-    ]
+    # Lista de imágenes disponibles
+    imagenes_portada = ['articulo1.jpg', 'articulo2.jpg', 'articulo3.jpg', 'articulo4.jpg', 'articulo5.jpg']
 
-    titulos_opciones = [
-        "Consejos para manejar el síndrome premenstrual",
-        "Guía completa sobre tratamientos hormonales",
-        "Cómo llevar un registro menstrual efectivo",
-        "Los beneficios del ejercicio durante el ciclo",
-        "Mitos y verdades sobre la terapia hormonal",
-        "Alimentación y ciclo menstrual",
-        "Cambios emocionales durante la transición",
-        "Cómo hablar con tu médico sobre tus síntomas",
-        "Técnicas de relajación para días difíciles",
-        "Historias reales: mi experiencia con la terapia"
-    ]
-
-    contenido_base = "\n\n".join([
-        "Este es un párrafo introductorio sobre el tema.",
-        "Aquí se desarrolla el contenido principal con más detalles.",
-        "Finalmente, se concluye con recomendaciones prácticas."
-    ])
-
-    categorias_opciones = [
-        'salud_menstrual',
-        'tratamientos_hormonales',
-        'bienestar',
-        'consejos',
-        'investigacion',
-        'historias'
-    ]
-
-    # Crear directorios necesarios
-    media_articulos_path = os.path.join(settings.MEDIA_ROOT, 'articulos')
-    os.makedirs(media_articulos_path, exist_ok=True)
-
-    print(f"MEDIA_ROOT: {settings.MEDIA_ROOT}")
-    print(f"STATIC_ROOT: {settings.STATIC_ROOT}")
-    print(f"Directorio articulos creado en: {media_articulos_path}")
-
-    for i in range(NUM_ARTICULOS):
-        print(f"Creando artículo {i + 1}/{NUM_ARTICULOS}")
-
+    for _ in range(NUM_ARTICULOS):
         autor = random.choice(autores)
         fecha_publicacion = random_date(FECHA_INICIO, FECHA_FIN) if random.choice([True, False]) else None
 
-        # Determinar estado
-        if fecha_publicacion:
-            estado = 'publicado'
-        else:
-            estado = random.choice(['borrador', 'publicado', 'archivado'])
+        # Primero creamos el artículo sin la imagen
+        articulo = Articulo(
+            autor=autor,
+            titulo=random.choice([
+                "Consejos para manejar el síndrome premenstrual",
+                "Guía completa sobre tratamientos hormonales",
+                "Cómo llevar un registro menstrual efectivo",
+                "Los beneficios del ejercicio durante el ciclo",
+                "Mitos y verdades sobre la terapia hormonal",
+                "Alimentación y ciclo menstrual",
+                "Cambios emocionales durante la transición",
+                "Cómo hablar con tu médico sobre tus síntomas",
+                "Técnicas de relajación para días difíciles",
+                "Historias reales: mi experiencia con la terapia"
+            ]),
+            contenido="\n\n".join([
+                "Este es un párrafo introductorio sobre el tema.",
+                "Aquí se desarrolla el contenido principal con más detalles.",
+                "Finalmente, se concluye con recomendaciones prácticas."
+            ]),
+            estado='publicado' if fecha_publicacion else random.choice(['borrador', 'publicado', 'archivado']),
+            categoria=random.choice([
+                'salud_menstrual',
+                'tratamientos_hormonales',
+                'bienestar',
+                'consejos',
+                'investigacion',
+                'historias'
+            ]),
+            fecha_publicacion=fecha_publicacion,
+            destacado=random.choice([True, False])
+        )
 
-        # Datos comunes del artículo
-        datos_articulo = {
-            'autor': autor,
-            'titulo': random.choice(titulos_opciones),
-            'contenido': contenido_base,
-            'estado': estado,
-            'categoria': random.choice(categorias_opciones),
-            'fecha_publicacion': fecha_publicacion,
-            'destacado': random.choice([True, False])
-        }
+        # Guardamos primero el artículo para tener un ID
+        articulo.save()
 
-        # Crear artículo primero
-        articulo = Articulo.objects.create(**datos_articulo)
-        print(f"Artículo creado: {articulo.titulo} (ID: {articulo.id})")
+        # Asignamos imagen de portada aleatoria
+        imagen_elegida = random.choice(imagenes_portada)
+        ruta_imagen = os.path.join(settings.BASE_DIR, 'static', 'images', imagen_elegida)
 
-        # Intentar asignar imagen
-        imagen_nombre = random.choice(imagenes_base)
-        imagen_static_path = os.path.join(settings.STATIC_ROOT, 'images', imagen_nombre)
-
-        # También intentar desde STATICFILES_DIRS si STATIC_ROOT no existe
-        if not os.path.exists(imagen_static_path) and hasattr(settings, 'STATICFILES_DIRS'):
-            for static_dir in settings.STATICFILES_DIRS:
-                imagen_static_path = os.path.join(static_dir, 'images', imagen_nombre)
-                if os.path.exists(imagen_static_path):
-                    break
-
-        print(f"Buscando imagen en: {imagen_static_path}")
-
-        if os.path.exists(imagen_static_path):
-            try:
-                # Método 1: Usar ContentFile (recomendado)
-                with open(imagen_static_path, 'rb') as img_file:
-                    img_content = img_file.read()
-                    django_file = ContentFile(img_content)
-
-                    # Generar nombre único para evitar conflictos
-                    nombre_unico = f"{articulo.id}_{imagen_nombre}"
-                    articulo.imagen_portada.save(nombre_unico, django_file, save=True)
-
-                print(f"✓ Imagen {imagen_nombre} guardada como {nombre_unico}")
-                print(f"  Ruta final: {articulo.imagen_portada.url if articulo.imagen_portada else 'No guardada'}")
-
-            except Exception as e:
-                print(f"✗ Error al guardar imagen {imagen_nombre}: {e}")
-
-                # Método alternativo: copiar manualmente el archivo
-                try:
-                    print("Intentando método alternativo...")
-                    nombre_unico = f"{articulo.id}_{imagen_nombre}"
-                    destino_path = os.path.join(media_articulos_path, nombre_unico)
-
-                    # Copiar archivo manualmente
-                    shutil.copy2(imagen_static_path, destino_path)
-
-                    # Asignar ruta relativa al modelo
-                    articulo.imagen_portada = f"articulos/{nombre_unico}"
-                    articulo.save()
-
-                    print(f"✓ Imagen copiada manualmente: {nombre_unico}")
-
-                except Exception as e2:
-                    print(f"✗ Error en método alternativo: {e2}")
-        else:
-            print(f"✗ No se encontró la imagen: {imagen_static_path}")
-            # Listar archivos disponibles para debug
-            static_images_dir = os.path.dirname(imagen_static_path)
-            if os.path.exists(static_images_dir):
-                archivos_disponibles = os.listdir(static_images_dir)
-                print(f"  Archivos disponibles en {static_images_dir}: {archivos_disponibles}")
+        with open(ruta_imagen, 'rb') as f:
+            imagen = File(f)
+            # Usamos el mismo nombre de archivo o podemos generar uno único
+            articulo.imagen_portada.save(imagen_elegida, imagen, save=True)
 
         articulos.append(articulo)
-
-    print(f"\n=== RESUMEN ===")
-    print(f"Se crearon {len(articulos)} artículos")
-
-    # Verificar qué artículos tienen imagen
-    con_imagen = sum(1 for a in articulos if a.imagen_portada)
-    print(f"Artículos con imagen: {con_imagen}/{len(articulos)}")
-
-    # Listar archivos en media/articulos
-    if os.path.exists(media_articulos_path):
-        archivos_media = os.listdir(media_articulos_path)
-        print(f"Archivos en media/articulos/: {archivos_media}")
 
     return articulos
 
